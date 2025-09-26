@@ -1,6 +1,10 @@
 # Node.js dependencies
 node_modules/
 frontend/node_modules/
+microservices/user-service/node_modules/
+microservices/api-gateway/node_modules/
+microservices/auth-service/node_modules/
+microservices/scholarship-service/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
