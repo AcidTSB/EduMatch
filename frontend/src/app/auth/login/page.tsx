@@ -1,0 +1,224 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const router = useRouter();
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!password.trim()) {
+      newErrors.password = 'Password is required';
+    } else if (password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    
+    try {
+      // Mock API call - replace with actual authentication
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Determine user role and data based on email
+      const isProvider = email.includes('provider') || email.includes('university') || email.includes('institution');
+      const role = isProvider ? 'provider' : 'applicant';
+      
+      // Mock user data
+      const userData = {
+        id: isProvider ? 'provider-1' : 'student-1',
+        name: isProvider ? 'Dr. Sarah Wilson' : 'John Doe',
+        email: email,
+        role: role,
+        avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${isProvider ? 'Sarah' : 'John'}`
+      };
+      
+      // Store authentication data
+      localStorage.setItem('auth_token', 'mock-jwt-token');
+      localStorage.setItem('user_role', role);
+      localStorage.setItem('user_data', JSON.stringify(userData));
+      
+      // Redirect based on role
+      if (isProvider) {
+        router.push('/provider/dashboard');
+      } else {
+        router.push('/applicant/scholarships');
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+      setErrors({ submit: 'Invalid email or password. Please try again.' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    if (field === 'email') setEmail(value);
+    if (field === 'password') setPassword(value);
+    
+    // Clear error when user starts editing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-brand-blue-50 via-white to-brand-cyan-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-12 h-12 bg-brand-blue-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xl">E</span>
+            </div>
+          </div>
+          <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
+          <p className="text-muted-foreground text-center">
+            Sign in to your EduMatch account
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {errors.submit && (
+              <div className="bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded-lg text-sm">
+                {errors.submit}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className="pl-10"
+                  error={errors.email}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  className="pl-10 pr-10"
+                  error={errors.password}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked === true)}
+                />
+                <label
+                  htmlFor="remember-me"
+                  className="text-sm text-muted-foreground cursor-pointer"
+                >
+                  Remember me
+                </label>
+              </div>
+              <Link
+                href="/auth/forgot-password"
+                className="text-sm text-brand-blue-500 hover:underline"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              loading={isLoading}
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing in...' : 'Sign in'}
+              {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+            </Button>
+
+            <div className="text-center text-sm text-muted-foreground">
+              Don't have an account?{' '}
+              <Link
+                href="/auth/register"
+                className="text-brand-blue-500 hover:underline font-medium"
+              >
+                Sign up
+              </Link>
+            </div>
+          </form>
+
+          {/* Demo accounts */}
+          <div className="mt-6 pt-6 border-t">
+            <p className="text-xs text-muted-foreground text-center mb-3">
+              Demo accounts (for testing):
+            </p>
+            <div className="space-y-2 text-xs">
+              <div className="bg-muted p-3 rounded-lg">
+                <p className="font-medium">Applicant Account</p>
+                <p>Email: student@demo.com</p>
+                <p>Password: demo123</p>
+              </div>
+              <div className="bg-muted p-3 rounded-lg">
+                <p className="font-medium">Provider Account</p>
+                <p>Email: provider@demo.com</p>
+                <p>Password: demo123</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

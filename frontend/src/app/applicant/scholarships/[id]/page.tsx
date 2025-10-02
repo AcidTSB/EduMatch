@@ -1,0 +1,465 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { 
+  ArrowLeft, 
+  MapPin, 
+  Calendar, 
+  DollarSign, 
+  Clock, 
+  Building2, 
+  User, 
+  Award,
+  CheckCircle,
+  Heart,
+  Share2,
+  FileText,
+  GraduationCap,
+  Globe,
+  Mail,
+  ExternalLink,
+  Users,
+  Star,
+  Bookmark,
+  BookmarkCheck
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ApplyButton } from '@/components/ApplyButton';
+import { useApplications, useSavedScholarships } from '@/hooks/api';
+import { mockScholarships } from '@/lib/mock-data';
+import { Scholarship, ScholarshipType, ScholarshipStatus } from '@/types';
+import { formatDate, formatCurrency, cn } from '@/lib/utils';
+import { toast } from 'react-hot-toast';
+
+export default function ScholarshipDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const [scholarship, setScholarship] = useState<Scholarship | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasApplied, setHasApplied] = useState(false);
+
+  // Use our custom hooks
+  const { checkApplicationStatus } = useApplications();
+  const { isScholarshipSaved, toggleSaved, loading: savedLoading } = useSavedScholarships();
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const scholarshipId = params.id as string;
+      setIsLoading(true);
+
+      try {
+        // For now, use mock data but with API structure
+        // TODO: Replace with actual API call when backend is ready
+        const found = mockScholarships.find(s => s.id === scholarshipId);
+        setScholarship(found || null);
+
+        if (found) {
+          // Check if user has already applied
+          const applicationStatus = await checkApplicationStatus(scholarshipId);
+          setHasApplied(!!applicationStatus);
+        }
+      } catch (error) {
+        console.error('Error fetching scholarship:', error);
+        toast.error('Failed to load scholarship details');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [params.id, checkApplicationStatus]);
+
+  const handleSaveToggle = async () => {
+    if (!scholarship) return;
+
+    try {
+      await toggleSaved(scholarship.id);
+      toast.success(isScholarshipSaved(scholarship.id) ? 'Scholarship saved!' : 'Scholarship unsaved!');
+    } catch (error) {
+      toast.error('Failed to update saved status');
+    }
+  };
+
+  const getTypeColor = (type: ScholarshipType) => {
+    switch (type) {
+      case ScholarshipType.UNDERGRADUATE:
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case ScholarshipType.GRADUATE:
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case ScholarshipType.PHD:
+        return 'bg-green-100 text-green-800 border-green-200';
+      case ScholarshipType.POSTDOC:
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case ScholarshipType.RESEARCH:
+        return 'bg-teal-100 text-teal-800 border-teal-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getStatusColor = (status: ScholarshipStatus) => {
+    switch (status) {
+      case ScholarshipStatus.PUBLISHED:
+        return 'bg-green-100 text-green-800';
+      case ScholarshipStatus.DRAFT:
+        return 'bg-gray-100 text-gray-800';
+      case ScholarshipStatus.CLOSED:
+        return 'bg-red-100 text-red-800';
+      case ScholarshipStatus.EXPIRED:
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-6"></div>
+              <div className="space-y-3">
+                <div className="h-4 bg-gray-200 rounded w-full"></div>
+                <div className="h-4 bg-gray-200 rounded w-full"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!scholarship) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <Button 
+            variant="ghost" 
+            onClick={() => router.back()}
+            className="mb-6"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <Card>
+            <CardContent className="p-12 text-center">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">Scholarship Not Found</h1>
+              <p className="text-gray-600 mb-6">
+                The scholarship you're looking for doesn't exist or has been removed.
+              </p>
+              <Button onClick={() => router.push('/applicant/scholarships')}>
+                Browse All Scholarships
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const isDeadlinePassed = new Date() > new Date(scholarship.applicationDeadline);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Back Button */}
+        <Button 
+          variant="ghost" 
+          onClick={() => router.back()}
+          className="mb-6"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Scholarships
+        </Button>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Main Info */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Header Card */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge className={cn("border", getTypeColor(scholarship.type))}>
+                    {scholarship.type.replace('_', ' ')}
+                  </Badge>
+                  <Badge className={getStatusColor(scholarship.status)}>
+                    {scholarship.status}
+                  </Badge>
+                  {scholarship.isRemote && (
+                    <Badge variant="outline">
+                      <Globe className="h-3 w-3 mr-1" />
+                      Remote
+                    </Badge>
+                  )}
+                </div>
+
+                <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                  {scholarship.title}
+                </h1>
+
+                <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600 mb-6">
+                  <div className="flex items-center">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    {scholarship.university}
+                  </div>
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-2" />
+                    {scholarship.location}
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Due {formatDate(scholarship.applicationDeadline)}
+                  </div>
+                  <div className="flex items-center">
+                    <Users className="h-4 w-4 mr-2" />
+                    {scholarship.viewCount} views
+                  </div>
+                </div>
+
+                <p className="text-gray-700 text-lg leading-relaxed">
+                  {scholarship.description}
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Details Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <FileText className="h-5 w-5 mr-2" />
+                  Scholarship Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Financial Info */}
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    Financial Information
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Amount:</span>
+                      <p className="font-medium text-2xl text-green-600">
+                        {formatCurrency(scholarship.amount || 0)}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Duration:</span>
+                      <p className="font-medium">{scholarship.duration} months</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Payment:</span>
+                      <p className="font-medium">
+                        {scholarship.isPaidMonthly ? 'Monthly' : 'Lump Sum'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Department:</span>
+                      <p className="font-medium">{scholarship.department}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Timeline */}
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                    <Clock className="h-4 w-4 mr-2" />
+                    Timeline
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Application Deadline:</span>
+                      <span className={cn("font-medium", isDeadlinePassed ? "text-red-600" : "text-gray-900")}>
+                        {formatDate(scholarship.applicationDeadline)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Start Date:</span>
+                      <span className="font-medium">{scholarship.startDate ? formatDate(scholarship.startDate) : 'TBD'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">End Date:</span>
+                      <span className="font-medium">{scholarship.endDate ? formatDate(scholarship.endDate) : 'TBD'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Requirements */}
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Requirements
+                  </h3>
+                  <div className="space-y-3">
+                    <div>
+                      <span className="text-sm text-gray-600">Minimum GPA:</span>
+                      <p className="font-medium">{scholarship.minGpa}/4.0</p>
+                    </div>
+                    
+                    {scholarship.requiredSkills && scholarship.requiredSkills.length > 0 && (
+                      <div>
+                        <span className="text-sm text-gray-600 block mb-2">Required Skills:</span>
+                        <div className="flex flex-wrap gap-2">
+                          {scholarship.requiredSkills.map((skill, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {scholarship.preferredSkills && scholarship.preferredSkills.length > 0 && (
+                      <div>
+                        <span className="text-sm text-gray-600 block mb-2">Preferred Skills:</span>
+                        <div className="flex flex-wrap gap-2">
+                          {scholarship.preferredSkills.map((skill, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Contact Info */}
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                    <Mail className="h-4 w-4 mr-2" />
+                    Contact Information
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Email:</span>
+                      <a href={`mailto:${scholarship.contactEmail}`} className="text-blue-600 hover:underline text-sm">
+                        {scholarship.contactEmail}
+                      </a>
+                    </div>
+                    {scholarship.website && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Website:</span>
+                        <a 
+                          href={scholarship.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-sm flex items-center"
+                        >
+                          Visit Website
+                          <ExternalLink className="h-3 w-3 ml-1" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Actions */}
+          <div className="space-y-6">
+            {/* Action Buttons */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  <ApplyButton 
+                    scholarship={scholarship}
+                    hasApplied={hasApplied}
+                    className="w-full"
+                  />
+
+                  <Button 
+                    variant="outline" 
+                    onClick={handleSaveToggle}
+                    disabled={savedLoading}
+                    className="w-full"
+                  >
+                    {isScholarshipSaved(scholarship?.id || '') ? (
+                      <>
+                        <BookmarkCheck className="h-4 w-4 mr-2" />
+                        Saved
+                      </>
+                    ) : (
+                      <>
+                        <Bookmark className="h-4 w-4 mr-2" />
+                        Save for Later
+                      </>
+                    )}
+                  </Button>
+
+                  <Button variant="outline" className="w-full">
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Stats */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Quick Stats</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Views</span>
+                  <span className="font-medium">{scholarship.viewCount}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Applications</span>
+                  <span className="font-medium">{Math.floor(Math.random() * 50) + 10}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Acceptance Rate</span>
+                  <span className="font-medium">{Math.floor(Math.random() * 30) + 15}%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Competition</span>
+                  <Badge variant="outline" className="text-xs">
+                    {Math.random() > 0.5 ? 'High' : 'Medium'}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tags */}
+            {scholarship.tags && scholarship.tags.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Tags</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {scholarship.tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        #{tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
