@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useEffect, ReactNode } from 'react';
 import { useSocket } from '@/hooks/useSocket';
-import { useAuth } from '@/lib/auth';
 import { 
   useNotificationStore,
   useMessageStore,
@@ -10,6 +9,40 @@ import {
   useDashboardStore,
   useMatchStore
 } from '@/stores/realtimeStore';
+
+// Simple auth hook - same as Navbar and Messages
+const useAuth = () => {
+  const getStoredUser = () => {
+    if (typeof window === 'undefined') return null;
+    
+    const token = localStorage.getItem('auth_token');
+    const role = localStorage.getItem('user_role');
+    const userData = localStorage.getItem('user_data');
+    
+    if (!token) return null;
+    
+    if (userData) {
+      try {
+        return JSON.parse(userData);
+      } catch (e) {
+        // fallback to basic user data
+      }
+    }
+    
+    return {
+      id: '1',
+      name: 'John Doe',
+      email: 'john.doe@email.com',
+      role: role || 'applicant' as 'applicant' | 'provider' | 'admin',
+      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John'
+    };
+  };
+  
+  return {
+    user: getStoredUser(),
+    isAuthenticated: typeof window !== 'undefined' && localStorage.getItem('auth_token') !== null,
+  };
+};
 import { 
   Notification as NotificationModel,
   Message,
@@ -70,6 +103,15 @@ export function RealTimeProvider({ children }: RealTimeProviderProps) {
     
     return false;
   };
+
+  // Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        console.log('Notification permission:', permission);
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (!socket.isConnected || !isAuthenticated) return;

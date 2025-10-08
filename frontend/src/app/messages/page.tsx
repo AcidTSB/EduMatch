@@ -7,17 +7,55 @@ import {
   Filter,
   Users,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Wifi,
+  WifiOff,
+  Plus
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { MessageList, QuickContacts } from '@/components/messaging/MessageComponents';
 import { ChatWindow } from '@/components/ChatWindow';
-import { useAuth } from '@/lib/auth';
-import { useMessageStore } from '@/stores/realtimeStore';
+import { useMessageStore, useNotificationStore } from '@/stores/realtimeStore';
+import { useRealTime } from '@/providers/RealTimeProvider';
+
+// Simple auth hook - same as Navbar
+const useAuth = () => {
+  const getStoredUser = () => {
+    if (typeof window === 'undefined') return null;
+    
+    const token = localStorage.getItem('auth_token');
+    const role = localStorage.getItem('user_role');
+    const userData = localStorage.getItem('user_data');
+    
+    if (!token) return null;
+    
+    if (userData) {
+      try {
+        return JSON.parse(userData);
+      } catch (e) {
+        // fallback to basic user data
+      }
+    }
+    
+    return {
+      id: '1',
+      name: 'John Doe',
+      email: 'john.doe@email.com',
+      role: role || 'applicant' as 'applicant' | 'provider' | 'admin',
+      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John'
+    };
+  };
+  
+  return {
+    user: getStoredUser(),
+    isAuthenticated: typeof window !== 'undefined' && localStorage.getItem('auth_token') !== null,
+  };
+};
 
 // Mock data - replace with real API calls
 const mockMessages = [
@@ -82,47 +120,76 @@ const mockContacts = [
 
 export default function MessagesPage() {
   const { user } = useAuth();
+  const { socket, sendMessage } = useRealTime();
+  const { messages, chatRooms } = useMessageStore();
+  const { notifications } = useNotificationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContactId, setSelectedContactId] = useState<string>();
   const [isMessagePanelOpen, setIsMessagePanelOpen] = useState(false);
+  const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+
+  // Get real-time messages and contacts from stores
+  const realTimeMessages = React.useMemo(() => {
+    const allMessages: any[] = [];
+    Object.entries(messages).forEach(([roomId, roomMessages]) => {
+      (roomMessages as any[]).forEach(msg => {
+        if (msg.receiverId === user?.id) {
+          allMessages.push({
+            id: msg.id,
+            senderName: msg.senderId, // In real app, you'd lookup user name
+            senderRole: 'provider', // In real app, you'd lookup user role
+            content: msg.content,
+            timestamp: msg.createdAt,
+            isRead: msg.status === 'read',
+            senderAvatar: '',
+            senderId: msg.senderId
+          });
+        }
+      });
+    });
+    return allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [messages, user?.id]);
+
+  // Get online users as contacts
+  const onlineContacts = React.useMemo(() => {
+    if (!socket?.onlineUsers || !user) return [];
+    
+    return socket.onlineUsers
+      .filter((userId: string) => userId !== user.id)
+      .map((userId: string) => ({
+        id: userId,
+        name: userId, // In real app, you'd lookup user name
+        role: 'applicant', // In real app, you'd lookup user role
+        avatar: '',
+        isOnline: true,
+        unreadCount: 0, // Calculate from messages
+        lastSeen: new Date().toISOString()
+      }));
+  }, [socket?.onlineUsers, user?.id]);
 
   // Filter messages and contacts based on search query
-  const filteredMessages = mockMessages.filter(message =>
+  const filteredMessages = realTimeMessages.filter(message =>
     message.senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     message.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredContacts = mockContacts.filter(contact => {
+  const filteredContacts = onlineContacts.filter(contact => {
     if (!user) return false;
     
     const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Filter by user role
-    if (user.role === 'applicant') {
-      return contact.role === 'provider' && matchesSearch;
-    }
-    if (user.role === 'provider') {
-      return contact.role === 'applicant' && matchesSearch;
-    }
-    if (user.role === 'admin') {
-      return matchesSearch;
-    }
-    
-    return false;
+    // Filter by user role (in real app, you'd have proper role checking)
+    return matchesSearch;
   });
 
   const unreadCount = filteredMessages.filter(msg => !msg.isRead).length;
 
   const handleMessageClick = (messageId: string) => {
     // Find corresponding contact and open chat
-    const message = mockMessages.find(m => m.id === messageId);
+    const message = realTimeMessages.find(m => m.id === messageId);
     if (message) {
-      // In real implementation, you'd get contact ID from message sender
-      const contact = mockContacts.find(c => c.name === message.senderName);
-      if (contact) {
-        setSelectedContactId(contact.id);
-        setIsMessagePanelOpen(true);
-      }
+      setSelectedContactId(message.senderId);
+      setIsMessagePanelOpen(true);
     }
   };
 
@@ -134,9 +201,50 @@ export default function MessagesPage() {
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center space-y-4">
           <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
           <p className="text-gray-500">Please log in to access messages</p>
+          <div className="space-y-2">
+            <Button 
+              onClick={() => {
+                // Quick login for demo
+                localStorage.setItem('auth_token', 'mock-jwt-token');
+                localStorage.setItem('user_role', 'applicant');
+                localStorage.setItem('user_data', JSON.stringify({
+                  id: 'student-1',
+                  name: 'John Doe',
+                  email: 'john.doe@email.com',
+                  role: 'applicant',
+                  avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John'
+                }));
+                window.location.reload();
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Quick Login as Student
+            </Button>
+            <Button 
+              onClick={() => {
+                // Quick login for demo
+                localStorage.setItem('auth_token', 'mock-jwt-token');
+                localStorage.setItem('user_role', 'provider');
+                localStorage.setItem('user_data', JSON.stringify({
+                  id: 'provider-1',
+                  name: 'Dr. Sarah Wilson',
+                  email: 'sarah.wilson@university.edu',
+                  role: 'provider',
+                  avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah'
+                }));
+                window.location.reload();
+              }}
+              variant="outline"
+            >
+              Quick Login as Provider
+            </Button>
+            <p className="text-xs text-gray-400 mt-2">
+              Or use <a href="/auth/login" className="text-blue-600 hover:underline">Login Page</a>
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -158,6 +266,25 @@ export default function MessagesPage() {
               </p>
             </div>
             <div className="mt-4 sm:mt-0 flex items-center space-x-4">
+              {/* Real-time Connection Status */}
+              <div className="flex items-center gap-2">
+                {socket?.isConnected ? (
+                  <>
+                    <Wifi className="h-4 w-4 text-green-600" />
+                    <Badge variant="outline" className="text-green-700 border-green-300">
+                      Connected
+                    </Badge>
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="h-4 w-4 text-red-600" />
+                    <Badge variant="outline" className="text-red-700 border-red-300">
+                      Disconnected
+                    </Badge>
+                  </>
+                )}
+              </div>
+              
               {unreadCount > 0 && (
                 <Badge variant="destructive" className="text-sm">
                   {unreadCount} unread
@@ -167,6 +294,56 @@ export default function MessagesPage() {
                 <Filter className="h-4 w-4 mr-2" />
                 Filter
               </Button>
+              <Dialog open={isNewChatModalOpen} onOpenChange={setIsNewChatModalOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-brand-blue-600 hover:bg-brand-blue-700">
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Chat
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Start New Chat</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <p className="text-sm text-gray-600">
+                      Select an online user to start chatting:
+                    </p>
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {onlineContacts.length === 0 ? (
+                        <p className="text-center text-gray-500 py-4">
+                          No online users available
+                        </p>
+                      ) : (
+                        onlineContacts.map((contact) => (
+                          <div
+                            key={contact.id}
+                            onClick={() => {
+                              setSelectedContactId(contact.id);
+                              setIsMessagePanelOpen(true);
+                              setIsNewChatModalOpen(false);
+                            }}
+                            className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors"
+                          >
+                            <div className="relative">
+                              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                <span className="text-xs font-medium">
+                                  {contact.name.substring(0, 2).toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white rounded-full"></div>
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{contact.name}</p>
+                              <p className="text-xs text-gray-500 capitalize">{contact.role}</p>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
@@ -187,14 +364,14 @@ export default function MessagesPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardContent className="flex items-center p-6">
               <div className="flex items-center justify-center w-12 h-12 bg-brand-blue-100 rounded-lg mr-4">
                 <MessageSquare className="h-6 w-6 text-brand-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{filteredMessages.length}</p>
+                <p className="text-2xl font-bold">{realTimeMessages.length}</p>
                 <p className="text-xs text-muted-foreground">Total Messages</p>
               </div>
             </CardContent>
@@ -218,8 +395,26 @@ export default function MessagesPage() {
                 <Users className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{filteredContacts.length}</p>
-                <p className="text-xs text-muted-foreground">Active Contacts</p>
+                <p className="text-2xl font-bold">{onlineContacts.length}</p>
+                <p className="text-xs text-muted-foreground">Online Users</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="flex items-center p-6">
+              <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mr-4">
+                {socket?.isConnected ? (
+                  <Wifi className="h-6 w-6 text-purple-600" />
+                ) : (
+                  <WifiOff className="h-6 w-6 text-purple-600" />
+                )}
+              </div>
+              <div>
+                <p className="text-lg font-bold">
+                  {socket?.isConnected ? 'Connected' : 'Offline'}
+                </p>
+                <p className="text-xs text-muted-foreground">Real-time Status</p>
               </div>
             </CardContent>
           </Card>
@@ -272,8 +467,18 @@ export default function MessagesPage() {
                         <div className="text-center py-8">
                           <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                           <p className="text-gray-500">
-                            {searchQuery ? "No contacts match your search" : "No contacts yet"}
+                            {searchQuery 
+                              ? "No contacts match your search" 
+                              : socket?.isConnected 
+                                ? "No online users available. Try refreshing or wait for users to come online."
+                                : "Connect to real-time server to see online users"
+                            }
                           </p>
+                          {!socket?.isConnected && (
+                            <p className="text-xs text-red-500 mt-2">
+                              Real-time connection required
+                            </p>
+                          )}
                         </div>
                       ) : (
                         filteredContacts.map((contact) => (

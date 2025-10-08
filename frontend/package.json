@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "mock-server": "cd ../mock-server && npm start",
+    "dev:full": "concurrently \"npm run mock-server\" \"npm run dev\""
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.2",
@@ -54,6 +56,7 @@
     "@types/react": "^18.2.42",
     "@types/react-dom": "^18.2.17",
     "autoprefixer": "^10.4.16",
+    "concurrently": "^9.2.1",
     "eslint": "^8.54.0",
     "eslint-config-next": "^14.0.3",
     "postcss": "^8.4.32",

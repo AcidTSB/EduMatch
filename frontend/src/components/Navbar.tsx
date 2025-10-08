@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, User, LogOut, Settings } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
@@ -16,17 +16,25 @@ const useAuth = () => {
   const getStoredUser = () => {
     if (typeof window === 'undefined') return null;
     
-    const token = localStorage.getItem('auth_token');
-    const role = localStorage.getItem('user_role');
-    const userData = localStorage.getItem('user_data');
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+    const role = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
+    const userData = typeof window !== 'undefined' ? localStorage.getItem('user_data') : null;
     
     if (!token) return null;
     
     if (userData) {
       try {
-        return JSON.parse(userData);
+        const parsedUser = JSON.parse(userData);
+        if (!parsedUser.subscription) {
+          parsedUser.subscription = {
+            plan: 'free',
+            status: 'active',
+            expiresAt: null
+          };
+        }
+        return parsedUser;
       } catch (e) {
-        // fallback to basic user data
+        // fallback
       }
     }
     
@@ -35,13 +43,21 @@ const useAuth = () => {
       name: 'John Doe',
       email: 'john.doe@email.com',
       role: role || 'applicant' as 'applicant' | 'provider' | 'admin',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John'
+      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
+      subscription: {
+        plan: 'free',
+        status: 'active',
+        expiresAt: null
+      }
     };
   };
   
+  const user = getStoredUser();
+  
   return {
-    user: getStoredUser(),
+    user,
     isAuthenticated: typeof window !== 'undefined' && localStorage.getItem('auth_token') !== null,
+    hasPaidSubscription: user?.subscription?.plan !== 'free',
     logout: () => {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('auth_token');
@@ -56,32 +72,49 @@ const useAuth = () => {
 const publicNavigation = [
   { name: 'Home', href: '/' },
   { name: 'About', href: '/about' },
+  { name: 'Scholarships', href: '/applicant/scholarships' },
   { name: 'Pricing', href: '/pricing' },
   { name: 'Contact', href: '/contact' },
 ];
 
-const applicantNavigation = [
+// Simplified common navigation - only Home
+const commonNavigation = [
+  { name: 'Home', href: '/' },
+];
+
+// Get pricing navigation based on auth and subscription status
+const getPricingNavigation = (isAuthenticated: boolean, hasPaidSubscription: boolean) => {
+  // Show pricing if:
+  // 1. Not authenticated (public access)
+  // 2. Authenticated but on free plan (upgrade option)
+  if (!isAuthenticated || !hasPaidSubscription) {
+    return [{ name: 'Pricing', href: '/pricing' }];
+  }
+  // Hide pricing if user already has paid subscription
+  return [];
+};
+
+// Role-specific pages - streamlined
+const applicantSpecificNavigation = [
   { name: 'Dashboard', href: '/applicant/dashboard' },
   { name: 'Scholarships', href: '/applicant/scholarships' },
   { name: 'Applications', href: '/applicant/applications' },
   { name: 'Messages', href: '/messages' },
-  { name: 'Profile', href: '/applicant/profile' },
 ];
 
-const providerNavigation = [
+const providerSpecificNavigation = [
   { name: 'Dashboard', href: '/provider/dashboard' },
   { name: 'My Scholarships', href: '/provider/scholarships' },
   { name: 'Applications', href: '/provider/applications' },
-  { name: 'Messages', href: '/messages' },
   { name: 'Analytics', href: '/provider/analytics' },
+  { name: 'Messages', href: '/messages' },
 ];
 
-const adminNavigation = [
+const adminSpecificNavigation = [
   { name: 'Dashboard', href: '/admin/dashboard' },
   { name: 'Users', href: '/admin/users' },
   { name: 'Scholarships', href: '/admin/scholarships' },
   { name: 'Messages', href: '/messages' },
-  { name: 'Reports', href: '/admin/reports' },
 ];
 
 export function Navbar() {
@@ -89,28 +122,52 @@ export function Navbar() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const pathname = usePathname();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, hasPaidSubscription, logout } = useAuth();
 
-  // Prevent hydration mismatch by only showing dynamic content after hydration
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
-  const getNavigation = () => {
-    // Show public navigation on server-side and before hydration
-    if (!isHydrated || !isAuthenticated) return publicNavigation;
+  const getRoleBadge = (role: string, subscription?: any) => {
+    const roleConfig = {
+      applicant: { label: 'Student', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+      provider: { label: 'Provider', color: 'bg-green-100 text-green-700 border-green-200' },
+      admin: { label: 'Admin', color: 'bg-purple-100 text-purple-700 border-purple-200' }
+    };
+    
+    const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.applicant;
+    
+    let label = config.label;
+    if (subscription?.plan === 'premium') {
+      label += ' ✨';
+    } else if (subscription?.plan === 'basic') {
+      label += ' ⭐';
+    }
+    
+    return { ...config, label };
+  };
+
+  const getRoleDisplayName = (role: string) => {
+    const roleNames = {
+      applicant: 'Student',
+      provider: 'Scholarship Provider', 
+      admin: 'Administrator'
+    };
+    return roleNames[role as keyof typeof roleNames] || 'User';
+  };
+
+  const getRoleSpecificNavigation = () => {
+    if (!isHydrated || !isAuthenticated) return [];
     
     switch (user?.role) {
       case 'provider':
-        return providerNavigation;
+        return providerSpecificNavigation;
       case 'admin':
-        return adminNavigation;
+        return adminSpecificNavigation;
       default:
-        return applicantNavigation;
+        return applicantSpecificNavigation;
     }
   };
-
-  const navigation = getNavigation();
 
   const isActive = (href: string) => {
     if (href === '/') {
@@ -129,117 +186,294 @@ export function Navbar() {
   };
 
   return (
-    <nav className="bg-background border-b sticky top-0 z-50">
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-brand-blue-500 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-lg">E</span>
               </div>
-              <span className="font-bold text-xl text-foreground">EduMatch</span>
+              <span className="font-bold text-xl text-gray-900">EduMatch</span>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    isActive(item.href)
-                      ? "bg-brand-blue-50 text-brand-blue-700"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+          <div className="hidden lg:flex items-center flex-1 justify-center">
+            <div className="flex items-center space-x-1">
+              {/* For authenticated users - show fewer items, prioritize key actions */}
+              {isHydrated && isAuthenticated ? (
+                <>
+                  {/* Essential navigation only */}
+                  <Link
+                    href="/"
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      isActive('/')
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    Home
+                  </Link>
+                  
+                  {/* Role-specific key items */}
+                  {user?.role === 'applicant' && (
+                    <>
+                      <Link
+                        href="/applicant/dashboard"
+                        className={cn(
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          isActive('/applicant/dashboard')
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        Dashboard
+                      </Link>
+                      <Link
+                        href="/applicant/scholarships"
+                        className={cn(
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          isActive('/applicant/scholarships')
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        Scholarships
+                      </Link>
+                      <Link
+                        href="/applicant/applications"
+                        className={cn(
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          isActive('/applicant/applications')
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        Applications
+                      </Link>
+                    </>
                   )}
-                >
-                  {item.name}
-                </Link>
-              ))}
+                  
+                  {user?.role === 'provider' && (
+                    <>
+                      <Link
+                        href="/provider/dashboard"
+                        className={cn(
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          isActive('/provider/dashboard')
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        Dashboard
+                      </Link>
+                      <Link
+                        href="/provider/scholarships"
+                        className={cn(
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          isActive('/provider/scholarships')
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        My Scholarships
+                      </Link>
+                      <Link
+                        href="/provider/applications"
+                        className={cn(
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          isActive('/provider/applications')
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        Applications
+                      </Link>
+                      <Link
+                        href="/provider/analytics"
+                        className={cn(
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          isActive('/provider/analytics')
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        Analytics
+                      </Link>
+                    </>
+                  )}
+                  
+                  {user?.role === 'admin' && (
+                    <>
+                      <Link
+                        href="/admin/dashboard"
+                        className={cn(
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          isActive('/admin/dashboard')
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        Dashboard
+                      </Link>
+                      <Link
+                        href="/admin/users"
+                        className={cn(
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          isActive('/admin/users')
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        Users
+                      </Link>
+                      <Link
+                        href="/admin/scholarships"
+                        className={cn(
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          isActive('/admin/scholarships')
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        Scholarships
+                      </Link>
+                    </>
+                  )}
+                  
+                  <Link
+                    href="/messages"
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      isActive('/messages')
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    Messages
+                  </Link>
+                </>
+              ) : (
+                <>
+                  {/* Public navigation - show more options */}
+                  {publicNavigation.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                        isActive(item.href)
+                          ? "bg-blue-50 text-blue-700"
+                          : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                      )}
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </>
+              )}
             </div>
           </div>
 
-          {/* Right side */}
-          <div className="hidden md:flex items-center space-x-4">
+          {/* Right side - Actions */}
+          <div className="hidden lg:flex items-center space-x-3">
             {isHydrated && isAuthenticated ? (
               <>
                 {/* Notifications */}
                 <NotificationDropdown />
 
-                {/* User Menu */}
+                {/* User Menu Button */}
                 <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center space-x-2"
+                    className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user?.avatarUrl} alt={user?.name} />
-                      <AvatarFallback>{getInitials(user?.name || '')}</AvatarFallback>
+                      <AvatarFallback className="bg-blue-600 text-white text-xs">
+                        {getInitials(user?.name || '')}
+                      </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium">{user?.name}</span>
-                  </Button>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium text-gray-900">{user?.name}</span>
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-xs font-medium border",
+                        getRoleBadge(user?.role || 'applicant', user?.subscription).color
+                      )}>
+                        {getRoleBadge(user?.role || 'applicant', user?.subscription).label}
+                      </span>
+                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                    </div>
+                  </button>
 
                   {/* User Dropdown */}
                   {isUserMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-background border rounded-lg shadow-elevated py-1 z-50">
-                      <div className="px-4 py-2 border-b">
-                        <p className="text-sm font-medium">{user?.name}</p>
-                        <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setIsUserMenuOpen(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
+                        <div className="px-4 py-3 border-b border-gray-200">
+                          <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{user?.email}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {getRoleDisplayName(user?.role || 'applicant')}
+                          </p>
+                        </div>
+                        
+                        <Link
+                          href={`/${user?.role}/profile`}
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <User className="h-4 w-4 mr-3 text-gray-400" />
+                          Profile
+                        </Link>
+                        
+                        <Link
+                          href={`/${user?.role}/settings`}
+                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          onClick={() => setIsUserMenuOpen(false)}
+                        >
+                          <Settings className="h-4 w-4 mr-3 text-gray-400" />
+                          Settings
+                        </Link>
+                        
+                        <div className="border-t border-gray-200 my-1" />
+                        
+                        <button
+                          onClick={() => {
+                            logout();
+                            setIsUserMenuOpen(false);
+                          }}
+                          className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          <LogOut className="h-4 w-4 mr-3" />
+                          Sign Out
+                        </button>
                       </div>
-                      
-                      <Link
-                        href={`/${user?.role}/profile`}
-                        className="flex items-center px-4 py-2 text-sm hover:bg-accent"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      >
-                        <User className="h-4 w-4 mr-2" />
-                        Profile
-                      </Link>
-                      
-                      <Link
-                        href={`/${user?.role}/settings`}
-                        className="flex items-center px-4 py-2 text-sm hover:bg-accent"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      >
-                        <Settings className="h-4 w-4 mr-2" />
-                        Settings
-                      </Link>
-                      
-                      <div className="border-t my-1" />
-                      
-                      <button
-                        onClick={() => {
-                          logout();
-                          setIsUserMenuOpen(false);
-                        }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-danger-600 hover:bg-danger-50"
-                      >
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Sign Out
-                      </button>
-                    </div>
+                    </>
                   )}
                 </div>
               </>
             ) : (
-              <div className="flex items-center space-x-2">
-                <Button asChild variant="ghost">
+              <div className="flex items-center space-x-3">
+                <Button asChild variant="ghost" size="sm" className="text-gray-700">
                   <Link href="/auth/login">Sign In</Link>
                 </Button>
-                <Button asChild>
-                  <Link href="/auth/register">Sign Up</Link>
+                <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <Link href="/auth/register">Get Started</Link>
                 </Button>
               </div>
             )}
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <Button
               variant="ghost"
               size="icon"
@@ -256,17 +490,18 @@ export function Navbar() {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 border-t">
-              {navigation.map((item) => (
+          <div className="lg:hidden border-t border-gray-200">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              {/* Common navigation */}
+              {commonNavigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "block px-3 py-2 rounded-lg text-base font-medium transition-colors",
+                    "block px-3 py-2 rounded-md text-base font-medium",
                     isActive(item.href)
-                      ? "bg-brand-blue-50 text-brand-blue-700"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-50"
                   )}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -274,82 +509,138 @@ export function Navbar() {
                 </Link>
               ))}
               
+              {getPricingNavigation(isAuthenticated, hasPaidSubscription).map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    "block px-3 py-2 rounded-md text-base font-medium",
+                    isActive(item.href)
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-50"
+                  )}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.name}
+                </Link>
+              ))}
+              
+              {(!isHydrated || !isAuthenticated) && (
+                <Link
+                  href="/scholarships"
+                  className={cn(
+                    "block px-3 py-2 rounded-md text-base font-medium",
+                    isActive('/scholarships')
+                      ? "bg-blue-50 text-blue-700"
+                      : "text-gray-700 hover:bg-gray-50"
+                  )}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Scholarships
+                </Link>
+              )}
+              
+              {/* Role-specific navigation */}
+              {isHydrated && isAuthenticated && getRoleSpecificNavigation().length > 0 && (
+                <>
+                  <div className="border-t border-gray-200 my-2" />
+                  <div className="px-3 py-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      {getRoleDisplayName(user?.role || 'applicant')}
+                    </p>
+                  </div>
+                  {getRoleSpecificNavigation().map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        "block px-3 py-2 rounded-md text-base font-medium",
+                        isActive(item.href)
+                          ? "bg-blue-50 text-blue-700"
+                          : "text-gray-700 hover:bg-gray-50"
+                      )}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </>
+              )}
+              
+              {/* Auth buttons for logged out users */}
               {!isAuthenticated && (
-                <div className="pt-4 border-t space-y-2">
+                <div className="pt-4 border-t border-gray-200 space-y-2">
                   <Button asChild variant="ghost" className="w-full justify-start">
                     <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
                       Sign In
                     </Link>
                   </Button>
-                  <Button asChild className="w-full justify-start">
+                  <Button asChild className="w-full justify-start bg-blue-600 hover:bg-blue-700">
                     <Link href="/auth/register" onClick={() => setIsMobileMenuOpen(false)}>
-                      Sign Up
+                      Get Started
                     </Link>
                   </Button>
                 </div>
               )}
               
+              {/* User info for logged in users */}
               {isAuthenticated && (
-                <div className="pt-4 border-t space-y-2">
-                  <div className="flex items-center px-3 py-2">
-                    <Avatar className="h-8 w-8 mr-2">
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="flex items-center px-3 py-2 mb-2">
+                    <Avatar className="h-10 w-10 mr-3">
                       <AvatarImage src={user?.avatarUrl} alt={user?.name} />
-                      <AvatarFallback>{getInitials(user?.name || '')}</AvatarFallback>
+                      <AvatarFallback className="bg-blue-600 text-white">
+                        {getInitials(user?.name || '')}
+                      </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <p className="text-sm font-medium">{user?.name}</p>
-                      <p className="text-xs text-muted-foreground">{user?.email}</p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-full text-xs font-medium border",
+                          getRoleBadge(user?.role || 'applicant', user?.subscription).color
+                        )}>
+                          {getRoleBadge(user?.role || 'applicant', user?.subscription).label}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500">{user?.email}</p>
                     </div>
                   </div>
                   
-                  <Button asChild variant="ghost" className="w-full justify-start">
-                    <Link 
-                      href={`/${user?.role}/profile`} 
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      Profile
-                    </Link>
-                  </Button>
+                  <Link
+                    href={`/${user?.role}/profile`}
+                    className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <User className="h-4 w-4 mr-3 text-gray-400" />
+                    Profile
+                  </Link>
                   
-                  <Button asChild variant="ghost" className="w-full justify-start">
-                    <Link 
-                      href={`/${user?.role}/settings`} 
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Settings
-                    </Link>
-                  </Button>
+                  <Link
+                    href={`/${user?.role}/settings`}
+                    className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Settings className="h-4 w-4 mr-3 text-gray-400" />
+                    Settings
+                  </Link>
                   
-                  <Button 
-                    variant="ghost" 
-                    className="w-full justify-start text-danger-600"
+                  <button
                     onClick={() => {
                       logout();
                       setIsMobileMenuOpen(false);
                     }}
+                    className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md mt-2"
                   >
-                    <LogOut className="h-4 w-4 mr-2" />
+                    <LogOut className="h-4 w-4 mr-3" />
                     Sign Out
-                  </Button>
+                  </button>
                 </div>
               )}
             </div>
           </div>
         )}
       </div>
-
-      {/* Click overlay to close menus */}
-      {(isMobileMenuOpen || isUserMenuOpen) && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => {
-            setIsMobileMenuOpen(false);
-            setIsUserMenuOpen(false);
-          }}
-        />
-      )}
     </nav>
   );
 }

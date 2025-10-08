@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useApplicationsData, useScholarshipsData, useApp } from '@/contexts/AppContext';
+import { useRealTime } from '@/providers/RealTimeProvider';
 import { Application, Scholarship, ApplicationStatus } from '@/types';
 
 export default function ScholarshipApplicationsPage() {
@@ -38,6 +39,7 @@ export default function ScholarshipApplicationsPage() {
   const { applications: allApplications } = useApplicationsData();
   const { scholarships } = useScholarshipsData();
   const { addNotification } = useApp();
+  const { sendMessage } = useRealTime();
   
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -96,7 +98,10 @@ export default function ScholarshipApplicationsPage() {
     }
 
     try {
-      // Create notification for the applicant
+      // Send real-time message through socket
+      sendMessage(selectedApplication.applicantId, `Subject: ${messageSubject}\n\n${messageText}`);
+      
+      // Also create notification for the applicant
       await addNotification({
         userId: selectedApplication.applicantId,
         type: 'message',
@@ -106,7 +111,7 @@ export default function ScholarshipApplicationsPage() {
         actionUrl: `/messages` // Link to messages page
       });
 
-      toast.success('Message sent successfully!');
+      toast.success('Message sent successfully via real-time!');
       setMessageText('');
       setMessageSubject('');
       setIsMessageDialogOpen(false);

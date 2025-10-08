@@ -138,9 +138,9 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-brand-blue-50 to-brand-cyan-50 py-20">
+      <section className="bg-pastel-hero py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          <h1 className="text-4xl md:text-5xl font-bold text-gradient-primary mb-6">
             Get in Touch
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
@@ -148,15 +148,15 @@ export default function ContactPage() {
             Our team is dedicated to ensuring you have the best experience with EduMatch.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
-            <Badge variant="secondary" className="text-sm">
+            <Badge className="text-sm bg-blue-100 text-blue-700 border-blue-200">
               <Clock className="w-4 h-4 mr-2" />
               24/7 Online Support
             </Badge>
-            <Badge variant="secondary" className="text-sm">
+            <Badge className="text-sm bg-green-100 text-green-700 border-green-200">
               <Users className="w-4 h-4 mr-2" />
               Dedicated Team
             </Badge>
-            <Badge variant="secondary" className="text-sm">
+            <Badge className="text-sm bg-purple-100 text-purple-700 border-purple-200">
               <HelpCircle className="w-4 h-4 mr-2" />
               Comprehensive Help
             </Badge>
@@ -165,25 +165,34 @@ export default function ContactPage() {
       </section>
 
       {/* Contact Methods */}
-      <section className="py-16">
+      <section className="py-16 section-gradient-light">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">How Can We Help?</h2>
+            <h2 className="text-3xl font-bold text-gradient-primary mb-4">How Can We Help?</h2>
             <p className="text-gray-600">Choose the best way to reach us</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
             {contactMethods.map((method, index) => (
-              <Card key={index}>
+              <Card key={index} className={`
+                ${index % 3 === 0 ? 'card-gradient-blue' : 
+                  index % 3 === 1 ? 'card-gradient-cyan' : 
+                  'card-gradient-purple'} card-hover
+              `}>
                 <CardContent className="p-6 text-center">
-                  <div className={`w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center ${method.color}`}>
-                    <method.icon className="w-8 h-8" />
+                  <div className={`
+                    ${index % 3 === 0 ? 'bg-icon-blue' : 
+                      index % 3 === 1 ? 'bg-icon-green' : 
+                      'bg-icon-purple'} 
+                    w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center animate-scale-hover
+                  `}>
+                    <method.icon className="w-8 h-8 text-white" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     {method.title}
                   </h3>
                   <p className="text-gray-600 mb-3">{method.description}</p>
-                  <p className="font-medium text-gray-900">{method.contact}</p>
+                  <p className="font-medium text-blue-600">{method.contact}</p>
                   <p className="text-sm text-gray-500">{method.time}</p>
                 </CardContent>
               </Card>
@@ -193,10 +202,10 @@ export default function ContactPage() {
           {/* Contact Form and FAQ */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Contact Form */}
-            <Card>
+            <Card className="card-hover">
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Send className="w-5 h-5 mr-2 text-brand-blue-600" />
+                <CardTitle className="flex items-center text-gradient-blue">
+                  <Send className="w-5 h-5 mr-2" />
                   Send us a Message
                 </CardTitle>
               </CardHeader>

@@ -134,9 +134,9 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-brand-blue-50 to-brand-cyan-50 py-20">
+      <section className="bg-pastel-hero py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+          <h1 className="text-4xl md:text-5xl font-bold text-gradient-primary mb-6">
             Simple, Transparent Pricing
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
@@ -144,7 +144,7 @@ export default function PricingPage() {
             All plans include our core scholarship matching technology.
           </p>
           <div className="flex justify-center">
-            <Badge variant="secondary" className="text-sm">
+            <Badge className="text-sm bg-blue-100 text-blue-700 border-blue-200">
               💡 Most students start with our free plan
             </Badge>
           </div>
@@ -152,11 +152,16 @@ export default function PricingPage() {
       </section>
 
       {/* Pricing Cards */}
-      <section className="py-16">
+      <section className="py-16 section-gradient-light">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {plans.map((plan, index) => (
-              <Card key={index} className={`relative ${plan.color} ${plan.popular ? 'ring-2 ring-brand-blue-500' : ''}`}>
+              <Card key={index} className={`
+                relative 
+                ${plan.popular ? 'ring-2 ring-blue-500 card-gradient-purple' : 
+                  index === 0 ? 'card-gradient-blue' : 'card-gradient-cyan'} 
+                card-hover
+              `}>
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-brand-blue-500 text-white">

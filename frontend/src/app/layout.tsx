@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { Navbar } from '@/components/Navbar'
+import { Footer } from '@/components/Footer'
 import { AuthProvider } from '@/lib/auth'
 import { AppProvider } from '@/contexts/AppContext'
 import { RealTimeProvider } from '@/providers/RealTimeProvider'
@@ -26,10 +27,13 @@ export default function RootLayout({
         <AppProvider>
           <AuthProvider>
             <RealTimeProvider>
-              <div className="min-h-screen bg-background">
+              <div className="min-h-screen bg-background flex flex-col">
                 <Navbar />
                 <RealTimeIndicator />
-                {children}
+                <main className="flex-1">
+                  {children}
+                </main>
+                <Footer />
                 <MessagingWidget />
               </div>
             </RealTimeProvider>

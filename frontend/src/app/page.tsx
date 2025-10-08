@@ -19,34 +19,38 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-brand-blue-50 via-white to-brand-cyan-50 pt-20 pb-16">
-        <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
+      <section className="relative bg-minimal-hero pt-20 pb-16 min-h-screen flex items-center">
+        {/* Subtle Background Elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-20 w-72 h-72 bg-blue-50/60 rounded-full animate-float"></div>
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-50/40 rounded-full animate-float" style={{animationDelay: '2s'}}></div>
+        </div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
-            <Badge variant="secondary" className="mb-4">
+            <Badge className="mb-6 bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100">
               🚀 AI-Powered Education Platform
             </Badge>
             
-            <h1 className="text-4xl font-bold text-foreground mb-6 text-balance">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 text-balance leading-tight text-gray-900">
               Connect Your Future with
-              <span className="text-brand-blue-500 block">Smart Scholarship Matching</span>
+              <span className="block text-minimal-primary">Smart Scholarship Matching</span>
             </h1>
             
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto text-balance">
+            <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto text-balance leading-relaxed">
               Discover personalized scholarship opportunities and research positions using our AI-powered platform. 
               Join thousands of students who found their perfect academic match.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Button asChild size="lg" className="text-lg">
+              <Button asChild size="lg" className="bg-blue-600 text-white hover:bg-blue-700 shadow-lg transform hover:scale-105 transition-all duration-300 text-lg">
                 <Link href="/applicant/scholarships">
                   Find Scholarships
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
               
-              <Button asChild variant="outline" size="lg" className="text-lg">
+              <Button asChild variant="outline" size="lg" className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 shadow-lg text-lg">
                 <Link href="/provider/scholarships">
                   Post Opportunities
                 </Link>
@@ -54,7 +58,7 @@ export default function HomePage() {
             </div>
 
             {/* Trust indicators */}
-            <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-muted-foreground">
+            <div className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-500">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-success-500" />
                 <span>1000+ Scholarships</span>
@@ -73,10 +77,10 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-background">
+      <section className="py-20 bg-minimal-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-semibold text-foreground mb-4">
+            <h2 className="text-3xl font-semibold text-minimal-primary mb-4">
               Why Choose EduMatch?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -85,10 +89,10 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-soft hover:shadow-elevated transition-shadow">
+            <Card className="card-minimal card-hover">
               <CardContent className="p-8 text-center">
-                <div className="bg-brand-blue-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Brain className="h-8 w-8 text-brand-blue-600" />
+                <div className="bg-icon-minimal w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <Brain className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-4">AI-Powered Matching</h3>
                 <p className="text-muted-foreground">
@@ -98,10 +102,10 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-soft hover:shadow-elevated transition-shadow">
+            <Card className="card-minimal card-hover">
               <CardContent className="p-8 text-center">
-                <div className="bg-brand-cyan-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Zap className="h-8 w-8 text-brand-cyan-600" />
+                <div className="bg-icon-minimal-secondary w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <Zap className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-4">Real-Time Notifications</h3>
                 <p className="text-muted-foreground">
@@ -111,10 +115,10 @@ export default function HomePage() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-soft hover:shadow-elevated transition-shadow">
+            <Card className="card-minimal card-hover">
               <CardContent className="p-8 text-center">
-                <div className="bg-brand-purple-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <BarChart3 className="h-8 w-8 text-brand-purple-600" />
+                <div className="bg-icon-minimal-accent w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <BarChart3 className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold mb-4">Detailed Analytics</h3>
                 <p className="text-muted-foreground">
@@ -128,38 +132,46 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-brand-blue-50">
+      <section className="py-16 bg-minimal-light">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8 text-center">
-            <div className="space-y-2">
+            <div className="stat-card">
               <div className="flex justify-center mb-4">
-                <Award className="h-8 w-8 text-brand-blue-500" />
+                <div className="stat-icon bg-icon-minimal">
+                  <Award className="h-8 w-8 text-white" />
+                </div>
               </div>
-              <div className="text-3xl font-bold text-brand-blue-600">1000+</div>
+              <div className="stat-number text-minimal-primary">1000+</div>
               <div className="text-muted-foreground">Active Scholarships</div>
             </div>
             
-            <div className="space-y-2">
+            <div className="stat-card">
               <div className="flex justify-center mb-4">
-                <Users className="h-8 w-8 text-brand-blue-500" />
+                <div className="stat-icon bg-icon-minimal">
+                  <Users className="h-8 w-8 text-white" />
+                </div>
               </div>
-              <div className="text-3xl font-bold text-brand-blue-600">5000+</div>
+              <div className="stat-number text-minimal-primary">5000+</div>
               <div className="text-muted-foreground">Students Matched</div>
             </div>
             
-            <div className="space-y-2">
+            <div className="stat-card">
               <div className="flex justify-center mb-4">
-                <School className="h-8 w-8 text-brand-blue-500" />
+                <div className="stat-icon bg-icon-minimal">
+                  <School className="h-8 w-8 text-white" />
+                </div>
               </div>
-              <div className="text-3xl font-bold text-brand-blue-600">200+</div>
+              <div className="stat-number text-minimal-primary">200+</div>
               <div className="text-muted-foreground">Partner Universities</div>
             </div>
             
-            <div className="space-y-2">
+            <div className="stat-card">
               <div className="flex justify-center mb-4">
-                <TrendingUp className="h-8 w-8 text-brand-blue-500" />
+                <div className="stat-icon bg-icon-minimal">
+                  <TrendingUp className="h-8 w-8 text-white" />
+                </div>
               </div>
-              <div className="text-3xl font-bold text-brand-blue-600">95%</div>
+              <div className="stat-number text-minimal-primary">95%</div>
               <div className="text-muted-foreground">Success Rate</div>
             </div>
           </div>
@@ -167,10 +179,10 @@ export default function HomePage() {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-20 bg-background">
+      <section className="py-20 bg-minimal-section">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-semibold text-foreground mb-4">
+            <h2 className="text-3xl font-semibold text-minimal-primary mb-4">
               How It Works
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -179,32 +191,32 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-brand-blue-500 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-bold">
+            <div className="text-center group">
+              <div className="bg-icon-minimal w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-bold text-white shadow-lg">
                 1
               </div>
-              <h3 className="text-xl font-semibold mb-4">Create Your Profile</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-xl font-semibold mb-4 text-gray-800">Create Your Profile</h3>
+              <p className="text-muted-foreground leading-relaxed">
                 Tell us about your academic background, research interests, and career goals.
               </p>
             </div>
 
-            <div className="text-center">
-              <div className="bg-brand-cyan-500 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-bold">
+            <div className="text-center group">
+              <div className="bg-icon-minimal-secondary w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-bold text-white shadow-lg">
                 2
               </div>
-              <h3 className="text-xl font-semibold mb-4">Get AI Matches</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-xl font-semibold mb-4 text-gray-800">Get AI Matches</h3>
+              <p className="text-muted-foreground leading-relaxed">
                 Our AI analyzes thousands of opportunities to find the best matches for you.
               </p>
             </div>
 
-            <div className="text-center">
-              <div className="bg-brand-purple-500 text-white w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-bold">
+            <div className="text-center group">
+              <div className="bg-icon-minimal-accent w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-bold text-white shadow-lg">
                 3
               </div>
-              <h3 className="text-xl font-semibold mb-4">Apply & Track</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-xl font-semibold mb-4 text-gray-800">Apply & Track</h3>
+              <p className="text-muted-foreground leading-relaxed">
                 Apply directly through our platform and track your application progress.
               </p>
             </div>
@@ -213,24 +225,24 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-brand-blue-600 to-brand-cyan-600">
+      <section className="py-20 bg-minimal-accent">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-semibold text-white mb-6">
+          <h2 className="text-3xl font-semibold text-minimal-primary mb-6">
             Ready to Find Your Perfect Match?
           </h2>
-          <p className="text-xl text-brand-blue-100 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
             Join thousands of students who have found their dream scholarships and research opportunities through EduMatch.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" variant="secondary" className="bg-white text-brand-blue-600 hover:bg-brand-blue-50">
+            <Button asChild size="lg" className="bg-blue-600 text-white hover:bg-blue-700 shadow-lg transform hover:scale-105 transition-all duration-300">
               <Link href="/signup">
                 Get Started Free
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             
-            <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-brand-blue-600">
+            <Button asChild size="lg" variant="outline" className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 shadow-lg">
               <Link href="/about">
                 Learn More
               </Link>
