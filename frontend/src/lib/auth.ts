@@ -132,8 +132,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // Wait a bit then redirect to let cookies set
         setTimeout(() => {
-          window.location.href = '/applicant/dashboard';
+          // Redirect based on user role
+          if (user.role === 'admin') {
+            window.location.href = '/admin';
+          } else if (user.role === 'provider') {
+            window.location.href = '/provider/dashboard';
+          } else {
+            window.location.href = '/applicant/dashboard';
+          }
         }, 100);
+      } else {
+        // Handle failed login response
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+        const errorMessage = response.error || 'Login failed';
+        setError(errorMessage);
+        throw new Error(errorMessage);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Login failed';

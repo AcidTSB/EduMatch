@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const router = useRouter();
+  const { login, error: authError } = useAuth();
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -45,36 +45,12 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-      // Mock API call - replace with actual authentication
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Determine user role and data based on email
-      const isProvider = email.includes('provider') || email.includes('university') || email.includes('institution');
-      const role = isProvider ? 'provider' : 'applicant';
-      
-      // Mock user data
-      const userData = {
-        id: isProvider ? 'provider-1' : 'student-1',
-        name: isProvider ? 'Dr. Sarah Wilson' : 'John Doe',
-        email: email,
-        role: role,
-        avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${isProvider ? 'Sarah' : 'John'}`
-      };
-      
-      // Store authentication data
-      localStorage.setItem('auth_token', 'mock-jwt-token');
-      localStorage.setItem('user_role', role);
-      localStorage.setItem('user_data', JSON.stringify(userData));
-      
-      // Redirect based on role
-      if (isProvider) {
-        router.push('/provider/dashboard');
-      } else {
-        router.push('/applicant/scholarships');
-      }
+      // Use the auth context login method
+      await login({ email, password });
+      // Redirect is handled automatically in auth.ts based on role
     } catch (error) {
       console.error('Login failed:', error);
-      setErrors({ submit: 'Invalid email or password. Please try again.' });
+      setErrors({ submit: authError || 'Invalid email or password. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -205,15 +181,20 @@ export default function LoginPage() {
               Demo accounts (for testing):
             </p>
             <div className="space-y-2 text-xs">
-              <div className="bg-muted p-3 rounded-lg">
-                <p className="font-medium">Applicant Account</p>
-                <p>Email: student@demo.com</p>
-                <p>Password: demo123</p>
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <p className="font-medium text-blue-900">👨‍💼 Admin Account</p>
+                <p className="text-blue-700">Email: admin@edumatch.com</p>
+                <p className="text-blue-700">Password: any password</p>
               </div>
-              <div className="bg-muted p-3 rounded-lg">
-                <p className="font-medium">Provider Account</p>
-                <p>Email: provider@demo.com</p>
-                <p>Password: demo123</p>
+              <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                <p className="font-medium text-green-900">🎓 Student Account</p>
+                <p className="text-green-700">Email: john.doe@student.edu</p>
+                <p className="text-green-700">Password: any password</p>
+              </div>
+              <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                <p className="font-medium text-purple-900">🏛️ Provider Account</p>
+                <p className="text-purple-700">Email: mit@scholarships.edu</p>
+                <p className="text-purple-700">Password: any password</p>
               </div>
             </div>
           </div>

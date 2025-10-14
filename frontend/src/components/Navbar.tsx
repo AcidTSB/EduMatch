@@ -34,22 +34,21 @@ const useAuth = () => {
         }
         return parsedUser;
       } catch (e) {
-        // fallback
+        // Invalid data, clear and return null
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('user_data');
+          localStorage.removeItem('user_role');
+        }
+        return null;
       }
     }
     
-    return {
-      id: '1',
-      name: 'John Doe',
-      email: 'john.doe@email.com',
-      role: role || 'applicant' as 'applicant' | 'provider' | 'admin',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-      subscription: {
-        plan: 'free',
-        status: 'active',
-        expiresAt: null
-      }
-    };
+    // No user data but has token - should not happen, clear token
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('auth_token');
+    }
+    return null;
   };
   
   const user = getStoredUser();
@@ -111,10 +110,10 @@ const providerSpecificNavigation = [
 ];
 
 const adminSpecificNavigation = [
-  { name: 'Dashboard', href: '/admin/dashboard' },
+  { name: 'Dashboard', href: '/admin' },
   { name: 'Users', href: '/admin/users' },
   { name: 'Scholarships', href: '/admin/scholarships' },
-  { name: 'Messages', href: '/messages' },
+  { name: 'Applications', href: '/admin/applications' },
 ];
 
 export function Navbar() {
@@ -309,10 +308,10 @@ export function Navbar() {
                   {user?.role === 'admin' && (
                     <>
                       <Link
-                        href="/admin/dashboard"
+                        href="/admin"
                         className={cn(
                           "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                          isActive('/admin/dashboard')
+                          pathname === '/admin'
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
@@ -340,6 +339,17 @@ export function Navbar() {
                         )}
                       >
                         Scholarships
+                      </Link>
+                      <Link
+                        href="/admin/applications"
+                        className={cn(
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          isActive('/admin/applications')
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        Applications
                       </Link>
                     </>
                   )}

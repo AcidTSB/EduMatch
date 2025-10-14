@@ -38,17 +38,17 @@ const useAuth = () => {
       try {
         return JSON.parse(userData);
       } catch (e) {
-        // fallback to basic user data
+        // Invalid data, clear and return null
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('user_role');
+        return null;
       }
     }
     
-    return {
-      id: '1',
-      name: 'John Doe',
-      email: 'john.doe@email.com',
-      role: role || 'applicant' as 'applicant' | 'provider' | 'admin',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John'
-    };
+    // No user data but has token - should not happen, clear token
+    localStorage.removeItem('auth_token');
+    return null;
   };
   
   return {
