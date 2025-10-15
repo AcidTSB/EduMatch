@@ -1,13 +1,13 @@
-package com.edumatch.schoolarship;
+package com.edumatch.scholarship;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class SchoolarshipService1Application {
+public class SchoolarshipServiceApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(SchoolarshipService1Application.class, args);
+        SpringApplication.run(SchoolarshipServiceApplication.class, args);
     }
 
 }

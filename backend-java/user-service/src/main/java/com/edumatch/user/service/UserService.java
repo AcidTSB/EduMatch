@@ -12,6 +12,7 @@ import com.edumatch.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.edumatch.user.dto.UserDetailDto;
 
 
 @Service
@@ -86,4 +87,10 @@ public class UserService {
         ApplicantProfile updatedProfile = applicantProfileRepository.save(profile);
         return ApplicantProfileDto.fromEntity(updatedProfile);
     }
+    @Transactional(readOnly = true)
+    public UserDetailDto findUserDetailByEmail(String email) {
+        User user = findUserByEmail(email);
+        return UserDetailDto.fromEntity(user);
+    }
+
 }

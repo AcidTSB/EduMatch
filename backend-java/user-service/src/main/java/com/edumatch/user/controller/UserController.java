@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.edumatch.user.dto.UserDetailDto;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 
 /**
  * Controller xử lý các tác vụ liên quan đến đối tượng User gốc,
@@ -35,5 +38,10 @@ public class UserController {
     public ResponseEntity<String> createUserInternal(@Valid @RequestBody UserCreationRequest request) {
         userService.createUser(request);
         return new ResponseEntity<>("User profile created successfully for ID: " + request.getId(), HttpStatus.CREATED);
+    }
+    @GetMapping("/details/by-email/{email}")
+    public ResponseEntity<UserDetailDto> getUserDetailsByEmail(@PathVariable String email) {
+        UserDetailDto userDetails = userService.findUserDetailByEmail(email);
+        return ResponseEntity.ok(userDetails);
     }
 }
