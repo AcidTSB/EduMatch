@@ -8,65 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
 import { cn } from '@/lib/utils';
-
-// Mock auth hook - replace with actual auth
-const useAuth = () => {
-  const router = useRouter();
-  
-  const getStoredUser = () => {
-    if (typeof window === 'undefined') return null;
-    
-    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-    const role = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
-    const userData = typeof window !== 'undefined' ? localStorage.getItem('user_data') : null;
-    
-    if (!token) return null;
-    
-    if (userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        if (!parsedUser.subscription) {
-          parsedUser.subscription = {
-            plan: 'free',
-            status: 'active',
-            expiresAt: null
-          };
-        }
-        return parsedUser;
-      } catch (e) {
-        // Invalid data, clear and return null
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user_data');
-          localStorage.removeItem('user_role');
-        }
-        return null;
-      }
-    }
-    
-    // No user data but has token - should not happen, clear token
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('auth_token');
-    }
-    return null;
-  };
-  
-  const user = getStoredUser();
-  
-  return {
-    user,
-    isAuthenticated: typeof window !== 'undefined' && localStorage.getItem('auth_token') !== null,
-    hasPaidSubscription: user?.subscription?.plan !== 'free',
-    logout: () => {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_role');
-        localStorage.removeItem('user_data');
-      }
-      router.push('/');
-    }
-  };
-};
+import { useAuth } from '@/lib/auth';
 
 const publicNavigation = [
   { name: 'Home', href: '/' },
@@ -119,13 +61,38 @@ const adminSpecificNavigation = [
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
   const pathname = usePathname();
-  const { user, isAuthenticated, hasPaidSubscription, logout } = useAuth();
-
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  
+  // Calculate hasPaidSubscription from user data
+  const hasPaidSubscription = user?.subscriptionType !== 'FREE';
+  
+  // Show loading state while auth is initializing
+  if (isLoading) {
+    return (
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <div className="flex-shrink-0 flex items-center">
+              <Link href="/" className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">E</span>
+                </div>
+                <span className="text-xl font-bold text-gray-900">EduMatch</span>
+              </Link>
+            </div>
+            
+            {/* Loading placeholder */}
+            <div className="flex items-center space-x-4">
+              <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-24 h-10 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   const getRoleBadge = (role: string, subscription?: any) => {
     const roleConfig = {
@@ -156,7 +123,8 @@ export function Navbar() {
   };
 
   const getRoleSpecificNavigation = () => {
-    if (!isHydrated || !isAuthenticated) return [];
+    // Don't show navigation while loading or if not authenticated
+    if (!isAuthenticated) return [];
     
     switch (user?.role) {
       case 'provider':
@@ -202,7 +170,7 @@ export function Navbar() {
           <div className="hidden lg:flex items-center flex-1 justify-center">
             <div className="flex items-center space-x-1">
               {/* For authenticated users - show fewer items, prioritize key actions */}
-              {isHydrated && isAuthenticated ? (
+              {isAuthenticated ? (
                 <>
                   {/* Essential navigation only */}
                   <Link
@@ -390,7 +358,7 @@ export function Navbar() {
 
           {/* Right side - Actions */}
           <div className="hidden lg:flex items-center space-x-3">
-            {isHydrated && isAuthenticated ? (
+            {isAuthenticated ? (
               <>
                 {/* Notifications */}
                 <NotificationDropdown />
@@ -402,7 +370,7 @@ export function Navbar() {
                     className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user?.avatarUrl} alt={user?.name} />
+                      <AvatarImage src={user?.profile?.avatar || ''} alt={user?.name} />
                       <AvatarFallback className="bg-blue-600 text-white text-xs">
                         {getInitials(user?.name || '')}
                       </AvatarFallback>
@@ -411,9 +379,9 @@ export function Navbar() {
                       <span className="text-sm font-medium text-gray-900">{user?.name}</span>
                       <span className={cn(
                         "px-2 py-0.5 rounded-full text-xs font-medium border",
-                        getRoleBadge(user?.role || 'applicant', user?.subscription).color
+                        getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).color
                       )}>
-                        {getRoleBadge(user?.role || 'applicant', user?.subscription).label}
+                        {getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).label}
                       </span>
                       <ChevronDown className="h-4 w-4 text-gray-500" />
                     </div>
@@ -535,7 +503,7 @@ export function Navbar() {
                 </Link>
               ))}
               
-              {(!isHydrated || !isAuthenticated) && (
+              {!isAuthenticated && (
                 <Link
                   href="/scholarships"
                   className={cn(
@@ -551,7 +519,7 @@ export function Navbar() {
               )}
               
               {/* Role-specific navigation */}
-              {isHydrated && isAuthenticated && getRoleSpecificNavigation().length > 0 && (
+              {isAuthenticated && getRoleSpecificNavigation().length > 0 && (
                 <>
                   <div className="border-t border-gray-200 my-2" />
                   <div className="px-3 py-2">
@@ -598,7 +566,7 @@ export function Navbar() {
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex items-center px-3 py-2 mb-2">
                     <Avatar className="h-10 w-10 mr-3">
-                      <AvatarImage src={user?.avatarUrl} alt={user?.name} />
+                      <AvatarImage src={user?.profile?.avatar || ''} alt={user?.name} />
                       <AvatarFallback className="bg-blue-600 text-white">
                         {getInitials(user?.name || '')}
                       </AvatarFallback>
@@ -608,9 +576,9 @@ export function Navbar() {
                         <p className="text-sm font-medium text-gray-900">{user?.name}</p>
                         <span className={cn(
                           "px-2 py-0.5 rounded-full text-xs font-medium border",
-                          getRoleBadge(user?.role || 'applicant', user?.subscription).color
+                          getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).color
                         )}>
-                          {getRoleBadge(user?.role || 'applicant', user?.subscription).label}
+                          {getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).label}
                         </span>
                       </div>
                       <p className="text-xs text-gray-500">{user?.email}</p>

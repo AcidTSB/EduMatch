@@ -22,40 +22,8 @@ import { MessageList, QuickContacts } from '@/components/messaging/MessageCompon
 import { ChatWindow } from '@/components/ChatWindow';
 import { useMessageStore, useNotificationStore } from '@/stores/realtimeStore';
 import { useRealTime } from '@/providers/RealTimeProvider';
-
-// Simple auth hook - same as Navbar
-const useAuth = () => {
-  const getStoredUser = () => {
-    if (typeof window === 'undefined') return null;
-    
-    const token = localStorage.getItem('auth_token');
-    const role = localStorage.getItem('user_role');
-    const userData = localStorage.getItem('user_data');
-    
-    if (!token) return null;
-    
-    if (userData) {
-      try {
-        return JSON.parse(userData);
-      } catch (e) {
-        // Invalid data, clear and return null
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-        localStorage.removeItem('user_role');
-        return null;
-      }
-    }
-    
-    // No user data but has token - should not happen, clear token
-    localStorage.removeItem('auth_token');
-    return null;
-  };
-  
-  return {
-    user: getStoredUser(),
-    isAuthenticated: typeof window !== 'undefined' && localStorage.getItem('auth_token') !== null,
-  };
-};
+import { useAuth } from '@/lib/auth';
+import Link from 'next/link';
 
 // Mock data - replace with real API calls
 const mockMessages = [
@@ -203,48 +171,12 @@ export default function MessagesPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-          <p className="text-gray-500">Please log in to access messages</p>
-          <div className="space-y-2">
-            <Button 
-              onClick={() => {
-                // Quick login for demo
-                localStorage.setItem('auth_token', 'mock-jwt-token');
-                localStorage.setItem('user_role', 'applicant');
-                localStorage.setItem('user_data', JSON.stringify({
-                  id: 'student-1',
-                  name: 'John Doe',
-                  email: 'john.doe@email.com',
-                  role: 'applicant',
-                  avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John'
-                }));
-                window.location.reload();
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              Quick Login as Student
+          <p className="text-gray-500 text-lg">Please log in to access messages</p>
+          <Link href="/auth/login">
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              Go to Login Page
             </Button>
-            <Button 
-              onClick={() => {
-                // Quick login for demo
-                localStorage.setItem('auth_token', 'mock-jwt-token');
-                localStorage.setItem('user_role', 'provider');
-                localStorage.setItem('user_data', JSON.stringify({
-                  id: 'provider-1',
-                  name: 'Dr. Sarah Wilson',
-                  email: 'sarah.wilson@university.edu',
-                  role: 'provider',
-                  avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah'
-                }));
-                window.location.reload();
-              }}
-              variant="outline"
-            >
-              Quick Login as Provider
-            </Button>
-            <p className="text-xs text-gray-400 mt-2">
-              Or use <a href="/auth/login" className="text-blue-600 hover:underline">Login Page</a>
-            </p>
-          </div>
+          </Link>
         </div>
       </div>
     );
