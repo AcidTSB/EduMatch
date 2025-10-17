@@ -20,7 +20,7 @@
         context: backend-java/auth-service   # Thư mục chứa Dockerfile
       container_name: spring-jwt
       ports:
-        - "8080:8080"
+        - "8081:8081"
       environment:
         SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/jwt?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
         SPRING_DATASOURCE_USERNAME: root
