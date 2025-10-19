@@ -33,8 +33,10 @@ import { RealTimeApplicationStatus } from '@/components/RealTimeApplicationStatu
 import { MatchToast } from '@/components/MatchToast';
 import { ScholarshipCard } from '@/components/ScholarshipCard';
 import { useScholarshipsData, useApplicationsData, useNotificationsData } from '@/contexts/AppContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function DashboardPage() {
+  const { t } = useLanguage();
   // Use AppContext hooks
   const { scholarships } = useScholarshipsData();
   const { applications } = useApplicationsData();
@@ -103,15 +105,15 @@ export default function DashboardPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'accepted':
-        return 'Accepted';
+        return t('dashboard.status.accepted');
       case 'rejected':
-        return 'Rejected';
+        return t('dashboard.status.rejected');
       case 'under_review':
-        return 'Under Review';
+        return t('dashboard.status.underReview');
       case 'submitted':
-        return 'Submitted';
+        return t('dashboard.status.submitted');
       default:
-        return 'Unknown';
+        return t('dashboard.status.unknown');
     }
   };
 
@@ -122,16 +124,16 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">Welcome back, John!</h1>
+              <h1 className="text-4xl font-bold text-gray-900">{t('dashboard.welcomeUser').replace('{name}', 'John')}</h1>
               <p className="text-gray-600 mt-2">
-                Here's what's happening with your scholarship applications
+                {t('dashboard.subtitle')}
               </p>
             </div>
             <div className="mt-4 sm:mt-0">
               <Button asChild>
                 <Link href="/applicant/scholarships">
                   <Search className="h-4 w-4 mr-2" />
-                  Find Scholarships
+                  {t('dashboard.findScholarships')}
                 </Link>
               </Button>
             </div>
@@ -154,7 +156,7 @@ export default function DashboardPage() {
           <div>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Recent Notifications</CardTitle>
+                <CardTitle>{t('dashboard.notifications.title')}</CardTitle>
                 <Button variant="outline" size="sm">
                   <Bell className="h-4 w-4" />
                 </Button>
@@ -177,10 +179,10 @@ export default function DashboardPage() {
         {/* Recommended Scholarships */}
         <Card className="mt-8">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recommended for You</CardTitle>
+            <CardTitle>{t('dashboard.recommended.title')}</CardTitle>
             <Button variant="outline" size="sm" asChild>
               <Link href="/applicant/scholarships">
-                View All Scholarships
+                {t('dashboard.recommended.viewAll')}
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Link>
             </Button>
@@ -202,32 +204,32 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>{t('dashboard.quickActions')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Button variant="outline" className="h-20 flex-col space-y-2" asChild>
                 <Link href="/applicant/profile">
                   <User className="h-6 w-6" />
-                  <span>Update Profile</span>
+                  <span>{t('dashboard.quickAction.updateProfile')}</span>
                 </Link>
               </Button>
               <Button variant="outline" className="h-20 flex-col space-y-2" asChild>
                 <Link href="/applicant/scholarships">
                   <Search className="h-6 w-6" />
-                  <span>Browse Scholarships</span>
+                  <span>{t('dashboard.quickAction.browseScholarships')}</span>
                 </Link>
               </Button>
               <Button variant="outline" className="h-20 flex-col space-y-2" asChild>
                 <Link href="/applicant/applications">
                   <FileText className="h-6 w-6" />
-                  <span>My Applications</span>
+                  <span>{t('dashboard.quickAction.myApplications')}</span>
                 </Link>
               </Button>
               <Button variant="outline" className="h-20 flex-col space-y-2" asChild>
                 <Link href="/applicant/settings">
                   <Target className="h-6 w-6" />
-                  <span>Settings</span>
+                  <span>{t('dashboard.quickAction.settings')}</span>
                 </Link>
               </Button>
             </div>

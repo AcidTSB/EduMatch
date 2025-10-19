@@ -24,8 +24,10 @@ import { useScholarshipsData, useSavedScholarshipsData } from '@/contexts/AppCon
 import { formatDate, getDaysUntilDeadline } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import { ScholarshipCard } from '@/components/ScholarshipCard';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ScholarshipsPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
@@ -111,11 +113,10 @@ export default function ScholarshipsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Find Your Perfect Scholarship
+              {t('scholarshipList.hero.title')}
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Discover scholarships tailored to your academic profile and career goals. 
-              Over 2,000+ opportunities from leading institutions worldwide.
+              {t('scholarshipList.hero.subtitle')}
             </p>
           </div>
 
@@ -123,19 +124,19 @@ export default function ScholarshipsPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="text-center">
               <div className="text-2xl font-bold text-brand-blue-600">{scholarships.length}+</div>
-              <div className="text-sm text-gray-600">Active Scholarships</div>
+              <div className="text-sm text-gray-600">{t('scholarshipList.stats.active')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">$500M+</div>
-              <div className="text-sm text-gray-600">Total Value</div>
+              <div className="text-sm text-gray-600">{t('scholarshipList.stats.totalValue')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">{uniqueFields.length}+</div>
-              <div className="text-sm text-gray-600">Study Fields</div>
+              <div className="text-sm text-gray-600">{t('scholarshipList.stats.fields')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">95%</div>
-              <div className="text-sm text-gray-600">Match Rate</div>
+              <div className="text-sm text-gray-600">{t('scholarshipList.stats.matchRate')}</div>
             </div>
           </div>
         </div>
@@ -151,7 +152,7 @@ export default function ScholarshipsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
-                    placeholder="Search scholarships, universities, fields..."
+                    placeholder={t('scholarshipList.search.placeholder')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -166,7 +167,7 @@ export default function ScholarshipsPage() {
                   onChange={(e) => setLevelFilter(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue-500 focus:border-brand-blue-500"
                 >
-                  <option value="all">All Levels</option>
+                  <option value="all">{t('scholarshipList.filter.allLevels')}</option>
                   {uniqueLevels.map((level: string) => (
                     <option key={level} value={level}>{level}</option>
                   ))}
@@ -180,7 +181,7 @@ export default function ScholarshipsPage() {
                   onChange={(e) => setFieldFilter(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue-500 focus:border-brand-blue-500"
                 >
-                  <option value="all">All Fields</option>
+                  <option value="all">{t('scholarshipList.filter.allFields')}</option>
                   {uniqueFields.map((field: string) => (
                     <option key={field} value={field}>{field}</option>
                   ))}
@@ -194,9 +195,9 @@ export default function ScholarshipsPage() {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue-500 focus:border-brand-blue-500"
                 >
-                  <option value="deadline">Sort by Deadline</option>
-                  <option value="title">Sort by Title</option>
-                  <option value="provider">Sort by Provider</option>
+                  <option value="deadline">{t('scholarshipList.sort.deadline')}</option>
+                  <option value="title">{t('scholarshipList.sort.title')}</option>
+                  <option value="provider">{t('scholarshipList.sort.provider')}</option>
                 </select>
               </div>
             </div>
@@ -207,19 +208,19 @@ export default function ScholarshipsPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
-              {filteredScholarships.length} Scholarships Found
+              {t('scholarshipList.results.found').replace('{count}', filteredScholarships.length.toString())}
             </h2>
             <p className="text-gray-600 text-sm">
-              {searchTerm && `Results for "${searchTerm}"`}
-              {levelFilter !== 'all' && ` • ${levelFilter} level`}
-              {fieldFilter !== 'all' && ` • ${fieldFilter} field`}
+              {searchTerm && t('scholarshipList.results.for').replace('{query}', searchTerm)}
+              {levelFilter !== 'all' && ` • ${t('scholarshipList.results.level').replace('{level}', levelFilter)}`}
+              {fieldFilter !== 'all' && ` • ${t('scholarshipList.results.field').replace('{field}', fieldFilter)}`}
             </p>
           </div>
           
           <div className="flex items-center space-x-2">
             <Button variant="outline" size="sm">
               <Filter className="w-4 h-4 mr-2" />
-              More Filters
+              {t('scholarshipList.filter.moreFilters')}
             </Button>
           </div>
         </div>
@@ -230,10 +231,10 @@ export default function ScholarshipsPage() {
             <CardContent className="flex flex-col items-center justify-center py-12">
               <BookOpen className="h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                No scholarships found
+                {t('scholarshipList.noResults.title')}
               </h3>
               <p className="text-gray-600 text-center">
-                Try adjusting your search terms or filters to find more results.
+                {t('scholarshipList.noResults.subtitle')}
               </p>
               <Button 
                 onClick={() => {
@@ -244,7 +245,7 @@ export default function ScholarshipsPage() {
                 className="mt-4"
                 variant="outline"
               >
-                Clear Filters
+                {t('scholarshipList.noResults.clearFilters')}
               </Button>
             </CardContent>
           </Card>
@@ -265,10 +266,12 @@ export default function ScholarshipsPage() {
         {filteredScholarships.length > 0 && (
           <div className="text-center mt-12">
             <Button variant="outline" size="lg">
-              Load More Scholarships
+              {t('scholarshipList.loadMore')}
             </Button>
             <p className="text-gray-600 text-sm mt-2">
-              Showing {filteredScholarships.length} of {scholarships.length} scholarships
+              {t('scholarshipList.showing')
+                .replace('{current}', filteredScholarships.length.toString())
+                .replace('{total}', scholarships.length.toString())}
             </p>
           </div>
         )}

@@ -12,8 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatCard from '@/components/admin/StatCard';
 import CSVExportButton from '@/components/admin/CSVExportButton';
 import { getAdminStats, SCHOLARSHIPS, APPLICATIONS } from '@/lib/mock-data';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AdminAnalyticsPage() {
+  const { t } = useLanguage();
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   
   // Get real stats from unified data
@@ -53,10 +55,10 @@ export default function AdminAnalyticsPage() {
     .slice(0, 5);
 
   const revenueByCategory = [
-    { category: 'Premium Subscriptions', amount: 28500, percentage: 59 },
-    { category: 'Application Fees', amount: 12800, percentage: 26.5 },
-    { category: 'Featured Listings', amount: 5200, percentage: 10.8 },
-    { category: 'Other Services', amount: 1820, percentage: 3.7 }
+    { category: t('adminAnalytics.premiumSubscriptions'), amount: 28500, percentage: 59 },
+    { category: t('adminAnalytics.applicationFees'), amount: 12800, percentage: 26.5 },
+    { category: t('adminAnalytics.featuredListings'), amount: 5200, percentage: 10.8 },
+    { category: t('adminAnalytics.otherServices'), amount: 1820, percentage: 3.7 }
   ];
 
   const userEngagement = {
@@ -86,8 +88,8 @@ export default function AdminAnalyticsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-          <p className="text-gray-500 mt-1">Comprehensive platform insights and metrics</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('adminAnalytics.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('adminAnalytics.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <div className="flex gap-1 border rounded-lg p-1">
@@ -98,7 +100,7 @@ export default function AdminAnalyticsPage() {
                 size="sm"
                 onClick={() => setTimeRange(range)}
               >
-                {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : range === '90d' ? '90 Days' : '1 Year'}
+                {range === '7d' ? t('adminAnalytics.7days') : range === '30d' ? t('adminAnalytics.30days') : range === '90d' ? t('adminAnalytics.90days') : t('adminAnalytics.1year')}
               </Button>
             ))}
           </div>
@@ -112,39 +114,39 @@ export default function AdminAnalyticsPage() {
       {/* Overview Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard
-          title="Total Users"
+          title={t('adminAnalytics.totalUsers')}
           value={overviewStats.totalUsers.value.toLocaleString()}
           icon={<Users className="w-6 h-6 text-blue-600" />}
           trend={overviewStats.totalUsers.trend}
           change={overviewStats.totalUsers.change}
-          changeLabel="vs last period"
+          changeLabel={t('adminAnalytics.vsLastPeriod')}
           sparklineData={[2100, 2250, 2400, 2550, 2700, 2847]}
         />
         <StatCard
-          title="Scholarships"
+          title={t('adminAnalytics.scholarships')}
           value={overviewStats.totalScholarships.value.toLocaleString()}
           icon={<Award className="w-6 h-6 text-purple-600" />}
           trend={overviewStats.totalScholarships.trend}
           change={overviewStats.totalScholarships.change}
-          changeLabel="vs last period"
+          changeLabel={t('adminAnalytics.vsLastPeriod')}
           sparklineData={[280, 295, 310, 325, 332, 342]}
         />
         <StatCard
-          title="Applications"
+          title={t('adminAnalytics.applications')}
           value={overviewStats.totalApplications.value.toLocaleString()}
           icon={<FileText className="w-6 h-6 text-green-600" />}
           trend={overviewStats.totalApplications.trend}
           change={overviewStats.totalApplications.change}
-          changeLabel="vs last period"
+          changeLabel={t('adminAnalytics.vsLastPeriod')}
           sparklineData={[4200, 4600, 4950, 5200, 5400, 5621]}
         />
         <StatCard
-          title="Revenue"
+          title={t('adminAnalytics.revenue')}
           value={`$${overviewStats.totalRevenue.value.toLocaleString()}`}
           icon={<DollarSign className="w-6 h-6 text-orange-600" />}
           trend={overviewStats.totalRevenue.trend}
           change={Math.abs(overviewStats.totalRevenue.change)}
-          changeLabel="vs last period"
+          changeLabel={t('adminAnalytics.vsLastPeriod')}
           sparklineData={[52000, 51500, 50200, 49800, 49000, 48320]}
         />
       </div>
@@ -152,10 +154,10 @@ export default function AdminAnalyticsPage() {
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="w-full">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="scholarships">Scholarships</TabsTrigger>
-          <TabsTrigger value="revenue">Revenue</TabsTrigger>
+          <TabsTrigger value="overview">{t('adminAnalytics.tabOverview')}</TabsTrigger>
+          <TabsTrigger value="users">{t('adminAnalytics.tabUsers')}</TabsTrigger>
+          <TabsTrigger value="scholarships">{t('adminAnalytics.tabScholarships')}</TabsTrigger>
+          <TabsTrigger value="revenue">{t('adminAnalytics.tabRevenue')}</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -164,7 +166,7 @@ export default function AdminAnalyticsPage() {
             {/* User Growth Chart */}
             <Card>
               <CardHeader>
-                <CardTitle>User Growth Trend</CardTitle>
+                <CardTitle>{t('adminAnalytics.userGrowthTrend')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -172,7 +174,7 @@ export default function AdminAnalyticsPage() {
                     <div key={idx}>
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-sm font-medium text-gray-700">{data.month}</span>
-                        <span className="text-sm font-bold text-gray-900">{data.users} users</span>
+                        <span className="text-sm font-bold text-gray-900">{data.users} {t('adminAnalytics.users')}</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2.5">
                         <div 
@@ -181,8 +183,8 @@ export default function AdminAnalyticsPage() {
                         />
                       </div>
                       <div className="flex gap-4 mt-1 text-xs text-gray-500">
-                        <span>Applicants: {data.applicants}</span>
-                        <span>Providers: {data.providers}</span>
+                        <span>{t('adminAnalytics.applicants')}: {data.applicants}</span>
+                        <span>{t('adminAnalytics.providers')}: {data.providers}</span>
                       </div>
                     </div>
                   ))}
@@ -193,24 +195,24 @@ export default function AdminAnalyticsPage() {
             {/* User Engagement */}
             <Card>
               <CardHeader>
-                <CardTitle>User Engagement Metrics</CardTitle>
+                <CardTitle>{t('adminAnalytics.userEngagement')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <span className="text-sm font-medium text-gray-700">Avg Session Duration</span>
+                    <span className="text-sm font-medium text-gray-700">{t('adminAnalytics.avgSessionDuration')}</span>
                     <span className="text-lg font-bold text-blue-600">{userEngagement.avgSessionDuration}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <span className="text-sm font-medium text-gray-700">Avg Pages/Session</span>
+                    <span className="text-sm font-medium text-gray-700">{t('adminAnalytics.avgPagesSession')}</span>
                     <span className="text-lg font-bold text-green-600">{userEngagement.avgPagesPerSession}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                    <span className="text-sm font-medium text-gray-700">Bounce Rate</span>
+                    <span className="text-sm font-medium text-gray-700">{t('adminAnalytics.bounceRate')}</span>
                     <span className="text-lg font-bold text-orange-600">{userEngagement.bounceRate}%</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                    <span className="text-sm font-medium text-gray-700">Return User Rate</span>
+                    <span className="text-sm font-medium text-gray-700">{t('adminAnalytics.returnUserRate')}</span>
                     <span className="text-lg font-bold text-purple-600">{userEngagement.returnUserRate}%</span>
                   </div>
                 </div>
@@ -222,7 +224,7 @@ export default function AdminAnalyticsPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Top Performing Scholarships</CardTitle>
+                <CardTitle>{t('adminAnalytics.topScholarships')}</CardTitle>
                 <CSVExportButton
                   data={exportData.topScholarships}
                   filename="top-scholarships"
@@ -241,17 +243,17 @@ export default function AdminAnalyticsPage() {
                       <div className="flex gap-4 mt-1 text-sm text-gray-500">
                         <span className="flex items-center gap-1">
                           <FileText className="w-3 h-3" />
-                          {sch.applications} applications
+                          {t('adminAnalytics.applicationsCount').replace('{count}', sch.applications.toString())}
                         </span>
                         <span className="flex items-center gap-1">
                           <Eye className="w-3 h-3" />
-                          {sch.views} views
+                          {t('adminAnalytics.viewsCount').replace('{count}', sch.views.toString())}
                         </span>
                       </div>
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-bold text-green-600">{sch.conversionRate}%</div>
-                      <div className="text-xs text-gray-500">conversion</div>
+                      <div className="text-xs text-gray-500">{t('adminAnalytics.conversion')}</div>
                     </div>
                   </div>
                 ))}
@@ -265,13 +267,13 @@ export default function AdminAnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>User Distribution</CardTitle>
+                <CardTitle>{t('adminAnalytics.userDistribution')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600">Applicants</span>
+                      <span className="text-sm text-gray-600">{t('adminAnalytics.applicants')}</span>
                       <span className="font-bold">60%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -280,7 +282,7 @@ export default function AdminAnalyticsPage() {
                   </div>
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600">Providers</span>
+                      <span className="text-sm text-gray-600">{t('adminAnalytics.providers')}</span>
                       <span className="font-bold">40%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -293,16 +295,16 @@ export default function AdminAnalyticsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Subscription Status</CardTitle>
+                <CardTitle>{t('adminAnalytics.subscriptionStatus')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Premium</span>
+                    <span className="text-sm text-gray-600">{t('adminAnalytics.premium')}</span>
                     <Badge className="bg-yellow-100 text-yellow-700">28%</Badge>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Free</span>
+                    <span className="text-sm text-gray-600">{t('adminAnalytics.free')}</span>
                     <Badge variant="secondary">72%</Badge>
                   </div>
                 </div>
@@ -311,16 +313,16 @@ export default function AdminAnalyticsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>User Activity</CardTitle>
+                <CardTitle>{t('adminAnalytics.userActivity')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Active Today</span>
+                    <span className="text-sm text-gray-600">{t('adminAnalytics.activeToday')}</span>
                     <span className="font-bold text-green-600">1,247</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Active This Week</span>
+                    <span className="text-sm text-gray-600">{t('adminAnalytics.activeThisWeek')}</span>
                     <span className="font-bold text-blue-600">2,134</span>
                   </div>
                 </div>
@@ -334,20 +336,20 @@ export default function AdminAnalyticsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Scholarship Status</CardTitle>
+                <CardTitle>{t('adminAnalytics.scholarshipStatus')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <span className="text-sm font-medium">Active</span>
+                    <span className="text-sm font-medium">{t('adminAnalytics.active')}</span>
                     <span className="text-lg font-bold text-green-600">287</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                    <span className="text-sm font-medium">Pending Review</span>
+                    <span className="text-sm font-medium">{t('adminAnalytics.pendingReview')}</span>
                     <span className="text-lg font-bold text-yellow-600">38</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm font-medium">Expired</span>
+                    <span className="text-sm font-medium">{t('adminAnalytics.expired')}</span>
                     <span className="text-lg font-bold text-gray-600">17</span>
                   </div>
                 </div>
@@ -356,16 +358,16 @@ export default function AdminAnalyticsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Application Stats</CardTitle>
+                <CardTitle>{t('adminAnalytics.applicationStats')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <span className="text-sm font-medium">Avg Applications/Scholarship</span>
+                    <span className="text-sm font-medium">{t('adminAnalytics.avgApplications')}</span>
                     <span className="text-lg font-bold text-blue-600">16.4</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                    <span className="text-sm font-medium">Acceptance Rate</span>
+                    <span className="text-sm font-medium">{t('adminAnalytics.acceptanceRate')}</span>
                     <span className="text-lg font-bold text-purple-600">23.5%</span>
                   </div>
                 </div>
@@ -378,7 +380,7 @@ export default function AdminAnalyticsPage() {
         <TabsContent value="revenue" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Revenue Breakdown</CardTitle>
+              <CardTitle>{t('adminAnalytics.revenueBreakdown')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -402,7 +404,7 @@ export default function AdminAnalyticsPage() {
               </div>
               <div className="mt-6 pt-6 border-t">
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-semibold text-gray-900">Total Revenue</span>
+                  <span className="text-lg font-semibold text-gray-900">{t('adminAnalytics.totalRevenue')}</span>
                   <span className="text-2xl font-bold text-blue-600">
                     ${revenueByCategory.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
                   </span>

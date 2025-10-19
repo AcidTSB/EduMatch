@@ -7,8 +7,10 @@ import { Menu, X, User, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
+import { LanguageSelector } from '@/components/LanguageSelector';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const publicNavigation = [
   { name: 'Home', href: '/' },
@@ -63,6 +65,7 @@ export function Navbar() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const pathname = usePathname();
   const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { t } = useLanguage();
   
   // Calculate hasPaidSubscription from user data
   const hasPaidSubscription = user?.subscriptionType !== 'FREE';
@@ -96,9 +99,9 @@ export function Navbar() {
 
   const getRoleBadge = (role: string, subscription?: any) => {
     const roleConfig = {
-      applicant: { label: 'Student', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-      provider: { label: 'Provider', color: 'bg-green-100 text-green-700 border-green-200' },
-      admin: { label: 'Admin', color: 'bg-purple-100 text-purple-700 border-purple-200' }
+      applicant: { label: t('role.student'), color: 'bg-blue-100 text-blue-700 border-blue-200' },
+      provider: { label: t('role.provider'), color: 'bg-green-100 text-green-700 border-green-200' },
+      admin: { label: t('role.admin'), color: 'bg-purple-100 text-purple-700 border-purple-200' }
     };
     
     const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.applicant;
@@ -114,12 +117,12 @@ export function Navbar() {
   };
 
   const getRoleDisplayName = (role: string) => {
-    const roleNames = {
-      applicant: 'Student',
-      provider: 'Scholarship Provider', 
-      admin: 'Administrator'
+    const roleKeys = {
+      applicant: 'role.student',
+      provider: 'role.provider', 
+      admin: 'role.admin'
     };
-    return roleNames[role as keyof typeof roleNames] || 'User';
+    return t(roleKeys[role as keyof typeof roleKeys] || 'role.student');
   };
 
   const getRoleSpecificNavigation = () => {
@@ -182,7 +185,7 @@ export function Navbar() {
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
-                    Home
+                    {t('nav.home')}
                   </Link>
                   
                   {/* Role-specific key items */}
@@ -197,7 +200,7 @@ export function Navbar() {
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Dashboard
+                        {t('nav.dashboard')}
                       </Link>
                       <Link
                         href="/applicant/scholarships"
@@ -208,7 +211,7 @@ export function Navbar() {
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Scholarships
+                        {t('nav.scholarships')}
                       </Link>
                       <Link
                         href="/applicant/applications"
@@ -219,7 +222,7 @@ export function Navbar() {
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Applications
+                        {t('nav.applications')}
                       </Link>
                     </>
                   )}
@@ -235,7 +238,7 @@ export function Navbar() {
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Dashboard
+                        {t('nav.dashboard')}
                       </Link>
                       <Link
                         href="/provider/scholarships"
@@ -246,7 +249,7 @@ export function Navbar() {
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        My Scholarships
+                        {t('nav.myScholarships')}
                       </Link>
                       <Link
                         href="/provider/applications"
@@ -257,7 +260,7 @@ export function Navbar() {
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Applications
+                        {t('nav.applications')}
                       </Link>
                       <Link
                         href="/provider/analytics"
@@ -268,7 +271,7 @@ export function Navbar() {
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Analytics
+                        {t('nav.analytics')}
                       </Link>
                     </>
                   )}
@@ -284,7 +287,7 @@ export function Navbar() {
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Dashboard
+                        {t('nav.dashboard')}
                       </Link>
                       <Link
                         href="/admin/users"
@@ -295,7 +298,7 @@ export function Navbar() {
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Users
+                        {t('nav.users')}
                       </Link>
                       <Link
                         href="/admin/scholarships"
@@ -306,7 +309,7 @@ export function Navbar() {
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Scholarships
+                        {t('nav.scholarships')}
                       </Link>
                       <Link
                         href="/admin/applications"
@@ -317,7 +320,7 @@ export function Navbar() {
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Applications
+                        {t('nav.applications')}
                       </Link>
                     </>
                   )}
@@ -331,26 +334,67 @@ export function Navbar() {
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
-                    Messages
+                    {t('nav.messages')}
                   </Link>
                 </>
               ) : (
                 <>
                   {/* Public navigation - show more options */}
-                  {publicNavigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={cn(
-                        "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                        isActive(item.href)
-                          ? "bg-blue-50 text-blue-700"
-                          : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                      )}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
+                  <Link
+                    href="/"
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      isActive('/')
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    {t('nav.home')}
+                  </Link>
+                  <Link
+                    href="/about"
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      isActive('/about')
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    {t('nav.about')}
+                  </Link>
+                  <Link
+                    href="/applicant/scholarships"
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      isActive('/applicant/scholarships')
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    {t('nav.scholarships')}
+                  </Link>
+                  <Link
+                    href="/pricing"
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      isActive('/pricing')
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    {t('nav.pricing')}
+                  </Link>
+                  <Link
+                    href="/contact"
+                    className={cn(
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      isActive('/contact')
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    {t('nav.contact')}
+                  </Link>
                 </>
               )}
             </div>
@@ -358,6 +402,9 @@ export function Navbar() {
 
           {/* Right side - Actions */}
           <div className="hidden lg:flex items-center space-x-3">
+            {/* Language Selector */}
+            <LanguageSelector />
+            
             {isAuthenticated ? (
               <>
                 {/* Notifications */}
@@ -409,7 +456,7 @@ export function Navbar() {
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           <User className="h-4 w-4 mr-3 text-gray-400" />
-                          Profile
+                          {t('user.profile')}
                         </Link>
                         
                         <Link
@@ -418,7 +465,7 @@ export function Navbar() {
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           <Settings className="h-4 w-4 mr-3 text-gray-400" />
-                          Settings
+                          {t('user.settings')}
                         </Link>
                         
                         <div className="border-t border-gray-200 my-1" />
@@ -431,7 +478,7 @@ export function Navbar() {
                           className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                         >
                           <LogOut className="h-4 w-4 mr-3" />
-                          Sign Out
+                          {t('user.logout')}
                         </button>
                       </div>
                     </>
@@ -441,17 +488,18 @@ export function Navbar() {
             ) : (
               <div className="flex items-center space-x-3">
                 <Button asChild variant="ghost" size="sm" className="text-gray-700">
-                  <Link href="/auth/login">Sign In</Link>
+                  <Link href="/auth/login">{t('auth.signIn')}</Link>
                 </Button>
                 <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700">
-                  <Link href="/auth/register">Get Started</Link>
+                  <Link href="/auth/register">{t('auth.getStarted')}</Link>
                 </Button>
               </div>
             )}
           </div>
 
           {/* Mobile menu button */}
-          <div className="lg:hidden">
+          <div className="lg:hidden flex items-center space-x-2">
+            <LanguageSelector />
             <Button
               variant="ghost"
               size="icon"
@@ -483,7 +531,7 @@ export function Navbar() {
                   )}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {item.name}
+                  {t('nav.home')}
                 </Link>
               ))}
               
@@ -499,7 +547,7 @@ export function Navbar() {
                   )}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {item.name}
+                  {t('nav.pricing')}
                 </Link>
               ))}
               
@@ -514,7 +562,7 @@ export function Navbar() {
                   )}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Scholarships
+                  {t('nav.scholarships')}
                 </Link>
               )}
               
@@ -539,7 +587,7 @@ export function Navbar() {
                       )}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      {item.name}
+                      {t(`nav.${item.href.split('/').pop()}`)}
                     </Link>
                   ))}
                 </>
@@ -550,12 +598,12 @@ export function Navbar() {
                 <div className="pt-4 border-t border-gray-200 space-y-2">
                   <Button asChild variant="ghost" className="w-full justify-start">
                     <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
-                      Sign In
+                      {t('auth.signIn')}
                     </Link>
                   </Button>
                   <Button asChild className="w-full justify-start bg-blue-600 hover:bg-blue-700">
                     <Link href="/auth/register" onClick={() => setIsMobileMenuOpen(false)}>
-                      Get Started
+                      {t('auth.getStarted')}
                     </Link>
                   </Button>
                 </div>
@@ -591,7 +639,7 @@ export function Navbar() {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <User className="h-4 w-4 mr-3 text-gray-400" />
-                    Profile
+                    {t('user.profile')}
                   </Link>
                   
                   <Link
@@ -600,7 +648,7 @@ export function Navbar() {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <Settings className="h-4 w-4 mr-3 text-gray-400" />
-                    Settings
+                    {t('user.settings')}
                   </Link>
                   
                   <button
@@ -611,7 +659,7 @@ export function Navbar() {
                     className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md mt-2"
                   >
                     <LogOut className="h-4 w-4 mr-3" />
-                    Sign Out
+                    {t('user.logout')}
                   </button>
                 </div>
               )}

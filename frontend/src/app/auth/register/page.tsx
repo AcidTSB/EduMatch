@@ -9,8 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function RegisterPage() {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -29,37 +31,37 @@ export default function RegisterPage() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = 'Full name is required';
+      newErrors.name = t('register.errors.nameRequired');
     } else if (formData.name.trim().length < 2) {
-      newErrors.name = 'Name must be at least 2 characters';
+      newErrors.name = t('register.errors.nameLength');
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('register.errors.emailRequired');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = t('register.errors.emailInvalid');
     }
 
     if (!formData.password.trim()) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('register.errors.passwordRequired');
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+      newErrors.password = t('register.errors.passwordLength');
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
+      newErrors.password = t('register.errors.passwordComplexity');
     }
 
     if (!formData.confirmPassword.trim()) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = t('register.errors.confirmPasswordRequired');
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = t('register.errors.passwordMismatch');
     }
 
     if (!formData.role) {
-      newErrors.role = 'Please select your account type';
+      newErrors.role = t('register.errors.roleRequired');
     }
 
     if (!agreeToTerms) {
-      newErrors.terms = 'You must agree to the Terms and Conditions';
+      newErrors.terms = t('register.errors.termsRequired');
     }
 
     setErrors(newErrors);
@@ -89,7 +91,7 @@ export default function RegisterPage() {
       }
     } catch (error) {
       console.error('Registration failed:', error);
-      setErrors({ submit: 'Registration failed. Please try again.' });
+      setErrors({ submit: t('register.errors.submitFailed') });
     } finally {
       setIsLoading(false);
     }
@@ -119,9 +121,9 @@ export default function RegisterPage() {
               <span className="text-white font-bold text-xl">E</span>
             </div>
           </div>
-          <CardTitle className="text-2xl text-center">Create account</CardTitle>
+          <CardTitle className="text-2xl text-center">{t('register.title')}</CardTitle>
           <p className="text-muted-foreground text-center">
-            Join EduMatch to find scholarship opportunities
+            {t('register.subtitle')}
           </p>
         </CardHeader>
         <CardContent>
@@ -137,7 +139,7 @@ export default function RegisterPage() {
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type="text"
-                  placeholder="Full name"
+                  placeholder={t('register.fullName')}
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   className="pl-10"
@@ -151,7 +153,7 @@ export default function RegisterPage() {
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type="email"
-                  placeholder="Email address"
+                  placeholder={t('register.email')}
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="pl-10"
@@ -166,11 +168,11 @@ export default function RegisterPage() {
                 onValueChange={(value) => handleInputChange('role', value)}
               >
                 <SelectTrigger className={errors.role ? 'border-danger-500' : ''}>
-                  <SelectValue placeholder="I am a..." />
+                  <SelectValue placeholder={t('register.role')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="applicant">Student/Applicant</SelectItem>
-                  <SelectItem value="provider">Scholarship Provider</SelectItem>
+                  <SelectItem value="applicant">{t('register.roleApplicant')}</SelectItem>
+                  <SelectItem value="provider">{t('register.roleProvider')}</SelectItem>
                 </SelectContent>
               </Select>
               {errors.role && (
@@ -183,7 +185,7 @@ export default function RegisterPage() {
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Password"
+                  placeholder={t('register.password')}
                   value={formData.password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   className="pl-10 pr-10"
@@ -210,7 +212,7 @@ export default function RegisterPage() {
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="Confirm password"
+                  placeholder={t('register.confirmPassword')}
                   value={formData.confirmPassword}
                   onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                   className="pl-10 pr-10"
@@ -244,21 +246,21 @@ export default function RegisterPage() {
                   htmlFor="terms"
                   className="text-sm text-muted-foreground cursor-pointer leading-5"
                 >
-                  I agree to the{' '}
+                  {t('register.agreeTerms')}{' '}
                   <Link
                     href="/terms"
                     className="text-brand-blue-500 hover:underline"
                     target="_blank"
                   >
-                    Terms and Conditions
+                    {t('register.terms')}
                   </Link>{' '}
-                  and{' '}
+                  {t('register.and')}{' '}
                   <Link
                     href="/privacy"
                     className="text-brand-blue-500 hover:underline"
                     target="_blank"
                   >
-                    Privacy Policy
+                    {t('register.privacy')}
                   </Link>
                 </label>
               </div>
@@ -273,17 +275,17 @@ export default function RegisterPage() {
               loading={isLoading}
               disabled={isLoading}
             >
-              {isLoading ? 'Creating account...' : 'Create account'}
+              {isLoading ? t('register.creating') : t('register.button')}
               {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
             </Button>
 
             <div className="text-center text-sm text-muted-foreground">
-              Already have an account?{' '}
+              {t('register.haveAccount')}{' '}
               <Link
                 href="/auth/login"
                 className="text-brand-blue-500 hover:underline font-medium"
               >
-                Sign in
+                {t('register.signIn')}
               </Link>
             </div>
           </form>

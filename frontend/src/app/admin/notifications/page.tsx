@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ModalForm, { FormField } from '@/components/admin/ModalForm';
 import StatCard from '@/components/admin/StatCard';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface NotificationTemplate {
   id: string;
@@ -26,6 +27,7 @@ const templates: NotificationTemplate[] = [
 ];
 
 export default function AdminNotificationsPage() {
+  const { t } = useLanguage();
   const [showSendModal, setShowSendModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<NotificationTemplate | null>(null);
   const [stats] = useState({
@@ -38,85 +40,85 @@ export default function AdminNotificationsPage() {
   const sendFields: FormField[] = [
     {
       name: 'targetAudience',
-      label: 'Target Audience',
+      label: t('adminNotifications.modal.targetAudience'),
       type: 'select',
       required: true,
       options: [
-        { label: 'All Users', value: 'ALL_USERS' },
-        { label: 'Applicants Only', value: 'APPLICANTS' },
-        { label: 'Providers Only', value: 'PROVIDERS' },
-        { label: 'Premium Users', value: 'PREMIUM' },
-        { label: 'Specific User (by email)', value: 'SPECIFIC' }
+        { label: t('adminNotifications.modal.audienceAll'), value: 'ALL_USERS' },
+        { label: t('adminNotifications.modal.audienceApplicants'), value: 'APPLICANTS' },
+        { label: t('adminNotifications.modal.audienceProviders'), value: 'PROVIDERS' },
+        { label: t('adminNotifications.modal.audiencePremium'), value: 'PREMIUM' },
+        { label: t('adminNotifications.modal.audienceSpecific'), value: 'SPECIFIC' }
       ]
     },
     {
       name: 'specificEmail',
-      label: 'User Email (if specific)',
+      label: t('adminNotifications.modal.specificEmail'),
       type: 'email',
       required: false,
-      placeholder: 'user@example.com'
+      placeholder: t('adminNotifications.modal.emailPlaceholder')
     },
     {
       name: 'type',
-      label: 'Notification Type',
+      label: t('adminNotifications.modal.type'),
       type: 'select',
       required: true,
       options: [
-        { label: 'System', value: 'SYSTEM' },
-        { label: 'Announcement', value: 'ANNOUNCEMENT' },
-        { label: 'Alert', value: 'ALERT' },
-        { label: 'Update', value: 'UPDATE' }
+        { label: t('adminNotifications.modal.typeSystem'), value: 'SYSTEM' },
+        { label: t('adminNotifications.modal.typeAnnouncement'), value: 'ANNOUNCEMENT' },
+        { label: t('adminNotifications.modal.typeAlert'), value: 'ALERT' },
+        { label: t('adminNotifications.modal.typeUpdate'), value: 'UPDATE' }
       ]
     },
     {
       name: 'priority',
-      label: 'Priority',
+      label: t('adminNotifications.modal.priority'),
       type: 'select',
       required: true,
       options: [
-        { label: 'Low', value: 'LOW' },
-        { label: 'Normal', value: 'NORMAL' },
-        { label: 'High', value: 'HIGH' },
-        { label: 'Urgent', value: 'URGENT' }
+        { label: t('adminNotifications.modal.priorityLow'), value: 'LOW' },
+        { label: t('adminNotifications.modal.priorityNormal'), value: 'NORMAL' },
+        { label: t('adminNotifications.modal.priorityHigh'), value: 'HIGH' },
+        { label: t('adminNotifications.modal.priorityUrgent'), value: 'URGENT' }
       ]
     },
     {
       name: 'title',
-      label: 'Notification Title',
+      label: t('adminNotifications.modal.title'),
       type: 'text',
       required: true,
-      placeholder: 'Enter notification title...'
+      placeholder: t('adminNotifications.modal.titlePlaceholder')
     },
     {
       name: 'message',
-      label: 'Message',
+      label: t('adminNotifications.modal.message'),
       type: 'textarea',
       required: true,
-      placeholder: 'Enter notification message...',
+      placeholder: t('adminNotifications.modal.messagePlaceholder'),
       rows: 6
     },
     {
       name: 'actionUrl',
-      label: 'Action URL (optional)',
+      label: t('adminNotifications.modal.actionUrl'),
       type: 'text',
       required: false,
-      placeholder: '/dashboard'
+      placeholder: t('adminNotifications.modal.actionUrlPlaceholder')
     },
     {
       name: 'actionLabel',
-      label: 'Action Button Label (optional)',
+      label: t('adminNotifications.modal.actionLabel'),
       type: 'text',
       required: false,
-      placeholder: 'View Details'
+      placeholder: t('adminNotifications.modal.actionLabelPlaceholder')
     },
     {
       name: 'sendEmail',
-      label: 'Also Send Email',
+      label: t('adminNotifications.modal.sendEmail'),
       type: 'select',
       required: true,
       options: [
-        { label: 'Yes', value: 'yes' },
-        { label: 'No', value: 'no' }
+        { label: t('adminNotifications.modal.sendEmailYes'), value: 'yes' },
+        { label: t('adminNotifications.modal.sendEmailNo'), value: 'no' }
       ]
     }
   ];
@@ -130,8 +132,8 @@ export default function AdminNotificationsPage() {
     // - Broadcast via WebSocket for real-time delivery
     setShowSendModal(false);
     setSelectedTemplate(null);
-    toast.success('Notification Sent', {
-      description: `"${data.title}" sent to ${data.targetAudience}. ${data.sendEmail === 'yes' ? 'Email notifications also sent.' : ''}`,
+    toast.success(t('adminNotifications.toast.success'), {
+      description: t('adminNotifications.toast.description'),
     });
   };
 
@@ -145,37 +147,37 @@ export default function AdminNotificationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Notification Center</h1>
-          <p className="text-gray-500 mt-1">Send system-wide notifications to users</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('adminNotifications.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('adminNotifications.subtitle')}</p>
         </div>
         <Button onClick={() => setShowSendModal(true)} className="flex items-center gap-2">
           <Send className="w-4 h-4" />
-          Send New Notification
+          {t('adminNotifications.sendNew')}
         </Button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard
-          title="Total Sent"
+          title={t('adminNotifications.stats.totalSent')}
           value={stats.totalSent}
           icon={<Send className="w-6 h-6 text-blue-600" />}
           trend="up"
           change={8.5}
-          changeLabel="vs last month"
+          changeLabel={t('adminNotifications.stats.vsLastMonth')}
         />
         <StatCard
-          title="Delivered"
+          title={t('adminNotifications.stats.delivered')}
           value={stats.delivered}
           icon={<Bell className="w-6 h-6 text-green-600" />}
         />
         <StatCard
-          title="Pending"
+          title={t('adminNotifications.stats.pending')}
           value={stats.pending}
           icon={<AlertCircle className="w-6 h-6 text-yellow-600" />}
         />
         <StatCard
-          title="Failed"
+          title={t('adminNotifications.stats.failed')}
           value={stats.failed}
           icon={<AlertCircle className="w-6 h-6 text-red-600" />}
         />
@@ -184,16 +186,16 @@ export default function AdminNotificationsPage() {
       {/* Main Content */}
       <Tabs defaultValue="send" className="w-full">
         <TabsList>
-          <TabsTrigger value="send">Send Notification</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
+          <TabsTrigger value="send">{t('adminNotifications.tabs.send')}</TabsTrigger>
+          <TabsTrigger value="templates">{t('adminNotifications.tabs.templates')}</TabsTrigger>
+          <TabsTrigger value="history">{t('adminNotifications.tabs.history')}</TabsTrigger>
         </TabsList>
 
         {/* Send Tab */}
         <TabsContent value="send" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Quick Send</CardTitle>
+              <CardTitle>{t('adminNotifications.quickSend.title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -203,7 +205,7 @@ export default function AdminNotificationsPage() {
                   onClick={() => setShowSendModal(true)}
                 >
                   <Users className="w-8 h-8 text-blue-600" />
-                  <span>Send to All Users</span>
+                  <span>{t('adminNotifications.quickSend.allUsers')}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -211,7 +213,7 @@ export default function AdminNotificationsPage() {
                   onClick={() => setShowSendModal(true)}
                 >
                   <User className="w-8 h-8 text-green-600" />
-                  <span>Send to Applicants</span>
+                  <span>{t('adminNotifications.quickSend.applicants')}</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -219,7 +221,7 @@ export default function AdminNotificationsPage() {
                   onClick={() => setShowSendModal(true)}
                 >
                   <Megaphone className="w-8 h-8 text-purple-600" />
-                  <span>Send to Providers</span>
+                  <span>{t('adminNotifications.quickSend.providers')}</span>
                 </Button>
               </div>
             </CardContent>
@@ -227,7 +229,7 @@ export default function AdminNotificationsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent Sent Notifications</CardTitle>
+              <CardTitle>{t('adminNotifications.recent.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -272,7 +274,7 @@ export default function AdminNotificationsPage() {
                     className="w-full"
                     onClick={() => useTemplate(template)}
                   >
-                    Use Template
+                    {t('adminNotifications.templates.useTemplate')}
                   </Button>
                 </CardContent>
               </Card>
@@ -284,7 +286,7 @@ export default function AdminNotificationsPage() {
         <TabsContent value="history" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Notification History</CardTitle>
+              <CardTitle>{t('adminNotifications.history.title')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -301,15 +303,15 @@ export default function AdminNotificationsPage() {
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div>
-                        <span className="text-gray-500">Recipients: </span>
+                        <span className="text-gray-500">{t('adminNotifications.history.recipients')}: </span>
                         <span className="font-medium">{notif.recipients}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Delivered: </span>
+                        <span className="text-gray-500">{t('adminNotifications.history.delivered')}: </span>
                         <span className="font-medium text-green-600">{notif.delivered}</span>
                       </div>
                       <div>
-                        <span className="text-gray-500">Failed: </span>
+                        <span className="text-gray-500">{t('adminNotifications.history.failed')}: </span>
                         <span className="font-medium text-red-600">{notif.failed}</span>
                       </div>
                     </div>
@@ -329,10 +331,10 @@ export default function AdminNotificationsPage() {
           setSelectedTemplate(null);
         }}
         onSubmit={handleSendNotification}
-        title={selectedTemplate ? `Send ${selectedTemplate.name}` : 'Send Notification'}
+        title={selectedTemplate ? `Send ${selectedTemplate.name}` : t('adminNotifications.modal.sendTitle')}
         fields={sendFields}
-        submitText="Send Notification"
-        cancelText="Cancel"
+        submitText={t('adminNotifications.modal.send')}
+        cancelText={t('adminNotifications.modal.cancel')}
         initialValues={selectedTemplate ? {
           type: selectedTemplate.type,
           title: selectedTemplate.name,

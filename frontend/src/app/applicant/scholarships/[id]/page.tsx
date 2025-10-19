@@ -29,6 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { ApplyButton } from '@/components/ApplyButton';
 import { useApplications, useSavedScholarships } from '@/hooks/api';
 import { mockScholarships } from '@/lib/mock-data';
@@ -39,6 +40,7 @@ import { toast } from 'react-hot-toast';
 export default function ScholarshipDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { t } = useLanguage();
   const [scholarship, setScholarship] = useState<Scholarship | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasApplied, setHasApplied] = useState(false);
@@ -65,7 +67,7 @@ export default function ScholarshipDetailPage() {
         }
       } catch (error) {
         console.error('Error fetching scholarship:', error);
-        toast.error('Failed to load scholarship details');
+        toast.error(t('scholarshipDetail.loadError'));
       } finally {
         setIsLoading(false);
       }
@@ -79,9 +81,9 @@ export default function ScholarshipDetailPage() {
 
     try {
       await toggleSaved(scholarship.id);
-      toast.success(isScholarshipSaved(scholarship.id) ? 'Scholarship saved!' : 'Scholarship unsaved!');
+      toast.success(isScholarshipSaved(scholarship.id) ? t('scholarshipDetail.savedSuccess') : t('scholarshipDetail.unsavedSuccess'));
     } catch (error) {
-      toast.error('Failed to update saved status');
+      toast.error(t('scholarshipDetail.savedError'));
     }
   };
 
@@ -148,16 +150,16 @@ export default function ScholarshipDetailPage() {
             className="mb-6"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+            {t('scholarshipDetail.back')}
           </Button>
           <Card>
             <CardContent className="p-12 text-center">
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">Scholarship Not Found</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">{t('scholarshipDetail.notFound')}</h1>
               <p className="text-gray-600 mb-6">
-                The scholarship you're looking for doesn't exist or has been removed.
+                {t('scholarshipDetail.notFoundDesc')}
               </p>
               <Button onClick={() => router.push('/applicant/scholarships')}>
-                Browse All Scholarships
+                {t('scholarshipDetail.browseAll')}
               </Button>
             </CardContent>
           </Card>
@@ -178,7 +180,7 @@ export default function ScholarshipDetailPage() {
           className="mb-6"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Scholarships
+          {t('scholarshipDetail.back')}
         </Button>
 
         {/* Main Content */}
@@ -198,7 +200,7 @@ export default function ScholarshipDetailPage() {
                   {scholarship.isRemote && (
                     <Badge variant="outline">
                       <Globe className="h-3 w-3 mr-1" />
-                      Remote
+                      {t('scholarshipDetail.remote')}
                     </Badge>
                   )}
                 </div>
@@ -218,11 +220,11 @@ export default function ScholarshipDetailPage() {
                   </div>
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-2" />
-                    Due {formatDate(scholarship.applicationDeadline)}
+                    {t('scholarshipDetail.due')} {formatDate(scholarship.applicationDeadline)}
                   </div>
                   <div className="flex items-center">
                     <Users className="h-4 w-4 mr-2" />
-                    {scholarship.viewCount} views
+                    {scholarship.viewCount} {t('scholarshipDetail.views')}
                   </div>
                 </div>
 
@@ -237,7 +239,7 @@ export default function ScholarshipDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <FileText className="h-5 w-5 mr-2" />
-                  Scholarship Details
+                  {t('scholarshipDetail.details')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -245,27 +247,27 @@ export default function ScholarshipDetailPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
                     <DollarSign className="h-4 w-4 mr-2" />
-                    Financial Information
+                    {t('scholarshipDetail.financialInfo')}
                   </h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-600">Amount:</span>
+                      <span className="text-gray-600">{t('scholarshipDetail.amount')}:</span>
                       <p className="font-medium text-2xl text-green-600">
                         {formatCurrency(scholarship.amount || 0)}
                       </p>
                     </div>
                     <div>
-                      <span className="text-gray-600">Duration:</span>
-                      <p className="font-medium">{scholarship.duration} months</p>
+                      <span className="text-gray-600">{t('scholarshipDetail.duration')}:</span>
+                      <p className="font-medium">{scholarship.duration} {t('scholarshipDetail.months')}</p>
                     </div>
                     <div>
-                      <span className="text-gray-600">Payment:</span>
+                      <span className="text-gray-600">{t('scholarshipDetail.payment')}:</span>
                       <p className="font-medium">
-                        {scholarship.isPaidMonthly ? 'Monthly' : 'Lump Sum'}
+                        {scholarship.isPaidMonthly ? t('scholarshipDetail.monthly') : t('scholarshipDetail.lumpSum')}
                       </p>
                     </div>
                     <div>
-                      <span className="text-gray-600">Department:</span>
+                      <span className="text-gray-600">{t('scholarshipDetail.department')}:</span>
                       <p className="font-medium">{scholarship.department}</p>
                     </div>
                   </div>
@@ -277,22 +279,22 @@ export default function ScholarshipDetailPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
                     <Clock className="h-4 w-4 mr-2" />
-                    Timeline
+                    {t('scholarshipDetail.timeline')}
                   </h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Application Deadline:</span>
+                      <span className="text-gray-600">{t('scholarshipDetail.applicationDeadline')}:</span>
                       <span className={cn("font-medium", isDeadlinePassed ? "text-red-600" : "text-gray-900")}>
                         {formatDate(scholarship.applicationDeadline)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Start Date:</span>
-                      <span className="font-medium">{scholarship.startDate ? formatDate(scholarship.startDate) : 'TBD'}</span>
+                      <span className="text-gray-600">{t('scholarshipDetail.startDate')}:</span>
+                      <span className="font-medium">{scholarship.startDate ? formatDate(scholarship.startDate) : t('scholarshipDetail.tbd')}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">End Date:</span>
-                      <span className="font-medium">{scholarship.endDate ? formatDate(scholarship.endDate) : 'TBD'}</span>
+                      <span className="text-gray-600">{t('scholarshipDetail.endDate')}:</span>
+                      <span className="font-medium">{scholarship.endDate ? formatDate(scholarship.endDate) : t('scholarshipDetail.tbd')}</span>
                     </div>
                   </div>
                 </div>
@@ -303,17 +305,17 @@ export default function ScholarshipDetailPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
                     <CheckCircle className="h-4 w-4 mr-2" />
-                    Requirements
+                    {t('scholarshipDetail.requirements')}
                   </h3>
                   <div className="space-y-3">
                     <div>
-                      <span className="text-sm text-gray-600">Minimum GPA:</span>
+                      <span className="text-sm text-gray-600">{t('scholarshipDetail.minGpa')}:</span>
                       <p className="font-medium">{scholarship.minGpa}/4.0</p>
                     </div>
                     
                     {scholarship.requiredSkills && scholarship.requiredSkills.length > 0 && (
                       <div>
-                        <span className="text-sm text-gray-600 block mb-2">Required Skills:</span>
+                        <span className="text-sm text-gray-600 block mb-2">{t('scholarshipDetail.requiredSkills')}:</span>
                         <div className="flex flex-wrap gap-2">
                           {scholarship.requiredSkills.map((skill, index) => (
                             <Badge key={index} variant="secondary" className="text-xs">
@@ -326,7 +328,7 @@ export default function ScholarshipDetailPage() {
 
                     {scholarship.preferredSkills && scholarship.preferredSkills.length > 0 && (
                       <div>
-                        <span className="text-sm text-gray-600 block mb-2">Preferred Skills:</span>
+                        <span className="text-sm text-gray-600 block mb-2">{t('scholarshipDetail.preferredSkills')}:</span>
                         <div className="flex flex-wrap gap-2">
                           {scholarship.preferredSkills.map((skill, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
@@ -345,25 +347,25 @@ export default function ScholarshipDetailPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
                     <Mail className="h-4 w-4 mr-2" />
-                    Contact Information
+                    {t('scholarshipDetail.contactInfo')}
                   </h3>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Email:</span>
+                      <span className="text-sm text-gray-600">{t('scholarshipDetail.email')}:</span>
                       <a href={`mailto:${scholarship.contactEmail}`} className="text-blue-600 hover:underline text-sm">
                         {scholarship.contactEmail}
                       </a>
                     </div>
                     {scholarship.website && (
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Website:</span>
+                        <span className="text-sm text-gray-600">{t('scholarshipDetail.website')}:</span>
                         <a 
                           href={scholarship.website} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:underline text-sm flex items-center"
                         >
-                          Visit Website
+                          {t('scholarshipDetail.visitWebsite')}
                           <ExternalLink className="h-3 w-3 ml-1" />
                         </a>
                       </div>
@@ -395,19 +397,19 @@ export default function ScholarshipDetailPage() {
                     {isScholarshipSaved(scholarship?.id || '') ? (
                       <>
                         <BookmarkCheck className="h-4 w-4 mr-2" />
-                        Saved
+                        {t('scholarshipDetail.saved')}
                       </>
                     ) : (
                       <>
                         <Bookmark className="h-4 w-4 mr-2" />
-                        Save for Later
+                        {t('scholarshipDetail.saveForLater')}
                       </>
                     )}
                   </Button>
 
                   <Button variant="outline" className="w-full">
                     <Share2 className="h-4 w-4 mr-2" />
-                    Share
+                    {t('scholarshipDetail.share')}
                   </Button>
                 </div>
               </CardContent>
@@ -416,25 +418,25 @@ export default function ScholarshipDetailPage() {
             {/* Quick Stats */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Quick Stats</CardTitle>
+                <CardTitle className="text-lg">{t('scholarshipDetail.quickStats')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Views</span>
+                  <span className="text-sm text-gray-600">{t('scholarshipDetail.views')}</span>
                   <span className="font-medium">{scholarship.viewCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Applications</span>
+                  <span className="text-sm text-gray-600">{t('scholarshipDetail.applications')}</span>
                   <span className="font-medium">{Math.floor(Math.random() * 50) + 10}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Acceptance Rate</span>
+                  <span className="text-sm text-gray-600">{t('scholarshipDetail.acceptanceRate')}</span>
                   <span className="font-medium">{Math.floor(Math.random() * 30) + 15}%</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Competition</span>
+                  <span className="text-sm text-gray-600">{t('scholarshipDetail.competition')}</span>
                   <Badge variant="outline" className="text-xs">
-                    {Math.random() > 0.5 ? 'High' : 'Medium'}
+                    {Math.random() > 0.5 ? t('scholarshipDetail.competitionHigh') : t('scholarshipDetail.competitionMedium')}
                   </Badge>
                 </div>
               </CardContent>
@@ -444,7 +446,7 @@ export default function ScholarshipDetailPage() {
             {scholarship.tags && scholarship.tags.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Tags</CardTitle>
+                  <CardTitle className="text-lg">{t('scholarshipDetail.tags')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">

@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScholarshipType } from '@/types';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ScholarshipData {
   id: string;
@@ -32,6 +33,7 @@ interface EditScholarshipModalProps {
 }
 
 export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }: EditScholarshipModalProps) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     title: '',
     amount: '',
@@ -64,27 +66,27 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+      newErrors.title = t('editScholarshipModal.error.titleRequired');
     }
 
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      newErrors.amount = 'Valid amount is required';
+      newErrors.amount = t('editScholarshipModal.error.amountRequired');
     }
 
     if (!formData.deadline) {
-      newErrors.deadline = 'Deadline is required';
+      newErrors.deadline = t('editScholarshipModal.error.deadlineRequired');
     }
 
     if (!formData.university.trim()) {
-      newErrors.university = 'University is required';
+      newErrors.university = t('editScholarshipModal.error.universityRequired');
     }
 
     if (!formData.location.trim()) {
-      newErrors.location = 'Location is required';
+      newErrors.location = t('editScholarshipModal.error.locationRequired');
     }
 
     if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
+      newErrors.description = t('editScholarshipModal.error.descriptionRequired');
     }
 
     setErrors(newErrors);
@@ -114,8 +116,8 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Edit Scholarship</h2>
-            <p className="text-sm text-gray-500 mt-1">ID: {scholarship.id}</p>
+            <h2 className="text-2xl font-bold text-gray-900">{t('editScholarshipModal.title')}</h2>
+            <p className="text-sm text-gray-500 mt-1">{t('editScholarshipModal.idLabel')}: {scholarship.id}</p>
           </div>
           <button
             onClick={handleClose}
@@ -131,14 +133,14 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
             {/* Title */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-                Scholarship Title *
+                {t('editScholarshipModal.scholarshipTitle')} *
               </label>
               <Input
                 id="title"
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="e.g., MIT AI Research Fellowship 2025"
+                placeholder={t('editScholarshipModal.scholarshipTitlePlaceholder')}
                 className={errors.title ? 'border-red-500' : ''}
               />
               {errors.title && <p className="text-red-500 text-sm mt-1">{errors.title}</p>}
@@ -148,14 +150,14 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
-                  Amount ($) *
+                  {t('editScholarshipModal.amount')} *
                 </label>
                 <Input
                   id="amount"
                   type="number"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  placeholder="50000"
+                  placeholder={t('editScholarshipModal.amountPlaceholder')}
                   min="0"
                   step="1000"
                   className={errors.amount ? 'border-red-500' : ''}
@@ -165,7 +167,7 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
 
               <div>
                 <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
-                  Type *
+                  {t('editScholarshipModal.type')} *
                 </label>
                 <select
                   id="type"
@@ -173,11 +175,11 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
                   onChange={(e) => setFormData({ ...formData, type: e.target.value as ScholarshipType })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value={ScholarshipType.UNDERGRADUATE}>Undergraduate</option>
-                  <option value={ScholarshipType.GRADUATE}>Graduate</option>
-                  <option value={ScholarshipType.PHD}>PhD</option>
-                  <option value={ScholarshipType.POSTDOC}>Postdoc</option>
-                  <option value={ScholarshipType.RESEARCH}>Research</option>
+                  <option value={ScholarshipType.UNDERGRADUATE}>{t('editScholarshipModal.typeUndergraduate')}</option>
+                  <option value={ScholarshipType.GRADUATE}>{t('editScholarshipModal.typeGraduate')}</option>
+                  <option value={ScholarshipType.PHD}>{t('editScholarshipModal.typePhd')}</option>
+                  <option value={ScholarshipType.POSTDOC}>{t('editScholarshipModal.typePostdoc')}</option>
+                  <option value={ScholarshipType.RESEARCH}>{t('editScholarshipModal.typeResearch')}</option>
                 </select>
               </div>
             </div>
@@ -186,14 +188,14 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="university" className="block text-sm font-medium text-gray-700 mb-1">
-                  University/Provider *
+                  {t('editScholarshipModal.university')} *
                 </label>
                 <Input
                   id="university"
                   type="text"
                   value={formData.university}
                   onChange={(e) => setFormData({ ...formData, university: e.target.value })}
-                  placeholder="e.g., Massachusetts Institute of Technology"
+                  placeholder={t('editScholarshipModal.universityPlaceholder')}
                   className={errors.university ? 'border-red-500' : ''}
                 />
                 {errors.university && <p className="text-red-500 text-sm mt-1">{errors.university}</p>}
@@ -201,14 +203,14 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
 
               <div>
                 <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                  Location *
+                  {t('editScholarshipModal.location')} *
                 </label>
                 <Input
                   id="location"
                   type="text"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  placeholder="e.g., United States"
+                  placeholder={t('editScholarshipModal.locationPlaceholder')}
                   className={errors.location ? 'border-red-500' : ''}
                 />
                 {errors.location && <p className="text-red-500 text-sm mt-1">{errors.location}</p>}
@@ -218,7 +220,7 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
             {/* Deadline */}
             <div>
               <label htmlFor="deadline" className="block text-sm font-medium text-gray-700 mb-1">
-                Application Deadline *
+                {t('editScholarshipModal.deadline')} *
               </label>
               <Input
                 id="deadline"
@@ -233,13 +235,13 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
             {/* Description */}
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                Description *
+                {t('editScholarshipModal.description')} *
               </label>
               <textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Enter scholarship description, requirements, and details..."
+                placeholder={t('editScholarshipModal.descriptionPlaceholder')}
                 rows={4}
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.description ? 'border-red-500' : 'border-gray-300'
@@ -251,8 +253,7 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
             {/* Info Notice */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Changes will be saved to mock data. In production, this will update the database 
-                and notify the provider about the changes.
+                <strong>{t('editScholarshipModal.noteTitle')}:</strong> {t('editScholarshipModal.noteText')}
               </p>
             </div>
           </div>
@@ -261,10 +262,10 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
         {/* Footer */}
         <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end gap-3 rounded-b-lg">
           <Button type="button" variant="outline" onClick={handleClose}>
-            Cancel
+            {t('editScholarshipModal.cancel')}
           </Button>
           <Button type="submit" onClick={handleSubmit}>
-            Save Changes
+            {t('editScholarshipModal.save')}
           </Button>
         </div>
       </div>

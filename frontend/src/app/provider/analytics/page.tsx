@@ -24,8 +24,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { formatDate } from '@/lib/utils';
 import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext';
 import { ApplicationStatus, ScholarshipStatus } from '@/types';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderAnalyticsPage() {
+  const { t } = useLanguage();
   const [timeRange, setTimeRange] = useState('last-6-months');
   
   // Get real data from AppContext
@@ -250,9 +252,9 @@ export default function ProviderAnalyticsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">Analytics Dashboard</h1>
+              <h1 className="text-4xl font-bold text-gray-900">{t('providerAnalytics.title')}</h1>
               <p className="text-gray-600 mt-2">
-                Insights and performance metrics for your scholarships
+                {t('providerAnalytics.subtitle')}
               </p>
             </div>
             <div className="flex items-center space-x-4 mt-4 sm:mt-0">
@@ -262,11 +264,11 @@ export default function ProviderAnalyticsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="last-30-days">Last 30 Days</SelectItem>
-                  <SelectItem value="last-3-months">Last 3 Months</SelectItem>
-                  <SelectItem value="last-6-months">Last 6 Months</SelectItem>
-                  <SelectItem value="last-year">Last Year</SelectItem>
-                  <SelectItem value="all-time">All Time</SelectItem>
+                  <SelectItem value="last-30-days">{t('providerAnalytics.timeRange.last30days')}</SelectItem>
+                  <SelectItem value="last-3-months">{t('providerAnalytics.timeRange.last3months')}</SelectItem>
+                  <SelectItem value="last-6-months">{t('providerAnalytics.timeRange.last6months')}</SelectItem>
+                  <SelectItem value="last-year">{t('providerAnalytics.timeRange.lastYear')}</SelectItem>
+                  <SelectItem value="all-time">{t('providerAnalytics.timeRange.allTime')}</SelectItem>
                 </SelectContent>
               </Select>
               
@@ -280,7 +282,7 @@ export default function ProviderAnalyticsPage() {
                 }}
               >
                 <Download className="h-4 w-4 mr-2" />
-                Export Report
+                {t('providerAnalytics.exportReport')}
               </Button>
             </div>
           </div>
@@ -291,34 +293,34 @@ export default function ProviderAnalyticsPage() {
         {/* Overview Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
-            title="Total Applications"
+            title={t('providerAnalytics.stats.totalApplications')}
             value={overview.totalApplications}
             icon={Users}
-            change="+12% from last month"
+            change={`+12% ${t('providerAnalytics.stats.fromLastMonth')}`}
             changeType="positive"
           />
           
           <StatCard
-            title="Acceptance Rate"
+            title={t('providerAnalytics.stats.acceptanceRate')}
             value={`${overview.acceptanceRate}%`}
             icon={CheckCircle}
-            change="+2.3% from last month"
+            change={`+2.3% ${t('providerAnalytics.stats.fromLastMonth')}`}
             changeType="positive"
           />
           
           <StatCard
-            title="Active Scholarships"
+            title={t('providerAnalytics.stats.activeScholarships')}
             value={overview.activeScholarships}
             icon={Award}
-            change="2 ending soon"
+            change={`2 ${t('providerAnalytics.stats.endingSoon')}`}
             changeType="neutral"
           />
           
           <StatCard
-            title="Avg Applications per Scholarship"
+            title={t('providerAnalytics.stats.avgApplications')}
             value={overview.averageApplicationsPerScholarship}
             icon={TrendingUp}
-            change="+5.2 from last month"
+            change={`+5.2 ${t('providerAnalytics.stats.fromLastMonth')}`}
             changeType="positive"
           />
         </div>
@@ -330,7 +332,7 @@ export default function ProviderAnalyticsPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <LineChart className="h-5 w-5 mr-2" />
-                Applications Trend
+                {t('providerAnalytics.charts.applicationsTrend')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -343,7 +345,7 @@ export default function ProviderAnalyticsPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <PieChartIcon className="h-5 w-5 mr-2" />
-                Application Status Distribution
+                {t('providerAnalytics.charts.statusDistribution')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -354,7 +356,7 @@ export default function ProviderAnalyticsPage() {
                       <CheckCircle className="h-8 w-8 text-green-600" />
                     </div>
                     <p className="text-2xl font-bold text-green-600">{overview.acceptedApplications}</p>
-                    <p className="text-sm text-gray-600">Accepted</p>
+                    <p className="text-sm text-gray-600">{t('providerAnalytics.statusLabels.accepted')}</p>
                   </div>
                   
                   <div className="text-center">
@@ -364,7 +366,7 @@ export default function ProviderAnalyticsPage() {
                     <p className="text-2xl font-bold text-yellow-600">
                       {overview.pendingApplications}
                     </p>
-                    <p className="text-sm text-gray-600">Pending</p>
+                    <p className="text-sm text-gray-600">{t('providerAnalytics.statusLabels.pending')}</p>
                   </div>
                 </div>
                 
@@ -373,7 +375,7 @@ export default function ProviderAnalyticsPage() {
                     <XCircle className="h-8 w-8 text-red-600" />
                   </div>
                   <p className="text-2xl font-bold text-red-600">{overview.rejectedApplications}</p>
-                  <p className="text-sm text-gray-600">Rejected</p>
+                  <p className="text-sm text-gray-600">{t('providerAnalytics.statusLabels.rejected')}</p>
                 </div>
               </div>
             </CardContent>
@@ -385,7 +387,7 @@ export default function ProviderAnalyticsPage() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <BarChart3 className="h-5 w-5 mr-2" />
-              Scholarship Performance
+              {t('providerAnalytics.charts.scholarshipPerformance')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -393,12 +395,12 @@ export default function ProviderAnalyticsPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-2">Scholarship</th>
-                    <th className="text-center py-3 px-2">Applications</th>
-                    <th className="text-center py-3 px-2">Accepted</th>
-                    <th className="text-center py-3 px-2">Acceptance Rate</th>
-                    <th className="text-center py-3 px-2">Avg Rating</th>
-                    <th className="text-center py-3 px-2">Status</th>
+                    <th className="text-left py-3 px-2">{t('providerAnalytics.table.scholarship')}</th>
+                    <th className="text-center py-3 px-2">{t('providerAnalytics.table.applications')}</th>
+                    <th className="text-center py-3 px-2">{t('providerAnalytics.table.accepted')}</th>
+                    <th className="text-center py-3 px-2">{t('providerAnalytics.table.acceptanceRate')}</th>
+                    <th className="text-center py-3 px-2">{t('providerAnalytics.table.avgRating')}</th>
+                    <th className="text-center py-3 px-2">{t('providerAnalytics.table.status')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -441,7 +443,7 @@ export default function ProviderAnalyticsPage() {
                         </div>
                       </td>
                       <td className="text-center py-4 px-2">
-                        <Badge variant="default">Active</Badge>
+                        <Badge variant="default">{t('providerAnalytics.table.active')}</Badge>
                       </td>
                     </tr>
                   ))}
@@ -458,7 +460,7 @@ export default function ProviderAnalyticsPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <GraduationCap className="h-5 w-5 mr-2" />
-                Top Universities
+                {t('providerAnalytics.charts.topUniversities')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -471,7 +473,7 @@ export default function ProviderAnalyticsPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Award className="h-5 w-5 mr-2" />
-                Popular Majors
+                {t('providerAnalytics.charts.popularMajors')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -485,7 +487,7 @@ export default function ProviderAnalyticsPage() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <TrendingUp className="h-5 w-5 mr-2" />
-              Key Insights
+              {t('providerAnalytics.charts.keyInsights')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -495,9 +497,11 @@ export default function ProviderAnalyticsPage() {
                   <TrendingUp className="h-4 w-4 text-blue-600" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-blue-900">Application Volume</h4>
+                  <h4 className="font-semibold text-blue-900">{t('providerAnalytics.insights.volumeTitle')}</h4>
                   <p className="text-blue-700 text-sm">
-                    Your scholarships have received {overview.totalApplications} applications with an average of {overview.averageApplicationsPerScholarship} per scholarship.
+                    {t('providerAnalytics.insights.volumeDesc')
+                      .replace('{total}', overview.totalApplications.toString())
+                      .replace('{avg}', overview.averageApplicationsPerScholarship.toString())}
                   </p>
                 </div>
               </div>
@@ -507,9 +511,12 @@ export default function ProviderAnalyticsPage() {
                   <CheckCircle className="h-4 w-4 text-green-600" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-green-900">Acceptance Rate</h4>
+                  <h4 className="font-semibold text-green-900">{t('providerAnalytics.insights.acceptanceTitle')}</h4>
                   <p className="text-green-700 text-sm">
-                    Current acceptance rate is {overview.acceptanceRate}% with {overview.acceptedApplications} applications accepted out of {overview.totalApplications} total.
+                    {t('providerAnalytics.insights.acceptanceDesc')
+                      .replace('{rate}', overview.acceptanceRate.toString())
+                      .replace('{accepted}', overview.acceptedApplications.toString())
+                      .replace('{total}', overview.totalApplications.toString())}
                   </p>
                 </div>
               </div>
@@ -520,9 +527,10 @@ export default function ProviderAnalyticsPage() {
                     <AlertCircle className="h-4 w-4 text-yellow-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-yellow-900">Action Required</h4>
+                    <h4 className="font-semibold text-yellow-900">{t('providerAnalytics.insights.actionTitle')}</h4>
                     <p className="text-yellow-700 text-sm">
-                      You have {overview.pendingApplications} pending applications that require review.
+                      {t('providerAnalytics.insights.actionDesc')
+                        .replace('{pending}', overview.pendingApplications.toString())}
                     </p>
                   </div>
                 </div>

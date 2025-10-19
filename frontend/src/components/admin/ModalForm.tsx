@@ -4,6 +4,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export interface FormField {
   name: string;
@@ -38,6 +39,7 @@ export default function ModalForm({
   loading = false,
   initialValues = {}
 }: ModalFormProps) {
+  const { t } = useLanguage();
   const [formData, setFormData] = React.useState<Record<string, any>>(initialValues);
 
   React.useEffect(() => {
@@ -79,7 +81,7 @@ export default function ModalForm({
             required={field.required}
             className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">Select {field.label}</option>
+            <option value="">{t('modalForm.selectPrefix')} {field.label}</option>
             {field.options?.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -152,7 +154,7 @@ export default function ModalForm({
               disabled={loading}
               className="flex-1"
             >
-              {loading ? 'Processing...' : submitText}
+              {loading ? t('modalForm.processing') : submitText}
             </Button>
           </div>
         </form>

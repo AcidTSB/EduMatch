@@ -26,9 +26,11 @@ import { ScholarshipStatus } from '@/types';
 import { CreateScholarshipModal } from '@/components/admin/CreateScholarshipModal';
 import { EditScholarshipModal } from '@/components/admin/EditScholarshipModal';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ScholarshipsManagement() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
@@ -47,8 +49,8 @@ export default function ScholarshipsManagement() {
 
   // Handlers
   const handleCreateScholarship = (scholarshipData: any) => {
-    toast.success('Scholarship Created', {
-      description: `${scholarshipData.title} has been created successfully`,
+    toast.success(t('adminScholarships.scholarshipCreated'), {
+      description: t('adminScholarships.scholarshipCreatedDesc').replace('{title}', scholarshipData.title),
     });
     console.log('New scholarship created:', scholarshipData);
   };
@@ -66,8 +68,8 @@ export default function ScholarshipsManagement() {
   };
 
   const confirmEditScholarship = (scholarshipData: any) => {
-    toast.success('Scholarship Updated', {
-      description: `"${scholarshipData.title}" has been updated successfully`,
+    toast.success(t('adminScholarships.scholarshipUpdated'), {
+      description: t('adminScholarships.scholarshipUpdatedDesc').replace('{title}', scholarshipData.title),
     });
     console.log('Updating scholarship:', editModal.scholarship?.id, scholarshipData);
     setEditModal({ isOpen: false, scholarship: null });
@@ -78,8 +80,8 @@ export default function ScholarshipsManagement() {
   };
 
   const confirmDeleteScholarship = () => {
-    toast.success('Scholarship Deleted', {
-      description: `"${deleteModal.scholarshipTitle}" has been permanently deleted.`,
+    toast.success(t('adminScholarships.scholarshipDeleted'), {
+      description: t('adminScholarships.scholarshipDeletedDesc').replace('{title}', deleteModal.scholarshipTitle),
     });
     console.log('Deleting scholarship:', deleteModal.scholarshipId);
     setDeleteModal({ isOpen: false, scholarshipId: '', scholarshipTitle: '' });
@@ -129,6 +131,19 @@ export default function ScholarshipsManagement() {
     }
   };
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'Active':
+        return t('adminScholarships.statusActive');
+      case 'Pending':
+        return t('adminScholarships.statusPending');
+      case 'Expired':
+        return t('adminScholarships.statusExpired');
+      default:
+        return status;
+    }
+  };
+
   const filteredScholarships = scholarships.filter(scholarship => {
     const matchesSearch = 
       scholarship.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -155,15 +170,15 @@ export default function ScholarshipsManagement() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Scholarship Management</h1>
-          <p className="text-gray-500 mt-1">Manage scholarships, review applications, and approve funding</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('adminScholarships.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('adminScholarships.subtitle')}</p>
         </div>
         <Button 
           onClick={() => setIsCreateModalOpen(true)}
           className="bg-blue-600 hover:bg-blue-700"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Create Scholarship
+          {t('adminScholarships.createScholarship')}
         </Button>
       </div>
 
@@ -171,25 +186,25 @@ export default function ScholarshipsManagement() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="card-minimal">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Total Scholarships</p>
+            <p className="text-sm text-gray-500">{t('adminScholarships.totalScholarships')}</p>
             <h3 className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</h3>
           </CardContent>
         </Card>
         <Card className="card-minimal">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Active</p>
+            <p className="text-sm text-gray-500">{t('adminScholarships.active')}</p>
             <h3 className="text-2xl font-bold text-green-600 mt-1">{stats.active}</h3>
           </CardContent>
         </Card>
         <Card className="card-minimal">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Pending Review</p>
+            <p className="text-sm text-gray-500">{t('adminScholarships.pendingReview')}</p>
             <h3 className="text-2xl font-bold text-yellow-600 mt-1">{stats.pending}</h3>
           </CardContent>
         </Card>
         <Card className="card-minimal">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Total Applicants</p>
+            <p className="text-sm text-gray-500">{t('adminScholarships.totalApplicants')}</p>
             <h3 className="text-2xl font-bold text-gray-900 mt-1">{stats.totalApplicants}</h3>
           </CardContent>
         </Card>
@@ -204,7 +219,7 @@ export default function ScholarshipsManagement() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search scholarships..."
+                placeholder={t('adminScholarships.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -217,10 +232,10 @@ export default function ScholarshipsManagement() {
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Pending">Pending</option>
-              <option value="Expired">Expired</option>
+              <option value="all">{t('adminScholarships.allStatus')}</option>
+              <option value="Active">{t('adminScholarships.statusActive')}</option>
+              <option value="Pending">{t('adminScholarships.statusPending')}</option>
+              <option value="Expired">{t('adminScholarships.statusExpired')}</option>
             </select>
 
             {/* Type Filter */}
@@ -229,13 +244,13 @@ export default function ScholarshipsManagement() {
               onChange={(e) => setSelectedType(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All Types</option>
-              <option value="Research">Research</option>
-              <option value="Full Scholarship">Full Scholarship</option>
-              <option value="Merit-based">Merit-based</option>
-              <option value="Need-based">Need-based</option>
-              <option value="Fellowship">Fellowship</option>
-              <option value="Field-specific">Field-specific</option>
+              <option value="all">{t('adminScholarships.allTypes')}</option>
+              <option value="Research">{t('adminScholarships.typeResearch')}</option>
+              <option value="Full Scholarship">{t('adminScholarships.typeFull')}</option>
+              <option value="Merit-based">{t('adminScholarships.typeMerit')}</option>
+              <option value="Need-based">{t('adminScholarships.typeNeed')}</option>
+              <option value="Fellowship">{t('adminScholarships.typeFellowship')}</option>
+              <option value="Field-specific">{t('adminScholarships.typeFieldSpecific')}</option>
             </select>
           </div>
         </CardContent>
@@ -256,7 +271,7 @@ export default function ScholarshipsManagement() {
                 </div>
                 <Badge className={`${getStatusColor(scholarship.status)} flex items-center gap-1`}>
                   {getStatusIcon(scholarship.status)}
-                  {scholarship.status}
+                  {getStatusLabel(scholarship.status)}
                 </Badge>
               </div>
 
@@ -270,16 +285,16 @@ export default function ScholarshipsManagement() {
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="w-4 h-4 mr-2" />
-                  Deadline: {new Date(scholarship.deadline).toLocaleDateString()}
+                  {t('adminScholarships.deadline')}: {new Date(scholarship.deadline).toLocaleDateString()}
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center text-gray-600">
                     <Users className="w-4 h-4 mr-2" />
-                    {scholarship.applicants} applicants
+                    {t('adminScholarships.applicantsCount').replace('{count}', scholarship.applicants.toString())}
                   </div>
                   <div className="flex items-center text-green-600">
                     <CheckCircle className="w-4 h-4 mr-1" />
-                    {scholarship.approved} approved
+                    {t('adminScholarships.approvedCount').replace('{count}', scholarship.approved.toString())}
                   </div>
                 </div>
               </div>
@@ -293,7 +308,7 @@ export default function ScholarshipsManagement() {
                   onClick={() => handleViewScholarship(scholarship.id)}
                 >
                   <Eye className="w-4 h-4 mr-2" />
-                  View
+                  {t('adminScholarships.view')}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -302,7 +317,7 @@ export default function ScholarshipsManagement() {
                   onClick={() => handleEditScholarship(scholarship.id, scholarship.title)}
                 >
                   <Edit className="w-4 h-4 mr-2" />
-                  Edit
+                  {t('adminScholarships.edit')}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -322,7 +337,10 @@ export default function ScholarshipsManagement() {
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredScholarships.length)} of {filteredScholarships.length} scholarships
+              {t('adminScholarships.showingResults')
+                .replace('{start}', (startIndex + 1).toString())
+                .replace('{end}', Math.min(startIndex + itemsPerPage, filteredScholarships.length).toString())
+                .replace('{total}', filteredScholarships.length.toString())}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -332,6 +350,7 @@ export default function ScholarshipsManagement() {
                 disabled={currentPage === 1}
               >
                 <ChevronLeft className="w-4 h-4" />
+                {t('adminScholarships.previous')}
               </Button>
               <span className="text-sm text-gray-700">
                 Page {currentPage} of {totalPages}
@@ -342,6 +361,7 @@ export default function ScholarshipsManagement() {
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
               >
+                {t('adminScholarships.next')}
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -369,10 +389,10 @@ export default function ScholarshipsManagement() {
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, scholarshipId: '', scholarshipTitle: '' })}
         onConfirm={confirmDeleteScholarship}
-        title="Delete Scholarship"
-        description={`Are you sure you want to delete "${deleteModal.scholarshipTitle}"? This action cannot be undone and will affect all associated applications.`}
+        title={t('adminScholarships.confirmDelete')}
+        description={t('adminScholarships.confirmDeleteDesc').replace('{title}', deleteModal.scholarshipTitle)}
         variant="danger"
-        confirmText="Delete Scholarship"
+        confirmText={t('adminScholarships.confirmDeleteBtn')}
       />
     </div>
   );

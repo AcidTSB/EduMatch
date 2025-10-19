@@ -23,6 +23,7 @@ import { ChatWindow } from '@/components/ChatWindow';
 import { useMessageStore, useNotificationStore } from '@/stores/realtimeStore';
 import { useRealTime } from '@/providers/RealTimeProvider';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/contexts/LanguageContext';
 import Link from 'next/link';
 
 // Mock data - replace with real API calls
@@ -87,6 +88,7 @@ const mockContacts = [
 ];
 
 export default function MessagesPage() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const { socket, sendMessage } = useRealTime();
   const { messages, chatRooms } = useMessageStore();
@@ -171,10 +173,10 @@ export default function MessagesPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-          <p className="text-gray-500 text-lg">Please log in to access messages</p>
+          <p className="text-gray-500 text-lg">{t('messages.loginRequired')}</p>
           <Link href="/auth/login">
             <Button className="bg-blue-600 hover:bg-blue-700">
-              Go to Login Page
+              {t('messages.goToLogin')}
             </Button>
           </Link>
         </div>
@@ -191,10 +193,10 @@ export default function MessagesPage() {
             <div>
               <h1 className="text-4xl font-bold text-gray-900 flex items-center space-x-3">
                 <MessageSquare className="h-10 w-10 text-brand-blue-600" />
-                <span>Messages</span>
+                <span>{t('messages.title')}</span>
               </h1>
               <p className="text-gray-600 mt-2">
-                Communicate with {user.role === 'applicant' ? 'scholarship providers' : 'students'} and manage your conversations
+                {t('messages.subtitle').replace('{role}', user.role === 'applicant' ? t('messages.subtitleProvider') : t('messages.subtitleStudent'))}
               </p>
             </div>
             <div className="mt-4 sm:mt-0 flex items-center space-x-4">
@@ -204,14 +206,14 @@ export default function MessagesPage() {
                   <>
                     <Wifi className="h-4 w-4 text-green-600" />
                     <Badge variant="outline" className="text-green-700 border-green-300">
-                      Connected
+                      {t('messages.connected')}
                     </Badge>
                   </>
                 ) : (
                   <>
                     <WifiOff className="h-4 w-4 text-red-600" />
                     <Badge variant="outline" className="text-red-700 border-red-300">
-                      Disconnected
+                      {t('messages.disconnected')}
                     </Badge>
                   </>
                 )}
@@ -219,32 +221,32 @@ export default function MessagesPage() {
               
               {unreadCount > 0 && (
                 <Badge variant="destructive" className="text-sm">
-                  {unreadCount} unread
+                  {t('messages.unread').replace('{count}', unreadCount.toString())}
                 </Badge>
               )}
               <Button variant="outline">
                 <Filter className="h-4 w-4 mr-2" />
-                Filter
+                {t('messages.filter')}
               </Button>
               <Dialog open={isNewChatModalOpen} onOpenChange={setIsNewChatModalOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-brand-blue-600 hover:bg-brand-blue-700">
                     <Plus className="h-4 w-4 mr-2" />
-                    New Chat
+                    {t('messages.newChat')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Start New Chat</DialogTitle>
+                    <DialogTitle>{t('messages.startNewChat')}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <p className="text-sm text-gray-600">
-                      Select an online user to start chatting:
+                      {t('messages.selectUser')}
                     </p>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {onlineContacts.length === 0 ? (
                         <p className="text-center text-gray-500 py-4">
-                          No online users available
+                          {t('messages.noUsersAvailable')}
                         </p>
                       ) : (
                         onlineContacts.map((contact) => (
@@ -289,7 +291,7 @@ export default function MessagesPage() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search messages and contacts..."
+              placeholder={t('messages.searchPlaceholder')}
               className="pl-10"
             />
           </div>
@@ -304,7 +306,7 @@ export default function MessagesPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{realTimeMessages.length}</p>
-                <p className="text-xs text-muted-foreground">Total Messages</p>
+                <p className="text-xs text-muted-foreground">{t('messages.stats.total')}</p>
               </div>
             </CardContent>
           </Card>
@@ -316,7 +318,7 @@ export default function MessagesPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{unreadCount}</p>
-                <p className="text-xs text-muted-foreground">Unread Messages</p>
+                <p className="text-xs text-muted-foreground">{t('messages.stats.unread')}</p>
               </div>
             </CardContent>
           </Card>
@@ -328,7 +330,7 @@ export default function MessagesPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{onlineContacts.length}</p>
-                <p className="text-xs text-muted-foreground">Online Users</p>
+                <p className="text-xs text-muted-foreground">{t('messages.stats.onlineUsers')}</p>
               </div>
             </CardContent>
           </Card>
@@ -344,9 +346,9 @@ export default function MessagesPage() {
               </div>
               <div>
                 <p className="text-lg font-bold">
-                  {socket?.isConnected ? 'Connected' : 'Offline'}
+                  {socket?.isConnected ? t('messages.connected') : t('messages.offline')}
                 </p>
-                <p className="text-xs text-muted-foreground">Real-time Status</p>
+                <p className="text-xs text-muted-foreground">{t('messages.stats.status')}</p>
               </div>
             </CardContent>
           </Card>
@@ -360,7 +362,7 @@ export default function MessagesPage() {
               <TabsList>
                 <TabsTrigger value="messages" className="flex items-center space-x-2">
                   <MessageSquare className="h-4 w-4" />
-                  <span>Messages</span>
+                  <span>{t('messages.tabs.messages')}</span>
                   {unreadCount > 0 && (
                     <Badge variant="destructive" className="ml-2">
                       {unreadCount}
@@ -369,20 +371,20 @@ export default function MessagesPage() {
                 </TabsTrigger>
                 <TabsTrigger value="contacts" className="flex items-center space-x-2">
                   <Users className="h-4 w-4" />
-                  <span>Contacts</span>
+                  <span>{t('messages.tabs.contacts')}</span>
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="messages">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Recent Messages</CardTitle>
+                    <CardTitle>{t('messages.recent')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <MessageList
                       messages={filteredMessages}
                       onMessageClick={handleMessageClick}
-                      emptyStateText={searchQuery ? "No messages match your search" : "No messages yet"}
+                      emptyStateText={searchQuery ? t('messages.noMatches') : t('messages.noMessages')}
                     />
                   </CardContent>
                 </Card>
@@ -391,7 +393,7 @@ export default function MessagesPage() {
               <TabsContent value="contacts">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Your Contacts</CardTitle>
+                    <CardTitle>{t('messages.yourContacts')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
@@ -400,15 +402,15 @@ export default function MessagesPage() {
                           <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                           <p className="text-gray-500">
                             {searchQuery 
-                              ? "No contacts match your search" 
+                              ? t('messages.noContacts')
                               : socket?.isConnected 
-                                ? "No online users available. Try refreshing or wait for users to come online."
-                                : "Connect to real-time server to see online users"
+                                ? t('messages.noOnlineUsers')
+                                : t('messages.connectRequired')
                             }
                           </p>
                           {!socket?.isConnected && (
                             <p className="text-xs text-red-500 mt-2">
-                              Real-time connection required
+                              {t('messages.connectionRequired')}
                             </p>
                           )}
                         </div>
@@ -442,7 +444,7 @@ export default function MessagesPage() {
                                 </Badge>
                               )}
                               <Button variant="outline" size="sm">
-                                Message
+                                {t('messages.messageButton')}
                               </Button>
                             </div>
                           </div>

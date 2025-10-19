@@ -5,6 +5,7 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScholarshipType } from '@/types';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface CreateScholarshipModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface CreateScholarshipModalProps {
 }
 
 export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScholarshipModalProps) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     title: '',
     amount: '',
@@ -38,27 +40,27 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Title is required';
+      newErrors.title = t('createScholarshipModal.error.titleRequired');
     }
 
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
-      newErrors.amount = 'Valid amount is required';
+      newErrors.amount = t('createScholarshipModal.error.amountRequired');
     }
 
     if (!formData.deadline) {
-      newErrors.deadline = 'Deadline is required';
+      newErrors.deadline = t('createScholarshipModal.error.deadlineRequired');
     }
 
     if (!formData.university.trim()) {
-      newErrors.university = 'University is required';
+      newErrors.university = t('createScholarshipModal.error.universityRequired');
     }
 
     if (!formData.location.trim()) {
-      newErrors.location = 'Location is required';
+      newErrors.location = t('createScholarshipModal.error.locationRequired');
     }
 
     if (!formData.description.trim()) {
-      newErrors.description = 'Description is required';
+      newErrors.description = t('createScholarshipModal.error.descriptionRequired');
     }
 
     setErrors(newErrors);
@@ -96,7 +98,7 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
       <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 relative my-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Create New Scholarship</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{t('createScholarshipModal.title')}</h2>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -110,13 +112,13 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Scholarship Title *
+              {t('createScholarshipModal.scholarshipTitle')} *
             </label>
             <Input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="e.g., AI Research Fellowship"
+              placeholder={t('createScholarshipModal.scholarshipTitlePlaceholder')}
               className={errors.title ? 'border-red-500' : ''}
             />
             {errors.title && (
@@ -128,13 +130,13 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount (USD) *
+                {t('createScholarshipModal.amount')} *
               </label>
               <Input
                 type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                placeholder="50000"
+                placeholder={t('createScholarshipModal.amountPlaceholder')}
                 className={errors.amount ? 'border-red-500' : ''}
               />
               {errors.amount && (
@@ -144,16 +146,16 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type *
+                {t('createScholarshipModal.type')} *
               </label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value as ScholarshipType })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value={ScholarshipType.UNDERGRADUATE}>Undergraduate</option>
-                <option value={ScholarshipType.GRADUATE}>Graduate</option>
-                <option value={ScholarshipType.RESEARCH}>Research</option>
+                <option value={ScholarshipType.UNDERGRADUATE}>{t('createScholarshipModal.typeUndergraduate')}</option>
+                <option value={ScholarshipType.GRADUATE}>{t('createScholarshipModal.typeGraduate')}</option>
+                <option value={ScholarshipType.RESEARCH}>{t('createScholarshipModal.typeResearch')}</option>
               </select>
             </div>
           </div>
@@ -162,13 +164,13 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                University *
+                {t('createScholarshipModal.university')} *
               </label>
               <Input
                 type="text"
                 value={formData.university}
                 onChange={(e) => setFormData({ ...formData, university: e.target.value })}
-                placeholder="e.g., MIT"
+                placeholder={t('createScholarshipModal.universityPlaceholder')}
                 className={errors.university ? 'border-red-500' : ''}
               />
               {errors.university && (
@@ -178,13 +180,13 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Location *
+                {t('createScholarshipModal.location')} *
               </label>
               <Input
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="e.g., Cambridge, MA"
+                placeholder={t('createScholarshipModal.locationPlaceholder')}
                 className={errors.location ? 'border-red-500' : ''}
               />
               {errors.location && (
@@ -196,7 +198,7 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
           {/* Deadline */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Application Deadline *
+              {t('createScholarshipModal.deadline')} *
             </label>
             <Input
               type="date"
@@ -212,12 +214,12 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description *
+              {t('createScholarshipModal.description')} *
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Describe the scholarship program, benefits, and requirements..."
+              placeholder={t('createScholarshipModal.descriptionPlaceholder')}
               rows={4}
               className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                 errors.description ? 'border-red-500' : 'border-gray-300'
@@ -236,13 +238,13 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
               onClick={handleClose}
               className="flex-1"
             >
-              Cancel
+              {t('createScholarshipModal.cancel')}
             </Button>
             <Button
               type="submit"
               className="flex-1 bg-blue-600 hover:bg-blue-700"
             >
-              Create Scholarship
+              {t('createScholarshipModal.create')}
             </Button>
           </div>
         </form>

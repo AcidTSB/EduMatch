@@ -3,6 +3,7 @@
 import React from 'react';
 import { X, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -27,6 +28,8 @@ export function ConfirmModal({
   variant = 'info',
   isLoading = false,
 }: ConfirmModalProps) {
+  const { t } = useLanguage();
+  
   if (!isOpen) return null;
 
   const getVariantStyles = () => {
@@ -102,7 +105,7 @@ export function ConfirmModal({
               className={`flex-1 ${styles.buttonColor}`}
               disabled={isLoading}
             >
-              {isLoading ? 'Processing...' : confirmText}
+              {isLoading ? t('modalForm.processing') : confirmText}
             </Button>
           </div>
         </div>

@@ -4,6 +4,7 @@ import React from 'react';
 import { X, User, GraduationCap, DollarSign, Calendar, FileText, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ApplicationData {
   id: string;
@@ -29,6 +30,8 @@ export function ViewApplicationModal({
   onClose,
   application,
 }: ViewApplicationModalProps) {
+  const { t } = useLanguage();
+  
   if (!isOpen || !application) return null;
 
   const getStatusColor = (status: string) => {
@@ -52,8 +55,8 @@ export function ViewApplicationModal({
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Application Details</h2>
-            <p className="text-sm text-gray-500 mt-1">ID: {application.id}</p>
+            <h2 className="text-xl font-bold text-gray-900">{t('viewApplicationModal.title')}</h2>
+            <p className="text-sm text-gray-500 mt-1">{t('viewApplicationModal.idLabel')}: {application.id}</p>
           </div>
           <button
             onClick={onClose}
@@ -71,7 +74,7 @@ export function ViewApplicationModal({
               {application.status}
             </Badge>
             <span className="text-sm text-gray-500">
-              Submitted: {application.submittedDate}
+              {t('viewApplicationModal.submitted')}: {application.submittedDate}
             </span>
           </div>
 
@@ -79,29 +82,29 @@ export function ViewApplicationModal({
           <div className="bg-gray-50 rounded-lg p-4 space-y-3">
             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
               <User className="w-5 h-5 text-blue-600" />
-              Student Information
+              {t('viewApplicationModal.studentInfo')}
             </h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-500">Name</p>
+                <p className="text-gray-500">{t('viewApplicationModal.name')}</p>
                 <p className="font-medium text-gray-900">{application.studentName}</p>
               </div>
               <div>
-                <p className="text-gray-500">Email</p>
+                <p className="text-gray-500">{t('viewApplicationModal.email')}</p>
                 <p className="font-medium text-gray-900 flex items-center gap-1">
                   <Mail className="w-4 h-4" />
                   {application.studentEmail}
                 </p>
               </div>
               <div>
-                <p className="text-gray-500">GPA</p>
+                <p className="text-gray-500">{t('viewApplicationModal.gpa')}</p>
                 <p className="font-medium text-gray-900">{application.gpa.toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-gray-500">Documents Submitted</p>
+                <p className="text-gray-500">{t('viewApplicationModal.documentsSubmitted')}</p>
                 <p className="font-medium text-gray-900 flex items-center gap-1">
                   <FileText className="w-4 h-4" />
-                  {application.documents} files
+                  {application.documents} {t('viewApplicationModal.files')}
                 </p>
               </div>
             </div>
@@ -111,20 +114,20 @@ export function ViewApplicationModal({
           <div className="bg-gray-50 rounded-lg p-4 space-y-3">
             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-purple-600" />
-              Scholarship Information
+              {t('viewApplicationModal.scholarshipInfo')}
             </h3>
             <div className="grid grid-cols-1 gap-3 text-sm">
               <div>
-                <p className="text-gray-500">Scholarship Title</p>
+                <p className="text-gray-500">{t('viewApplicationModal.scholarshipTitle')}</p>
                 <p className="font-medium text-gray-900">{application.scholarship}</p>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-gray-500">Provider</p>
+                  <p className="text-gray-500">{t('viewApplicationModal.provider')}</p>
                   <p className="font-medium text-gray-900">{application.provider}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500">Amount</p>
+                  <p className="text-gray-500">{t('viewApplicationModal.amount')}</p>
                   <p className="font-medium text-gray-900 flex items-center gap-1">
                     <DollarSign className="w-4 h-4" />
                     {application.amount}
@@ -138,20 +141,20 @@ export function ViewApplicationModal({
           <div className="bg-gray-50 rounded-lg p-4 space-y-3">
             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-green-600" />
-              Timeline
+              {t('viewApplicationModal.timeline')}
             </h3>
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <div>
-                  <p className="font-medium text-gray-900">Application Submitted</p>
+                  <p className="font-medium text-gray-900">{t('viewApplicationModal.applicationSubmitted')}</p>
                   <p className="text-gray-500">{application.submittedDate}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 ml-1 border-l-2 border-gray-300 pl-2 py-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <div>
-                  <p className="font-medium text-gray-900">Current Status</p>
+                  <p className="font-medium text-gray-900">{t('viewApplicationModal.currentStatus')}</p>
                   <p className="text-gray-500">{application.status}</p>
                 </div>
               </div>
@@ -161,8 +164,7 @@ export function ViewApplicationModal({
           {/* Note */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-800">
-              <strong>Note:</strong> This is a preview of the application. Full detail page with documents, 
-              essays, and review history will be implemented in future updates.
+              <strong>{t('viewApplicationModal.noteTitle')}:</strong> {t('viewApplicationModal.noteText')}
             </p>
           </div>
         </div>
@@ -170,7 +172,7 @@ export function ViewApplicationModal({
         {/* Footer */}
         <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-end">
           <Button onClick={onClose} variant="outline">
-            Close
+            {t('viewApplicationModal.close')}
           </Button>
         </div>
       </div>

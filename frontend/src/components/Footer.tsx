@@ -3,8 +3,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { Mail, Phone, MapPin, Github, Twitter, Linkedin } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function Footer() {
+  const { t } = useLanguage();
   const currentYear = new Date().getFullYear();
 
   return (
@@ -20,8 +22,7 @@ export function Footer() {
               <span className="font-bold text-xl text-foreground">EduMatch</span>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Connecting students with scholarship opportunities and providers with qualified candidates. 
-              Making education accessible for everyone.
+              {t('footer.description')}
             </p>
             <div className="flex space-x-3">
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
@@ -38,26 +39,26 @@ export function Footer() {
 
           {/* Quick Links */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-foreground">Quick Links</h3>
+            <h3 className="font-semibold text-foreground">{t('footer.quickLinks')}</h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                  Home
+                  {t('footer.home')}
                 </Link>
               </li>
               <li>
                 <Link href="/about" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                  About Us
+                  {t('footer.aboutUs')}
                 </Link>
               </li>
               <li>
                 <Link href="/scholarships" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                  Browse Scholarships
+                  {t('footer.browseScholarships')}
                 </Link>
               </li>
               <li>
                 <Link href="/pricing" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                  Pricing Plans
+                  {t('footer.pricingPlans')}
                 </Link>
               </li>
             </ul>
@@ -65,31 +66,31 @@ export function Footer() {
 
           {/* Support */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-foreground">Support</h3>
+            <h3 className="font-semibold text-foreground">{t('footer.support')}</h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/contact" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                  Contact Us
+                  {t('footer.contactUs')}
                 </Link>
               </li>
               <li>
                 <Link href="/help" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                  Help Center
+                  {t('footer.helpCenter')}
                 </Link>
               </li>
               <li>
                 <Link href="/faq" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                  FAQ
+                  {t('footer.faq')}
                 </Link>
               </li>
               <li>
                 <Link href="/privacy" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                  Privacy Policy
+                  {t('footer.privacyPolicy')}
                 </Link>
               </li>
               <li>
                 <Link href="/terms" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                  Terms of Service
+                  {t('footer.termsOfService')}
                 </Link>
               </li>
             </ul>
@@ -97,7 +98,7 @@ export function Footer() {
 
           {/* Contact Info */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-foreground">Get in Touch</h3>
+            <h3 className="font-semibold text-foreground">{t('footer.getInTouch')}</h3>
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
                 <Mail className="h-4 w-4 text-muted-foreground" />
@@ -110,8 +111,8 @@ export function Footer() {
               <div className="flex items-start space-x-3">
                 <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
                 <span className="text-muted-foreground text-sm">
-                  123 Education Street<br />
-                  San Francisco, CA 94105
+                  {t('footer.address')}<br />
+                  {t('footer.city')}
                 </span>
               </div>
             </div>
@@ -122,17 +123,17 @@ export function Footer() {
         <div className="mt-12 pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-muted-foreground text-sm">
-              © {currentYear} EduMatch. All rights reserved.
+              {t('footer.copyright').replace('{year}', currentYear.toString())}
             </div>
             <div className="flex items-center space-x-6">
               <Link href="/privacy" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                Privacy
+                {t('footer.privacy')}
               </Link>
               <Link href="/terms" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                Terms
+                {t('footer.terms')}
               </Link>
               <Link href="/contact" className="text-muted-foreground hover:text-foreground text-sm transition-colors">
-                Contact
+                {t('footer.contact')}
               </Link>
             </div>
           </div>

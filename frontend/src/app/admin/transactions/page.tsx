@@ -12,8 +12,10 @@ import ModalConfirm from '@/components/admin/ModalConfirm';
 import StatCard from '@/components/admin/StatCard';
 import CSVExportButton from '@/components/admin/CSVExportButton';
 import { TRANSACTIONS, Transaction } from '@/lib/mock-data';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AdminTransactionsPage() {
+  const { t } = useLanguage();
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showRefundModal, setShowRefundModal] = useState(false);
@@ -22,39 +24,39 @@ export default function AdminTransactionsPage() {
   const filters: FilterConfig[] = [
     {
       key: 'status',
-      label: 'Status',
+      label: t('adminTransactions.filters.status'),
       type: 'multi-select',
       options: [
-        { label: 'Pending', value: 'PENDING' },
-        { label: 'Completed', value: 'COMPLETED' },
-        { label: 'Failed', value: 'FAILED' },
-        { label: 'Refunded', value: 'REFUNDED' }
+        { label: t('adminTransactions.status.pending'), value: 'PENDING' },
+        { label: t('adminTransactions.status.completed'), value: 'COMPLETED' },
+        { label: t('adminTransactions.status.failed'), value: 'FAILED' },
+        { label: t('adminTransactions.status.refunded'), value: 'REFUNDED' }
       ]
     },
     {
       key: 'type',
-      label: 'Type',
+      label: t('adminTransactions.filters.type'),
       type: 'multi-select',
       options: [
-        { label: 'Subscription', value: 'SUBSCRIPTION' },
-        { label: 'Application Fee', value: 'APPLICATION_FEE' },
-        { label: 'Refund', value: 'REFUND' },
-        { label: 'Credit', value: 'CREDIT' }
+        { label: t('adminTransactions.type.subscription'), value: 'SUBSCRIPTION' },
+        { label: t('adminTransactions.type.applicationFee'), value: 'APPLICATION_FEE' },
+        { label: t('adminTransactions.type.refund'), value: 'REFUND' },
+        { label: t('adminTransactions.type.credit'), value: 'CREDIT' }
       ]
     },
     {
       key: 'paymentMethod',
-      label: 'Payment Method',
+      label: t('adminTransactions.filters.paymentMethod'),
       type: 'select',
       options: [
-        { label: 'Credit Card', value: 'CARD' },
-        { label: 'PayPal', value: 'PAYPAL' },
-        { label: 'Bank Transfer', value: 'BANK' }
+        { label: t('adminTransactions.payment.card'), value: 'CARD' },
+        { label: t('adminTransactions.payment.paypal'), value: 'PAYPAL' },
+        { label: t('adminTransactions.payment.bank'), value: 'BANK' }
       ]
     },
     {
       key: 'dateRange',
-      label: 'Date Range',
+      label: t('adminTransactions.filters.dateRange'),
       type: 'date-range'
     }
   ];
@@ -86,20 +88,20 @@ export default function AdminTransactionsPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'PENDING': return <Badge className="bg-yellow-100 text-yellow-700">Pending</Badge>;
-      case 'COMPLETED': return <Badge className="bg-green-100 text-green-700">Completed</Badge>;
-      case 'FAILED': return <Badge variant="destructive">Failed</Badge>;
-      case 'REFUNDED': return <Badge variant="secondary">Refunded</Badge>;
+      case 'PENDING': return <Badge className="bg-yellow-100 text-yellow-700">{t('adminTransactions.status.pending')}</Badge>;
+      case 'COMPLETED': return <Badge className="bg-green-100 text-green-700">{t('adminTransactions.status.completed')}</Badge>;
+      case 'FAILED': return <Badge variant="destructive">{t('adminTransactions.status.failed')}</Badge>;
+      case 'REFUNDED': return <Badge variant="secondary">{t('adminTransactions.status.refunded')}</Badge>;
       default: return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
   const getTypeBadge = (type: string) => {
     switch (type) {
-      case 'SUBSCRIPTION': return <Badge variant="default">Subscription</Badge>;
-      case 'APPLICATION_FEE': return <Badge className="bg-blue-100 text-blue-700">Application Fee</Badge>;
-      case 'REFUND': return <Badge className="bg-red-100 text-red-700">Refund</Badge>;
-      case 'CREDIT': return <Badge className="bg-purple-100 text-purple-700">Credit</Badge>;
+      case 'SUBSCRIPTION': return <Badge variant="default">{t('adminTransactions.type.subscription')}</Badge>;
+      case 'APPLICATION_FEE': return <Badge className="bg-blue-100 text-blue-700">{t('adminTransactions.type.applicationFee')}</Badge>;
+      case 'REFUND': return <Badge className="bg-red-100 text-red-700">{t('adminTransactions.type.refund')}</Badge>;
+      case 'CREDIT': return <Badge className="bg-purple-100 text-purple-700">{t('adminTransactions.type.credit')}</Badge>;
       default: return <Badge variant="outline">{type}</Badge>;
     }
   };
@@ -107,13 +109,13 @@ export default function AdminTransactionsPage() {
   const columns: Column<Transaction>[] = [
     {
       key: 'id',
-      label: 'Transaction ID',
+      label: t('adminTransactions.table.transactionId'),
       sortable: true,
       render: (tx) => <span className="font-mono text-sm">{tx.id}</span>
     },
     {
       key: 'userName',
-      label: 'User',
+      label: t('adminTransactions.table.user'),
       sortable: true,
       render: (tx) => (
         <div>
@@ -124,13 +126,13 @@ export default function AdminTransactionsPage() {
     },
     {
       key: 'type',
-      label: 'Type',
+      label: t('adminTransactions.table.type'),
       sortable: true,
       render: (tx) => getTypeBadge(tx.type)
     },
     {
       key: 'amount',
-      label: 'Amount',
+      label: t('adminTransactions.table.amount'),
       sortable: true,
       render: (tx) => (
         <span className={`font-semibold ${tx.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
@@ -140,7 +142,7 @@ export default function AdminTransactionsPage() {
     },
     {
       key: 'paymentMethod',
-      label: 'Payment Method',
+      label: t('adminTransactions.table.paymentMethod'),
       render: (tx) => {
         const icons: Record<string, string> = {
           CARD: '💳',
@@ -157,13 +159,13 @@ export default function AdminTransactionsPage() {
     },
     {
       key: 'status',
-      label: 'Status',
+      label: t('adminTransactions.table.status'),
       sortable: true,
       render: (tx) => getStatusBadge(tx.status)
     },
     {
       key: 'createdAt',
-      label: 'Date',
+      label: t('adminTransactions.table.date'),
       sortable: true,
       render: (tx) => (
         <div className="text-sm">
@@ -174,7 +176,7 @@ export default function AdminTransactionsPage() {
     },
     {
       key: 'actions',
-      label: 'Actions',
+      label: t('adminTransactions.table.actions'),
       render: (tx) => (
         <div className="flex gap-2">
           {tx.status === 'COMPLETED' && tx.type !== 'REFUND' && (
@@ -198,8 +200,8 @@ export default function AdminTransactionsPage() {
     console.log('Processing refund for transaction:', selectedTransaction?.id);
     // TODO: API call to process refund
     setShowRefundModal(false);
-    toast.success('Refund Initiated', {
-      description: `Refund for transaction ${selectedTransaction?.id} is being processed`,
+    toast.success(t('adminTransactions.toast.refundSuccess'), {
+      description: t('adminTransactions.toast.refundDescription'),
     });
     setSelectedTransaction(null);
   };
@@ -222,8 +224,8 @@ export default function AdminTransactionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Transactions</h1>
-          <p className="text-gray-500 mt-1">Manage payment transactions and refunds</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('adminTransactions.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('adminTransactions.subtitle')}</p>
         </div>
         <CSVExportButton
           data={exportData}
@@ -234,25 +236,25 @@ export default function AdminTransactionsPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard
-          title="Total Revenue"
+          title={t('adminTransactions.stats.totalRevenue')}
           value={`$${stats.totalRevenue.toFixed(2)}`}
           icon={<DollarSign className="w-6 h-6 text-green-600" />}
           trend="up"
           change={12.5}
-          changeLabel="vs last month"
+          changeLabel={t('adminTransactions.stats.vsLastMonth')}
         />
         <StatCard
-          title="Total Refunded"
+          title={t('adminTransactions.stats.totalRefunded')}
           value={`$${stats.totalRefunded.toFixed(2)}`}
           icon={<RefreshCw className="w-6 h-6 text-orange-600" />}
         />
         <StatCard
-          title="Pending"
+          title={t('adminTransactions.stats.pending')}
           value={stats.pendingCount}
           icon={<CreditCard className="w-6 h-6 text-yellow-600" />}
         />
         <StatCard
-          title="Completed"
+          title={t('adminTransactions.stats.completed')}
           value={stats.completedCount}
           icon={<TrendingUp className="w-6 h-6 text-blue-600" />}
         />
@@ -278,7 +280,7 @@ export default function AdminTransactionsPage() {
         onSelectionChange={setSelectedRows}
         pagination
         pageSize={15}
-        emptyMessage="No transactions found"
+        emptyMessage={t('adminTransactions.emptyMessage')}
       />
 
       {/* Refund Modal */}
@@ -289,10 +291,10 @@ export default function AdminTransactionsPage() {
           setSelectedTransaction(null);
         }}
         onConfirm={handleRefund}
-        title="Process Refund"
-        description={`Are you sure you want to refund $${selectedTransaction?.amount.toFixed(2)} to ${selectedTransaction?.userName}? This action cannot be undone.`}
-        confirmText="Process Refund"
-        cancelText="Cancel"
+        title={t('adminTransactions.modal.refundTitle')}
+        description={t('adminTransactions.modal.refundDescription')}
+        confirmText={t('adminTransactions.modal.processRefund')}
+        cancelText={t('adminTransactions.modal.cancel')}
         variant="warning"
       />
     </div>

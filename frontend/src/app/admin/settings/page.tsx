@@ -12,8 +12,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ModalConfirm from '@/components/admin/ModalConfirm';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AdminSettingsPage() {
+  const { t } = useLanguage();
   const [showApiKey, setShowApiKey] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
@@ -69,8 +71,8 @@ export default function AdminSettingsPage() {
     // TODO: API call to save all settings
     setShowSaveConfirm(false);
     setUnsavedChanges(false);
-    toast.success('Settings Saved', {
-      description: 'All configuration changes have been applied successfully',
+    toast.success(t('adminSettings.settingsSaved'), {
+      description: t('adminSettings.settingsSavedDesc'),
     });
   };
 
@@ -101,26 +103,26 @@ export default function AdminSettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">System Settings</h1>
-          <p className="text-gray-500 mt-1">Configure platform settings and integrations</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('adminSettings.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('adminSettings.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           {unsavedChanges && (
-            <Badge variant="destructive" className="animate-pulse">Unsaved Changes</Badge>
+            <Badge variant="destructive" className="animate-pulse">{t('adminSettings.unsavedChanges')}</Badge>
           )}
           <Button 
             variant="outline"
             onClick={() => window.location.reload()}
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            Reset
+            {t('adminSettings.reset')}
           </Button>
           <Button 
             onClick={() => setShowSaveConfirm(true)}
             disabled={!unsavedChanges}
           >
             <Save className="w-4 h-4 mr-2" />
-            Save All Changes
+            {t('adminSettings.saveAllChanges')}
           </Button>
         </div>
       </div>
@@ -130,23 +132,23 @@ export default function AdminSettingsPage() {
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="general">
             <Settings className="w-4 h-4 mr-2" />
-            General
+            {t('adminSettings.tabGeneral')}
           </TabsTrigger>
           <TabsTrigger value="email">
             <Mail className="w-4 h-4 mr-2" />
-            Email
+            {t('adminSettings.tabEmail')}
           </TabsTrigger>
           <TabsTrigger value="api">
             <Key className="w-4 h-4 mr-2" />
-            API Keys
+            {t('adminSettings.tabApiKeys')}
           </TabsTrigger>
           <TabsTrigger value="payment">
             <DollarSign className="w-4 h-4 mr-2" />
-            Payment
+            {t('adminSettings.tabPayment')}
           </TabsTrigger>
           <TabsTrigger value="notifications">
             <Bell className="w-4 h-4 mr-2" />
-            Notifications
+            {t('adminSettings.tabNotifications')}
           </TabsTrigger>
         </TabsList>
 
@@ -154,20 +156,20 @@ export default function AdminSettingsPage() {
         <TabsContent value="general" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Site Configuration</CardTitle>
-              <CardDescription>Basic platform settings</CardDescription>
+              <CardTitle>{t('adminSettings.siteConfiguration')}</CardTitle>
+              <CardDescription>{t('adminSettings.basicPlatformSettings')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Site Name</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.siteName')}</label>
                   <Input
                     value={generalSettings.siteName}
                     onChange={(e) => handleInputChange('general', 'siteName', e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Site URL</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.siteUrl')}</label>
                   <Input
                     value={generalSettings.siteUrl}
                     onChange={(e) => handleInputChange('general', 'siteUrl', e.target.value)}
@@ -176,7 +178,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Support Email</label>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.supportEmail')}</label>
                 <Input
                   type="email"
                   value={generalSettings.supportEmail}
@@ -185,7 +187,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Max Upload Size (MB)</label>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.maxUploadSize')}</label>
                 <Input
                   type="number"
                   value={generalSettings.maxUploadSize}
@@ -195,27 +197,27 @@ export default function AdminSettingsPage() {
 
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
-                  <h4 className="font-medium text-gray-900">Maintenance Mode</h4>
-                  <p className="text-sm text-gray-500">Temporarily disable site access</p>
+                  <h4 className="font-medium text-gray-900">{t('adminSettings.maintenanceMode')}</h4>
+                  <p className="text-sm text-gray-500">{t('adminSettings.maintenanceModeDesc')}</p>
                 </div>
                 <Button
                   variant={generalSettings.maintenanceMode ? 'destructive' : 'outline'}
                   onClick={() => handleInputChange('general', 'maintenanceMode', !generalSettings.maintenanceMode)}
                 >
-                  {generalSettings.maintenanceMode ? 'Enabled' : 'Disabled'}
+                  {generalSettings.maintenanceMode ? t('adminSettings.enabled') : t('adminSettings.disabled')}
                 </Button>
               </div>
 
               <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div>
-                  <h4 className="font-medium text-gray-900">User Signup</h4>
-                  <p className="text-sm text-gray-500">Allow new user registrations</p>
+                  <h4 className="font-medium text-gray-900">{t('adminSettings.userSignup')}</h4>
+                  <p className="text-sm text-gray-500">{t('adminSettings.userSignupDesc')}</p>
                 </div>
                 <Button
                   variant={generalSettings.signupEnabled ? 'default' : 'outline'}
                   onClick={() => handleInputChange('general', 'signupEnabled', !generalSettings.signupEnabled)}
                 >
-                  {generalSettings.signupEnabled ? 'Enabled' : 'Disabled'}
+                  {generalSettings.signupEnabled ? t('adminSettings.enabled') : t('adminSettings.disabled')}
                 </Button>
               </div>
             </CardContent>
@@ -226,13 +228,13 @@ export default function AdminSettingsPage() {
         <TabsContent value="email" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>SMTP Configuration</CardTitle>
-              <CardDescription>Configure email server settings</CardDescription>
+              <CardTitle>{t('adminSettings.smtpConfiguration')}</CardTitle>
+              <CardDescription>{t('adminSettings.configureEmailServer')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">SMTP Host</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.smtpHost')}</label>
                   <Input
                     value={emailSettings.smtpHost}
                     onChange={(e) => handleInputChange('email', 'smtpHost', e.target.value)}
@@ -240,7 +242,7 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">SMTP Port</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.smtpPort')}</label>
                   <Input
                     value={emailSettings.smtpPort}
                     onChange={(e) => handleInputChange('email', 'smtpPort', e.target.value)}
@@ -250,7 +252,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">SMTP Username</label>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.smtpUsername')}</label>
                 <Input
                   value={emailSettings.smtpUser}
                   onChange={(e) => handleInputChange('email', 'smtpUser', e.target.value)}
@@ -258,7 +260,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">SMTP Password</label>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.smtpPassword')}</label>
                 <Input
                   type="password"
                   value={emailSettings.smtpPassword}
@@ -268,14 +270,14 @@ export default function AdminSettingsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">From Name</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.fromName')}</label>
                   <Input
                     value={emailSettings.fromName}
                     onChange={(e) => handleInputChange('email', 'fromName', e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">From Email</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.fromEmail')}</label>
                   <Input
                     type="email"
                     value={emailSettings.fromEmail}
@@ -286,7 +288,7 @@ export default function AdminSettingsPage() {
 
               <Button variant="outline" className="w-full">
                 <Mail className="w-4 h-4 mr-2" />
-                Send Test Email
+                {t('adminSettings.sendTestEmail')}
               </Button>
             </CardContent>
           </Card>
@@ -296,12 +298,12 @@ export default function AdminSettingsPage() {
         <TabsContent value="api" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>API Keys & Integrations</CardTitle>
-              <CardDescription>Manage third-party service credentials</CardDescription>
+              <CardTitle>{t('adminSettings.apiKeysIntegrations')}</CardTitle>
+              <CardDescription>{t('adminSettings.manageThirdParty')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Stripe Public Key</label>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.stripePublicKey')}</label>
                 <div className="flex gap-2">
                   <Input
                     type={showApiKey ? 'text' : 'password'}
@@ -318,7 +320,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Stripe Secret Key</label>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.stripeSecretKey')}</label>
                 <div className="flex gap-2">
                   <Input
                     type={showApiKey ? 'text' : 'password'}
@@ -335,7 +337,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Google Maps API Key</label>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.googleMapsApiKey')}</label>
                 <div className="flex gap-2">
                   <Input
                     type={showApiKey ? 'text' : 'password'}
@@ -352,7 +354,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">SendGrid API Key</label>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.sendgridApiKey')}</label>
                 <div className="flex gap-2">
                   <Input
                     type={showApiKey ? 'text' : 'password'}
@@ -372,9 +374,9 @@ export default function AdminSettingsPage() {
                 <div className="flex items-start gap-2">
                   <Shield className="w-5 h-5 text-yellow-600 mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-yellow-900">Security Warning</h4>
+                    <h4 className="font-medium text-yellow-900">{t('adminSettings.securityWarning')}</h4>
                     <p className="text-sm text-yellow-700 mt-1">
-                      Never share your API keys publicly. Store them securely in environment variables.
+                      {t('adminSettings.securityWarningDesc')}
                     </p>
                   </div>
                 </div>
@@ -387,12 +389,12 @@ export default function AdminSettingsPage() {
         <TabsContent value="payment" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Payment Configuration</CardTitle>
-              <CardDescription>Configure pricing and payment options</CardDescription>
+              <CardTitle>{t('adminSettings.paymentConfiguration')}</CardTitle>
+              <CardDescription>{t('adminSettings.configurePricing')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Application Fee ($)</label>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.applicationFee')}</label>
                 <Input
                   type="number"
                   value={paymentSettings.applicationFee}
@@ -402,7 +404,7 @@ export default function AdminSettingsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Premium Monthly ($)</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.premiumMonthly')}</label>
                   <Input
                     type="number"
                     value={paymentSettings.premiumMonthly}
@@ -410,7 +412,7 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Premium Yearly ($)</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.premiumYearly')}</label>
                   <Input
                     type="number"
                     value={paymentSettings.premiumYearly}
@@ -421,14 +423,14 @@ export default function AdminSettingsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Currency</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.currency')}</label>
                   <Input
                     value={paymentSettings.currency}
                     onChange={(e) => handleInputChange('payment', 'currency', e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Tax Rate (%)</label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">{t('adminSettings.taxRate')}</label>
                   <Input
                     type="number"
                     value={paymentSettings.taxRate}
@@ -444,16 +446,16 @@ export default function AdminSettingsPage() {
         <TabsContent value="notifications" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>Configure system notification channels</CardDescription>
+              <CardTitle>{t('adminSettings.notificationPreferences')}</CardTitle>
+              <CardDescription>{t('adminSettings.configureNotificationChannels')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {[
-                { key: 'emailNotifications', label: 'Email Notifications', description: 'Send notifications via email' },
-                { key: 'pushNotifications', label: 'Push Notifications', description: 'Browser push notifications' },
-                { key: 'smsNotifications', label: 'SMS Notifications', description: 'Text message alerts' },
-                { key: 'weeklyReports', label: 'Weekly Reports', description: 'Send weekly analytics reports' },
-                { key: 'systemAlerts', label: 'System Alerts', description: 'Critical system notifications' }
+                { key: 'emailNotifications', label: t('adminSettings.emailNotifications'), description: t('adminSettings.emailNotificationsDesc') },
+                { key: 'pushNotifications', label: t('adminSettings.pushNotifications'), description: t('adminSettings.pushNotificationsDesc') },
+                { key: 'smsNotifications', label: t('adminSettings.smsNotifications'), description: t('adminSettings.smsNotificationsDesc') },
+                { key: 'weeklyReports', label: t('adminSettings.weeklyReports'), description: t('adminSettings.weeklyReportsDesc') },
+                { key: 'systemAlerts', label: t('adminSettings.systemAlerts'), description: t('adminSettings.systemAlertsDesc') }
               ].map((item) => (
                 <div key={item.key} className="flex items-center justify-between p-4 border rounded-lg">
                   <div>
@@ -464,7 +466,7 @@ export default function AdminSettingsPage() {
                     variant={notificationSettings[item.key as keyof typeof notificationSettings] ? 'default' : 'outline'}
                     onClick={() => handleInputChange('notification', item.key, !notificationSettings[item.key as keyof typeof notificationSettings])}
                   >
-                    {notificationSettings[item.key as keyof typeof notificationSettings] ? 'Enabled' : 'Disabled'}
+                    {notificationSettings[item.key as keyof typeof notificationSettings] ? t('adminSettings.enabled') : t('adminSettings.disabled')}
                   </Button>
                 </div>
               ))}
@@ -478,10 +480,10 @@ export default function AdminSettingsPage() {
         isOpen={showSaveConfirm}
         onClose={() => setShowSaveConfirm(false)}
         onConfirm={handleSaveSettings}
-        title="Save Settings"
-        description="Are you sure you want to save all settings? This will update the system configuration immediately."
-        confirmText="Save Changes"
-        cancelText="Cancel"
+        title={t('adminSettings.confirmSaveTitle')}
+        description={t('adminSettings.confirmSaveDesc')}
+        confirmText={t('adminSettings.confirmSaveBtn')}
+        cancelText={t('adminSettings.cancelBtn')}
         variant="success"
       />
     </div>

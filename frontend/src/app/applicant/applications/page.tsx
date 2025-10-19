@@ -22,8 +22,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDate } from '@/lib/utils';
 import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ApplicationsPage() {
+  const { t } = useLanguage();
   // Use AppContext hooks
   const { applications } = useApplicationsData();
   const { scholarships } = useScholarshipsData();
@@ -63,13 +65,13 @@ export default function ApplicationsPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'ACCEPTED':
-        return 'Accepted';
+        return t('applicantApplications.stats.accepted');
       case 'REJECTED':
-        return 'Rejected';
+        return t('applicantApplications.stats.rejected');
       case 'UNDER_REVIEW':
-        return 'Under Review';
+        return t('applicantApplications.stats.underReview');
       case 'SUBMITTED':
-        return 'Submitted';
+        return t('applicantApplications.stats.submitted');
       default:
         return 'Unknown';
     }
@@ -103,9 +105,9 @@ export default function ApplicationsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">My Applications</h1>
+              <h1 className="text-4xl font-bold text-gray-900">{t('applicantApplications.title')}</h1>
               <p className="text-gray-600 mt-2">
-                Track your scholarship applications and their status
+                {t('applicantApplications.subtitle')}
               </p>
             </div>
           </div>
@@ -122,7 +124,7 @@ export default function ApplicationsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-xs text-muted-foreground">{t('applicantApplications.stats.total')}</p>
               </div>
             </CardContent>
           </Card>
@@ -134,7 +136,7 @@ export default function ApplicationsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.submitted}</p>
-                <p className="text-xs text-muted-foreground">Submitted</p>
+                <p className="text-xs text-muted-foreground">{t('applicantApplications.stats.submitted')}</p>
               </div>
             </CardContent>
           </Card>
@@ -146,7 +148,7 @@ export default function ApplicationsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.underReview}</p>
-                <p className="text-xs text-muted-foreground">Under Review</p>
+                <p className="text-xs text-muted-foreground">{t('applicantApplications.stats.underReview')}</p>
               </div>
             </CardContent>
           </Card>
@@ -158,7 +160,7 @@ export default function ApplicationsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.accepted}</p>
-                <p className="text-xs text-muted-foreground">Accepted</p>
+                <p className="text-xs text-muted-foreground">{t('applicantApplications.stats.accepted')}</p>
               </div>
             </CardContent>
           </Card>
@@ -170,7 +172,7 @@ export default function ApplicationsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.rejected}</p>
-                <p className="text-xs text-muted-foreground">Rejected</p>
+                <p className="text-xs text-muted-foreground">{t('applicantApplications.stats.rejected')}</p>
               </div>
             </CardContent>
           </Card>
@@ -184,7 +186,7 @@ export default function ApplicationsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search applications..."
+                    placeholder={t('applicantApplications.search')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -198,11 +200,11 @@ export default function ApplicationsPage() {
                   onChange={(e) => setStatusFilter(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue-500 focus:border-brand-blue-500"
                 >
-                  <option value="all">All Status</option>
-                  <option value="SUBMITTED">Submitted</option>
-                  <option value="UNDER_REVIEW">Under Review</option>
-                  <option value="ACCEPTED">Accepted</option>
-                  <option value="REJECTED">Rejected</option>
+                  <option value="all">{t('applicantApplications.filterStatus')}</option>
+                  <option value="SUBMITTED">{t('applicantApplications.statusOptions.submitted')}</option>
+                  <option value="UNDER_REVIEW">{t('applicantApplications.statusOptions.underReview')}</option>
+                  <option value="ACCEPTED">{t('applicantApplications.statusOptions.accepted')}</option>
+                  <option value="REJECTED">{t('applicantApplications.statusOptions.rejected')}</option>
                 </select>
               </div>
             </div>
@@ -215,16 +217,16 @@ export default function ApplicationsPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No applications found</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('applicantApplications.empty.title')}</h3>
                 <p className="text-muted-foreground text-center mb-4">
                   {searchTerm || statusFilter !== 'all' 
-                    ? 'Try adjusting your search or filter criteria.'
-                    : 'You haven\'t submitted any applications yet.'
+                    ? t('applicantApplications.empty.withFilters')
+                    : t('applicantApplications.empty.noApps')
                   }
                 </p>
                 {!searchTerm && statusFilter === 'all' && (
                   <Button onClick={() => window.location.href = '/applicant/scholarships'}>
-                    Browse Scholarships
+                    {t('applicantApplications.empty.browse')}
                   </Button>
                 )}
               </CardContent>
@@ -259,15 +261,15 @@ export default function ApplicationsPage() {
                         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                           <div className="flex items-center">
                             <Calendar className="h-4 w-4 mr-1" />
-                            Applied: {application.submittedAt ? formatDate(application.submittedAt) : 'N/A'}
+                            {t('applicantApplications.labels.applied')}: {application.submittedAt ? formatDate(application.submittedAt) : 'N/A'}
                           </div>
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 mr-1" />
-                            Updated: {application.updatedAt ? formatDate(application.updatedAt) : 'N/A'}
+                            {t('applicantApplications.labels.updated')}: {application.updatedAt ? formatDate(application.updatedAt) : 'N/A'}
                           </div>
                           <div className="flex items-center">
                             <FileText className="h-4 w-4 mr-1" />
-                            {application.additionalDocs?.length || 0} documents
+                            {application.additionalDocs?.length || 0} {t('applicantApplications.labels.documents')}
                           </div>
                         </div>
                       </div>
@@ -275,12 +277,12 @@ export default function ApplicationsPage() {
                       <div className="flex items-center space-x-3">
                         <Button variant="outline" size="sm">
                           <Eye className="h-4 w-4 mr-2" />
-                          View Details
+                          {t('applicantApplications.actions.viewDetails')}
                         </Button>
                         
                         <Button variant="outline" size="sm">
                           <Download className="h-4 w-4 mr-2" />
-                          Download
+                          {t('applicantApplications.actions.download')}
                         </Button>
                       </div>
                     </div>

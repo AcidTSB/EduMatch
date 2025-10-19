@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useApplicationStore } from '@/stores/realtimeStore';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { ApplicationStatus } from '@/types/realtime';
 import { formatDistanceToNow } from 'date-fns';
 import { Clock, CheckCircle, XCircle, AlertCircle, Users } from 'lucide-react';
@@ -23,6 +24,7 @@ export function ApplicationStatusCard({
   providerName,
   submittedAt
 }: ApplicationStatusCardProps) {
+  const { t } = useLanguage();
   const { applicationStatuses } = useApplicationStore();
   const status = applicationStatuses[applicationId];
 
@@ -30,45 +32,45 @@ export function ApplicationStatusCard({
     switch (status) {
       case 'pending':
         return {
-          label: 'Pending Review',
+          label: t('applicationStatus.pending'),
           color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
           icon: <Clock className="h-4 w-4" />,
-          description: 'Your application is being reviewed'
+          description: t('applicationStatus.pendingDesc')
         };
       case 'interview':
         return {
-          label: 'Interview Scheduled',
+          label: t('applicationStatus.interview'),
           color: 'bg-blue-100 text-blue-800 border-blue-200',
           icon: <Users className="h-4 w-4" />,
-          description: 'You have been selected for interview'
+          description: t('applicationStatus.interviewDesc')
         };
       case 'accepted':
         return {
-          label: 'Accepted',
+          label: t('applicationStatus.accepted'),
           color: 'bg-green-100 text-green-800 border-green-200',
           icon: <CheckCircle className="h-4 w-4" />,
-          description: 'Congratulations! Your application was accepted'
+          description: t('applicationStatus.acceptedDesc')
         };
       case 'rejected':
         return {
-          label: 'Not Selected',
+          label: t('applicationStatus.rejected'),
           color: 'bg-red-100 text-red-800 border-red-200',
           icon: <XCircle className="h-4 w-4" />,
-          description: 'Unfortunately, your application was not selected'
+          description: t('applicationStatus.rejectedDesc')
         };
       case 'waitlist':
         return {
-          label: 'Waitlisted',
+          label: t('applicationStatus.waitlist'),
           color: 'bg-orange-100 text-orange-800 border-orange-200',
           icon: <AlertCircle className="h-4 w-4" />,
-          description: 'You are on the waiting list'
+          description: t('applicationStatus.waitlistDesc')
         };
       default:
         return {
-          label: 'Pending Review',
+          label: t('applicationStatus.pending'),
           color: 'bg-gray-100 text-gray-800 border-gray-200',
           icon: <Clock className="h-4 w-4" />,
-          description: 'Your application is being processed'
+          description: t('applicationStatus.processing')
         };
     }
   };
@@ -84,7 +86,7 @@ export function ApplicationStatusCard({
             <CardTitle className="text-lg leading-tight mb-1">
               {scholarshipTitle}
             </CardTitle>
-            <p className="text-sm text-gray-600">by {providerName}</p>
+            <p className="text-sm text-gray-600">{t('applicationStatus.by')} {providerName}</p>
           </div>
           <Badge 
             variant="outline" 
@@ -104,17 +106,17 @@ export function ApplicationStatusCard({
           
           {status?.notes && (
             <div className="p-3 bg-gray-50 rounded-md">
-              <p className="text-sm font-medium text-gray-700 mb-1">Notes from provider:</p>
+              <p className="text-sm font-medium text-gray-700 mb-1">{t('applicationStatus.notesFrom')}</p>
               <p className="text-sm text-gray-600">{status.notes}</p>
             </div>
           )}
 
           <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
             <span>
-              Submitted {formatDistanceToNow(new Date(submittedAt), { addSuffix: true })}
+              {t('applicationStatus.submitted')} {formatDistanceToNow(new Date(submittedAt), { addSuffix: true })}
             </span>
             <span>
-              Updated {formatDistanceToNow(new Date(lastUpdated), { addSuffix: true })}
+              {t('applicationStatus.updated')} {formatDistanceToNow(new Date(lastUpdated), { addSuffix: true })}
             </span>
           </div>
         </div>
@@ -123,8 +125,8 @@ export function ApplicationStatusCard({
         {status?.status === 'pending' && (
           <div className="mt-4">
             <div className="flex justify-between text-xs text-gray-500 mb-1">
-              <span>Review Progress</span>
-              <span>Step 1 of 3</span>
+              <span>{t('applicationStatus.reviewProgress')}</span>
+              <span>{t('applicationStatus.stepOf').replace('{current}', '1').replace('{total}', '3')}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
@@ -133,9 +135,9 @@ export function ApplicationStatusCard({
               ></div>
             </div>
             <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>Application Review</span>
-              <span>Interview</span>
-              <span>Decision</span>
+              <span>{t('applicationStatus.step1')}</span>
+              <span>{t('applicationStatus.step2')}</span>
+              <span>{t('applicationStatus.step3')}</span>
             </div>
           </div>
         )}
@@ -144,8 +146,8 @@ export function ApplicationStatusCard({
         {status?.status === 'interview' && (
           <div className="mt-4">
             <div className="flex justify-between text-xs text-gray-500 mb-1">
-              <span>Review Progress</span>
-              <span>Step 2 of 3</span>
+              <span>{t('applicationStatus.reviewProgress')}</span>
+              <span>{t('applicationStatus.stepOf').replace('{current}', '2').replace('{total}', '3')}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
@@ -154,9 +156,9 @@ export function ApplicationStatusCard({
               ></div>
             </div>
             <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span className="text-green-600">✓ Application Review</span>
-              <span className="text-blue-600 font-medium">Interview</span>
-              <span>Decision</span>
+              <span className="text-green-600">✓ {t('applicationStatus.step1')}</span>
+              <span className="text-blue-600 font-medium">{t('applicationStatus.step2')}</span>
+              <span>{t('applicationStatus.step3')}</span>
             </div>
           </div>
         )}
@@ -166,10 +168,10 @@ export function ApplicationStatusCard({
           <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-200">
             <div className="flex items-center gap-2 text-green-800">
               <CheckCircle className="h-4 w-4" />
-              <span className="text-sm font-medium">Application Successful!</span>
+              <span className="text-sm font-medium">{t('applicationStatus.successful')}</span>
             </div>
             <p className="text-xs text-green-600 mt-1">
-              Check your email for next steps and scholarship details.
+              {t('applicationStatus.checkEmail')}
             </p>
           </div>
         )}

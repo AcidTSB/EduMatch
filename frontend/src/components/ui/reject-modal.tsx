@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface RejectModalProps {
   isOpen: boolean;
@@ -22,11 +23,12 @@ export function RejectModal({
   onSubmit,
   title,
   description,
-  placeholder = 'Enter rejection reason...',
+  placeholder,
   submitText = 'Submit',
   cancelText = 'Cancel',
   isLoading = false,
 }: RejectModalProps) {
+  const { t } = useLanguage();
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
 
@@ -36,7 +38,7 @@ export function RejectModal({
     e.preventDefault();
     
     if (!reason.trim()) {
-      setError('Reason is required');
+      setError(t('rejectModal.reasonRequired'));
       return;
     }
 
@@ -75,7 +77,7 @@ export function RejectModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Reason *
+                {t('rejectModal.reason')} *
               </label>
               <textarea
                 value={reason}
@@ -83,7 +85,7 @@ export function RejectModal({
                   setReason(e.target.value);
                   setError('');
                 }}
-                placeholder={placeholder}
+                placeholder={placeholder || t('rejectModal.reasonPlaceholder')}
                 rows={4}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   error ? 'border-red-500' : 'border-gray-300'
@@ -112,7 +114,7 @@ export function RejectModal({
               className="flex-1 bg-red-600 hover:bg-red-700"
               disabled={isLoading}
             >
-              {isLoading ? 'Submitting...' : submitText}
+              {isLoading ? t('rejectModal.submitting') : submitText}
             </Button>
           </div>
         </form>

@@ -18,12 +18,14 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { mockUsers } from '@/lib/mock-data';
 import { UserRole } from '@/types';
 import { AddUserModal } from '@/components/admin/AddUserModal';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 export default function UsersManagement() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
@@ -39,8 +41,8 @@ export default function UsersManagement() {
 
   // Handlers
   const handleAddNewUser = (userData: any) => {
-    toast.success('User Created Successfully', {
-      description: `${userData.name} has been added as ${userData.role}`,
+    toast.success(t('adminUsers.userCreated'), {
+      description: t('adminUsers.userCreatedDesc').replace('{name}', userData.name).replace('{role}', userData.role),
     });
     console.log('New user created:', userData);
   };
@@ -51,8 +53,8 @@ export default function UsersManagement() {
 
   const handleSendEmail = (userEmail: string, userName: string) => {
     // In production, this would open an email modal
-    toast.success('Email Sent', {
-      description: `Email sent to ${userName} (${userEmail})`,
+    toast.success(t('adminUsers.emailSent'), {
+      description: t('adminUsers.emailSentDesc').replace('{name}', userName).replace('{email}', userEmail),
     });
   };
 
@@ -61,8 +63,8 @@ export default function UsersManagement() {
   };
 
   const confirmDeleteUser = () => {
-    toast.success('User Deleted', {
-      description: `User "${deleteModal.userName}" has been permanently deleted.`,
+    toast.success(t('adminUsers.userDeleted'), {
+      description: t('adminUsers.userDeletedDesc').replace('{name}', deleteModal.userName),
     });
     console.log('Deleting user:', deleteModal.userId);
     setDeleteModal({ isOpen: false, userId: '', userName: '' });
@@ -80,8 +82,8 @@ export default function UsersManagement() {
       id: user.id,
       name: user.name || 'Unknown',
       email: user.email,
-      role: user.role === UserRole.ADMIN ? 'Admin' : user.role === UserRole.STUDENT ? 'Student' : 'Provider',
-      status: user.status || 'Active',
+      role: user.role === UserRole.ADMIN ? t('adminUsers.roleAdmin') : user.role === UserRole.STUDENT ? t('adminUsers.roleStudent') : t('adminUsers.roleProvider'),
+      status: user.status || t('adminUsers.statusActive'),
       joinDate: new Date(user.createdAt).toISOString().split('T')[0],
       applications: user.role === UserRole.STUDENT ? 5 : undefined,
       scholarships: user.role === UserRole.PROVIDER ? 10 : undefined,
@@ -127,15 +129,15 @@ export default function UsersManagement() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-500 mt-1">Manage all users, roles, and permissions</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('adminUsers.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('adminUsers.subtitle')}</p>
         </div>
         <Button 
           onClick={() => setIsAddUserModalOpen(true)}
           className="bg-blue-600 hover:bg-blue-700"
         >
           <UserPlus className="w-4 h-4 mr-2" />
-          Add New User
+          {t('adminUsers.addUser')}
         </Button>
       </div>
 
@@ -143,29 +145,29 @@ export default function UsersManagement() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="card-minimal">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Total Users</p>
+            <p className="text-sm text-gray-500">{t('adminUsers.totalUsers')}</p>
             <h3 className="text-2xl font-bold text-gray-900 mt-1">{users.length}</h3>
           </CardContent>
         </Card>
         <Card className="card-minimal">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Students</p>
+            <p className="text-sm text-gray-500">{t('adminUsers.students')}</p>
             <h3 className="text-2xl font-bold text-gray-900 mt-1">
-              {users.filter(u => u.role === 'Student').length}
+              {users.filter(u => u.role === t('adminUsers.roleStudent')).length}
             </h3>
           </CardContent>
         </Card>
         <Card className="card-minimal">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Providers</p>
+            <p className="text-sm text-gray-500">{t('adminUsers.providers')}</p>
             <h3 className="text-2xl font-bold text-gray-900 mt-1">
-              {users.filter(u => u.role === 'Provider').length}
+              {users.filter(u => u.role === t('adminUsers.roleProvider')).length}
             </h3>
           </CardContent>
         </Card>
         <Card className="card-minimal">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-500">Active Users</p>
+            <p className="text-sm text-gray-500">{t('adminUsers.activeUsers')}</p>
             <h3 className="text-2xl font-bold text-gray-900 mt-1">
               {users.filter(u => String(u.status).includes('ACTIVE') || String(u.status).includes('Active')).length}
             </h3>
@@ -182,7 +184,7 @@ export default function UsersManagement() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search users by name or email..."
+                placeholder={t('adminUsers.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -195,10 +197,10 @@ export default function UsersManagement() {
               onChange={(e) => setSelectedRole(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All Roles</option>
-              <option value="Student">Student</option>
-              <option value="Provider">Provider</option>
-              <option value="Admin">Admin</option>
+              <option value="all">{t('adminUsers.allRoles')}</option>
+              <option value="Student">{t('adminUsers.roleStudent')}</option>
+              <option value="Provider">{t('adminUsers.roleProvider')}</option>
+              <option value="Admin">{t('adminUsers.roleAdmin')}</option>
             </select>
 
             {/* Status Filter */}
@@ -207,9 +209,9 @@ export default function UsersManagement() {
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
+              <option value="all">{t('adminUsers.allStatus')}</option>
+              <option value="Active">{t('adminUsers.statusActive')}</option>
+              <option value="Inactive">{t('adminUsers.statusInactive')}</option>
             </select>
           </div>
         </CardContent>
@@ -223,22 +225,22 @@ export default function UsersManagement() {
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
+                    {t('adminUsers.name')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
+                    {t('adminUsers.role')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    {t('adminUsers.status')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Join Date
+                    {t('adminUsers.joinDate')}
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Activity
+                    {t('adminUsers.stats')}
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                    {t('adminUsers.actions')}
                   </th>
                 </tr>
               </thead>
@@ -266,8 +268,8 @@ export default function UsersManagement() {
                       {new Date(user.joinDate).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.applications && `${user.applications} applications`}
-                      {user.scholarships && `${user.scholarships} scholarships`}
+                      {user.applications && t('adminUsers.applicationsCount').replace('{count}', user.applications.toString())}
+                      {user.scholarships && t('adminUsers.scholarshipsCount').replace('{count}', user.scholarships.toString())}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
@@ -275,7 +277,7 @@ export default function UsersManagement() {
                           variant="ghost" 
                           size="sm"
                           onClick={() => handleEditUser(user.id, user.name)}
-                          title="Edit user"
+                          title={t('adminUsers.editUser')}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -283,7 +285,7 @@ export default function UsersManagement() {
                           variant="ghost" 
                           size="sm"
                           onClick={() => handleSendEmail(user.email, user.name)}
-                          title="Send email"
+                          title={t('adminUsers.sendEmail')}
                         >
                           <Mail className="w-4 h-4" />
                         </Button>
@@ -291,7 +293,7 @@ export default function UsersManagement() {
                           variant="ghost" 
                           size="sm"
                           onClick={() => handleDeleteUser(user.id, user.name)}
-                          title="Delete user"
+                          title={t('adminUsers.deleteUser')}
                         >
                           <Trash2 className="w-4 h-4 text-red-600" />
                         </Button>
@@ -306,7 +308,10 @@ export default function UsersManagement() {
           {/* Pagination */}
           <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredUsers.length)} of {filteredUsers.length} results
+              {t('adminUsers.showingResults')
+                .replace('{start}', (startIndex + 1).toString())
+                .replace('{end}', Math.min(startIndex + itemsPerPage, filteredUsers.length).toString())
+                .replace('{total}', filteredUsers.length.toString())}
             </p>
             <div className="flex items-center gap-2">
               <Button
@@ -316,6 +321,7 @@ export default function UsersManagement() {
                 disabled={currentPage === 1}
               >
                 <ChevronLeft className="w-4 h-4" />
+                {t('adminUsers.previous')}
               </Button>
               <span className="text-sm text-gray-700">
                 Page {currentPage} of {totalPages}
@@ -326,6 +332,7 @@ export default function UsersManagement() {
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
               >
+                {t('adminUsers.next')}
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>

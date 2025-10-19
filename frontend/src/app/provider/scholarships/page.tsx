@@ -14,8 +14,10 @@ import { mockScholarships } from '@/lib/mock-data';
 import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext';
 import { Scholarship, ScholarshipStatus } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderScholarshipsPage() {
+  const { t } = useLanguage();
   // Use AppContext data
   const { applications } = useApplicationsData();
   const { scholarships: allScholarships } = useScholarshipsData();
@@ -92,35 +94,35 @@ export default function ProviderScholarshipsPage() {
         {/* Basic Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Scholarship Details</CardTitle>
+            <CardTitle>{t('providerScholarships.details.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">Amount</p>
+                <p className="text-sm text-muted-foreground">{t('providerScholarships.details.amount')}</p>
                 <p className="font-semibold">{scholarship.stipend}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Deadline</p>
+                <p className="text-sm text-muted-foreground">{t('providerScholarships.details.deadline')}</p>
                 <p className="font-semibold">{scholarship.deadline ? formatDate(scholarship.deadline) : 'TBA'}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Level</p>
+                <p className="text-sm text-muted-foreground">{t('providerScholarships.details.level')}</p>
                 <p className="font-semibold">{scholarship.level}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Study Mode</p>
+                <p className="text-sm text-muted-foreground">{t('providerScholarships.details.studyMode')}</p>
                 <p className="font-semibold">{scholarship.studyMode}</p>
               </div>
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground mb-2">Description</p>
+              <p className="text-sm text-muted-foreground mb-2">{t('providerScholarships.details.description')}</p>
               <p className="text-sm">{scholarship.description}</p>
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground mb-2">Fields of Study</p>
+              <p className="text-sm text-muted-foreground mb-2">{t('providerScholarships.details.fields')}</p>
               <div className="flex flex-wrap gap-2">
                 {scholarship.field?.map((field, index) => (
                   <Badge key={index} variant="outline">{field}</Badge>
@@ -129,14 +131,14 @@ export default function ProviderScholarshipsPage() {
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground mb-2">Requirements</p>
+              <p className="text-sm text-muted-foreground mb-2">{t('providerScholarships.details.requirements')}</p>
               <div className="space-y-1 text-sm">
                 {Array.isArray(scholarship.requirements) ? (
                   scholarship.requirements.map((requirement, index) => (
                     <p key={index}>• {requirement}</p>
                   ))
                 ) : (
-                  <p>• Requirements will be provided upon application</p>
+                  <p>• {t('providerScholarships.details.requirementsDefault')}</p>
                 )}
               </div>
             </div>
@@ -146,21 +148,21 @@ export default function ProviderScholarshipsPage() {
         {/* Application Statistics */}
         <Card>
           <CardHeader>
-            <CardTitle>Application Statistics</CardTitle>
+            <CardTitle>{t('providerScholarships.stats.applications')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="text-center">
                 <p className="text-2xl font-bold text-brand-blue-600">45</p>
-                <p className="text-sm text-muted-foreground">Total Applications</p>
+                <p className="text-sm text-muted-foreground">{t('providerScholarships.stats.applications')}</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-green-600">12</p>
-                <p className="text-sm text-muted-foreground">Under Review</p>
+                <p className="text-sm text-muted-foreground">{t('providerScholarships.stats.underReview')}</p>
               </div>
               <div className="text-center">
                 <p className="text-2xl font-bold text-yellow-600">8</p>
-                <p className="text-sm text-muted-foreground">Pending</p>
+                <p className="text-sm text-muted-foreground">{t('providerScholarships.stats.pending')}</p>
               </div>
             </div>
           </CardContent>
@@ -213,14 +215,14 @@ export default function ProviderScholarshipsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">My Scholarships</h1>
+              <h1 className="text-3xl font-bold text-foreground">{t('providerScholarships.title')}</h1>
               <p className="text-muted-foreground mt-2">
-                Manage your scholarship programs and track applications
+                {t('providerScholarships.subtitle')}
               </p>
             </div>
             <Button className="mt-4 sm:mt-0" onClick={() => router.push('/provider/scholarships/create')}>
               <Plus className="h-4 w-4 mr-2" />
-              Create Scholarship
+              {t('providerScholarships.create')}
             </Button>
           </div>
         </div>
@@ -236,7 +238,7 @@ export default function ProviderScholarshipsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total Scholarships</p>
+                <p className="text-xs text-muted-foreground">{t('providerScholarships.stats.total')}</p>
               </div>
             </CardContent>
           </Card>
@@ -248,7 +250,7 @@ export default function ProviderScholarshipsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.active}</p>
-                <p className="text-xs text-muted-foreground">Published</p>
+                <p className="text-xs text-muted-foreground">{t('providerScholarships.stats.published')}</p>
               </div>
             </CardContent>
           </Card>
@@ -260,7 +262,7 @@ export default function ProviderScholarshipsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.draft}</p>
-                <p className="text-xs text-muted-foreground">Draft</p>
+                <p className="text-xs text-muted-foreground">{t('providerScholarships.stats.draft')}</p>
               </div>
             </CardContent>
           </Card>
@@ -272,7 +274,7 @@ export default function ProviderScholarshipsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.closed}</p>
-                <p className="text-xs text-muted-foreground">Closed</p>
+                <p className="text-xs text-muted-foreground">{t('providerScholarships.stats.closed')}</p>
               </div>
             </CardContent>
           </Card>
@@ -286,7 +288,7 @@ export default function ProviderScholarshipsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search scholarships..."
+                    placeholder={t('providerScholarships.search')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -297,13 +299,13 @@ export default function ProviderScholarshipsPage() {
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-48">
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue placeholder={t('providerScholarships.filterStatus')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value={ScholarshipStatus.PUBLISHED}>Published</SelectItem>
-                  <SelectItem value={ScholarshipStatus.DRAFT}>Draft</SelectItem>
-                  <SelectItem value={ScholarshipStatus.CLOSED}>Closed</SelectItem>
+                  <SelectItem value="all">{t('providerScholarships.all')}</SelectItem>
+                  <SelectItem value={ScholarshipStatus.PUBLISHED}>{t('providerScholarships.stats.published')}</SelectItem>
+                  <SelectItem value={ScholarshipStatus.DRAFT}>{t('providerScholarships.stats.draft')}</SelectItem>
+                  <SelectItem value={ScholarshipStatus.CLOSED}>{t('providerScholarships.stats.closed')}</SelectItem>
                   <SelectItem value={ScholarshipStatus.EXPIRED}>Expired</SelectItem>
                 </SelectContent>
               </Select>
@@ -317,11 +319,11 @@ export default function ProviderScholarshipsPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <DollarSign className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No scholarships found</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('providerScholarships.noResults')}</h3>
                 <p className="text-muted-foreground text-center mb-4">
                   {searchTerm || statusFilter !== 'all' 
-                    ? 'Try adjusting your search or filter criteria.'
-                    : 'Create your first scholarship to get started.'
+                    ? t('providerScholarships.noResultsDesc')
+                    : t('providerScholarships.create')
                   }
                 </p>
                 {!searchTerm && statusFilter === 'all' && (

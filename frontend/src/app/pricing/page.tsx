@@ -15,71 +15,74 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function PricingPage() {
+  const { t } = useLanguage();
+  
   const plans = [
     {
-      name: 'Free',
-      price: '$0',
-      period: 'forever',
-      description: 'Perfect for students just starting their search',
+      name: t('pricing.plan.free.name'),
+      price: t('pricing.plan.free.price'),
+      period: t('pricing.plan.free.period'),
+      description: t('pricing.plan.free.description'),
       features: [
-        'Access to 500+ scholarships',
-        'Basic AI matching',
-        'Application tracking',
-        'Email notifications',
-        'Mobile app access',
-        'Community support'
+        t('pricing.feature.accessScholarships500'),
+        t('pricing.feature.basicAI'),
+        t('pricing.feature.applicationTracking'),
+        t('pricing.feature.emailNotifications'),
+        t('pricing.feature.mobileAccess'),
+        t('pricing.feature.communitySupport')
       ],
       limitations: [
-        '5 applications per month',
-        'Standard matching accuracy',
-        'Basic profile features'
+        t('pricing.limitations.applications5'),
+        t('pricing.limitations.standardAccuracy'),
+        t('pricing.limitations.basicProfile')
       ],
-      cta: 'Get Started Free',
+      cta: t('pricing.plan.free.cta'),
       popular: false,
       color: 'border-gray-200'
     },
     {
-      name: 'Premium',
-      price: '$9.99',
-      period: 'per month',
-      description: 'For serious students who want the best matches',
+      name: t('pricing.plan.premium.name'),
+      price: t('pricing.plan.premium.price'),
+      period: t('pricing.plan.premium.period'),
+      description: t('pricing.plan.premium.description'),
       features: [
-        'Access to 2,000+ scholarships',
-        'Advanced AI matching',
-        'Unlimited applications',
-        'Priority notifications',
-        'Advanced analytics',
-        'Personal matching score',
-        'Application templates',
-        'Deadline reminders',
-        'Priority support'
+        t('pricing.feature.accessScholarships2000'),
+        t('pricing.feature.advancedAI'),
+        t('pricing.feature.unlimitedApplications'),
+        t('pricing.feature.priorityNotifications'),
+        t('pricing.feature.advancedAnalytics'),
+        t('pricing.feature.personalScore'),
+        t('pricing.feature.applicationTemplates'),
+        t('pricing.feature.deadlineReminders'),
+        t('pricing.feature.prioritySupport')
       ],
       limitations: [],
-      cta: 'Start Premium Trial',
+      cta: t('pricing.plan.premium.cta'),
       popular: true,
       color: 'border-brand-blue-500'
     },
     {
-      name: 'Pro',
-      price: '$19.99',
-      period: 'per month',
-      description: 'For students who want comprehensive support',
+      name: t('pricing.plan.pro.name'),
+      price: t('pricing.plan.pro.price'),
+      period: t('pricing.plan.pro.period'),
+      description: t('pricing.plan.pro.description'),
       features: [
-        'Everything in Premium',
-        'Personal scholarship consultant',
-        'Essay review service',
-        'Interview preparation',
-        'Custom recommendation letters',
-        'White-glove application support',
-        'Success guarantee program',
-        'Exclusive scholarship opportunities',
-        '1-on-1 mentoring sessions',
-        '24/7 priority support'
+        t('pricing.feature.everythingPremium'),
+        t('pricing.feature.personalConsultant'),
+        t('pricing.feature.essayReview'),
+        t('pricing.feature.interviewPrep'),
+        t('pricing.feature.recommendationLetters'),
+        t('pricing.feature.whiteGloveSupport'),
+        t('pricing.feature.successGuarantee'),
+        t('pricing.feature.exclusiveOpportunities'),
+        t('pricing.feature.mentoringSession'),
+        t('pricing.feature.support247')
       ],
       limitations: [],
-      cta: 'Contact Sales',
+      cta: t('pricing.plan.pro.cta'),
       popular: false,
       color: 'border-purple-500'
     }
@@ -88,46 +91,46 @@ export default function PricingPage() {
   const enterpriseFeatures = [
     {
       icon: Shield,
-      title: 'Enterprise Security',
-      description: 'Advanced security features and compliance for institutions'
+      title: t('pricing.enterprise.security.title'),
+      description: t('pricing.enterprise.security.description')
     },
     {
       icon: Users,
-      title: 'Team Management',
-      description: 'Manage multiple users and departments with role-based access'
+      title: t('pricing.enterprise.teamManagement.title'),
+      description: t('pricing.enterprise.teamManagement.description')
     },
     {
       icon: TrendingUp,
-      title: 'Analytics Dashboard',
-      description: 'Comprehensive reporting and insights for your scholarship programs'
+      title: t('pricing.enterprise.analytics.title'),
+      description: t('pricing.enterprise.analytics.description')
     },
     {
       icon: Zap,
-      title: 'API Access',
-      description: 'Integrate EduMatch with your existing systems and workflows'
+      title: t('pricing.enterprise.api.title'),
+      description: t('pricing.enterprise.api.description')
     }
   ];
 
   const faqs = [
     {
-      question: 'How does the AI matching work?',
-      answer: 'Our AI analyzes your academic background, interests, achievements, and goals to find scholarships that best match your profile. The more information you provide, the more accurate the matches become.'
+      question: t('pricing.faq.q1.question'),
+      answer: t('pricing.faq.q1.answer')
     },
     {
-      question: 'Can I cancel my subscription anytime?',
-      answer: 'Yes, you can cancel your subscription at any time. Your premium features will remain active until the end of your current billing period.'
+      question: t('pricing.faq.q2.question'),
+      answer: t('pricing.faq.q2.answer')
     },
     {
-      question: 'Is there a free trial for premium plans?',
-      answer: 'Yes, we offer a 14-day free trial for our Premium plan. No credit card required to start.'
+      question: t('pricing.faq.q3.question'),
+      answer: t('pricing.faq.q3.answer')
     },
     {
-      question: 'What happens if I don\'t get accepted to any scholarships?',
-      answer: 'Our Pro plan includes a success guarantee. If you follow our recommendations and don\'t receive any scholarship offers within 6 months, we\'ll provide additional support or a partial refund.'
+      question: t('pricing.faq.q4.question'),
+      answer: t('pricing.faq.q4.answer')
     },
     {
-      question: 'Do you offer student discounts?',
-      answer: 'Yes, we offer additional discounts for students from underrepresented backgrounds. Contact our support team to learn more about available programs.'
+      question: t('pricing.faq.q5.question'),
+      answer: t('pricing.faq.q5.answer')
     }
   ];
 
@@ -137,15 +140,14 @@ export default function PricingPage() {
       <section className="bg-pastel-hero py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gradient-primary mb-6">
-            Simple, Transparent Pricing
+            {t('pricing.hero.title')}
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Choose the plan that fits your needs. Start for free and upgrade as you grow.
-            All plans include our core scholarship matching technology.
+            {t('pricing.hero.subtitle')}
           </p>
           <div className="flex justify-center">
             <Badge className="text-sm bg-blue-100 text-blue-700 border-blue-200">
-              💡 Most students start with our free plan
+              {t('pricing.hero.badge')}
             </Badge>
           </div>
         </div>
@@ -166,7 +168,7 @@ export default function PricingPage() {
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                     <Badge className="bg-brand-blue-500 text-white">
                       <Star className="w-4 h-4 mr-1" />
-                      Most Popular
+                      {t('pricing.plan.premium.badge')}
                     </Badge>
                   </div>
                 )}
@@ -184,7 +186,7 @@ export default function PricingPage() {
                   <div className="space-y-4">
                     {/* Features */}
                     <div>
-                      <h4 className="font-semibold text-gray-900 mb-3">What's included:</h4>
+                      <h4 className="font-semibold text-gray-900 mb-3">{t('pricing.included')}</h4>
                       <ul className="space-y-2">
                         {plan.features.map((feature, featureIndex) => (
                           <li key={featureIndex} className="flex items-center text-sm">
@@ -198,7 +200,7 @@ export default function PricingPage() {
                     {/* Limitations */}
                     {plan.limitations.length > 0 && (
                       <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">Limitations:</h4>
+                        <h4 className="font-semibold text-gray-900 mb-3">{t('pricing.limitations.title')}</h4>
                         <ul className="space-y-2">
                           {plan.limitations.map((limitation, limitIndex) => (
                             <li key={limitIndex} className="flex items-center text-sm text-gray-600">
@@ -229,10 +231,9 @@ export default function PricingPage() {
           <div className="mt-16 text-center">
             <Card className="bg-gray-50 border-2 border-dashed border-gray-300">
               <CardContent className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Enterprise Solution</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">{t('pricing.enterprise.title')}</h3>
                 <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                  Looking for a custom solution for your university or institution? 
-                  We offer tailored enterprise packages with advanced features and dedicated support.
+                  {t('pricing.enterprise.subtitle')}
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -249,7 +250,7 @@ export default function PricingPage() {
 
                 <Button asChild size="lg">
                   <Link href="/contact">
-                    Contact Sales
+                    {t('pricing.enterprise.cta')}
                   </Link>
                 </Button>
               </CardContent>
@@ -263,10 +264,10 @@ export default function PricingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Frequently Asked Questions
+              {t('pricing.faq.title')}
             </h2>
             <p className="text-gray-600">
-              Got questions? We've got answers.
+              {t('pricing.faq.subtitle')}
             </p>
           </div>
 
@@ -287,11 +288,11 @@ export default function PricingPage() {
 
           <div className="text-center mt-12">
             <p className="text-gray-600 mb-4">
-              Still have questions? We're here to help.
+              {t('pricing.faq.stillHaveQuestions')}
             </p>
             <Button asChild variant="outline">
               <Link href="/contact">
-                Contact Support
+                {t('pricing.faq.contactSupport')}
               </Link>
             </Button>
           </div>
@@ -302,15 +303,15 @@ export default function PricingPage() {
       <section className="py-16 bg-brand-blue-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to Find Your Perfect Scholarship?
+            {t('pricing.cta.title')}
           </h2>
           <p className="text-xl text-brand-blue-100 mb-8">
-            Join over 50,000 students who have found their ideal funding opportunities.
+            {t('pricing.cta.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" variant="secondary">
               <Link href="/auth/register">
-                Start Free Today
+                {t('pricing.cta.startFree')}
               </Link>
             </Button>
             <Button 
@@ -320,7 +321,7 @@ export default function PricingPage() {
               className="bg-transparent border-white text-white hover:bg-white hover:text-brand-blue-600"
             >
               <Link href="/applicant/scholarships">
-                Browse Scholarships
+                {t('pricing.cta.browse')}
               </Link>
             </Button>
           </div>

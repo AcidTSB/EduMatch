@@ -15,62 +15,67 @@ import {
   Menu,
   X,
   LogOut,
-  Shield
+  Shield,
+  Globe,
+  Check
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Toaster } from '@/components/ui/toaster';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
 }
 
-const menuItems = [
-  {
-    title: 'Dashboard',
-    icon: LayoutDashboard,
-    href: '/admin',
-    badge: null
-  },
-  {
-    title: 'User Management',
-    icon: Users,
-    href: '/admin/users',
-    badge: null
-  },
-  {
-    title: 'Scholarships',
-    icon: GraduationCap,
-    href: '/admin/scholarships',
-    badge: '45'
-  },
-  {
-    title: 'Applications',
-    icon: FileText,
-    href: '/admin/applications',
-    badge: '128'
-  },
-  {
-    title: 'Analytics',
-    icon: BarChart3,
-    href: '/admin/analytics',
-    badge: null
-  },
-  {
-    title: 'Settings',
-    icon: Settings,
-    href: '/admin/settings',
-    badge: null
-  }
-];
-
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showLangMenu, setShowLangMenu] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user } = useAuth();
+  const { t, language, setLanguage } = useLanguage();
+
+  const menuItems = [
+    {
+      titleKey: 'adminLayout.menu.dashboard',
+      icon: LayoutDashboard,
+      href: '/admin',
+      badge: null
+    },
+    {
+      titleKey: 'adminLayout.menu.users',
+      icon: Users,
+      href: '/admin/users',
+      badge: null
+    },
+    {
+      titleKey: 'adminLayout.menu.scholarships',
+      icon: GraduationCap,
+      href: '/admin/scholarships',
+      badge: '45'
+    },
+    {
+      titleKey: 'adminLayout.menu.applications',
+      icon: FileText,
+      href: '/admin/applications',
+      badge: '128'
+    },
+    {
+      titleKey: 'adminLayout.menu.analytics',
+      icon: BarChart3,
+      href: '/admin/analytics',
+      badge: null
+    },
+    {
+      titleKey: 'adminLayout.menu.settings',
+      icon: Settings,
+      href: '/admin/settings',
+      badge: null
+    }
+  ];
 
   const handleLogout = async () => {
     try {
@@ -97,7 +102,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <Link href="/admin" className="flex ml-2 md:mr-24">
                 <Shield className="h-8 w-8 text-blue-600 mr-3" />
                 <span className="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap text-gray-900">
-                  EduMatch Admin
+                  {t('adminLayout.title')}
                 </span>
               </Link>
             </div>
@@ -108,9 +113,45 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input 
                   type="search" 
-                  placeholder="Search..." 
+                  placeholder={t('adminLayout.search')}
                   className="pl-10 w-64"
                 />
+              </div>
+
+              {/* Language Switcher */}
+              <div className="relative">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setShowLangMenu(!showLangMenu)}
+                  className="relative"
+                >
+                  <Globe className="h-5 w-5" />
+                </Button>
+                {showLangMenu && (
+                  <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    <button
+                      onClick={() => {
+                        setLanguage('en');
+                        setShowLangMenu(false);
+                      }}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center justify-between"
+                    >
+                      <span>English</span>
+                      {language === 'en' && <Check className="h-4 w-4 text-blue-600" />}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setLanguage('vi');
+                        setShowLangMenu(false);
+                      }}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center justify-between"
+                    >
+                      <span>Tiếng Việt</span>
+                      {language === 'vi' && <Check className="h-4 w-4 text-blue-600" />}
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Notifications */}
@@ -163,7 +204,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     }`}
                   >
                     <Icon className={`w-5 h-5 ${isActive ? 'text-blue-600' : 'text-gray-500'}`} />
-                    <span className="ml-3">{item.title}</span>
+                    <span className="ml-3">{t(item.titleKey)}</span>
                     {item.badge && (
                       <Badge variant="secondary" className="ml-auto">
                         {item.badge}
@@ -182,7 +223,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               className="flex items-center p-3 w-full text-gray-700 rounded-lg hover:bg-red-50 hover:text-red-600 transition-colors"
             >
               <LogOut className="w-5 h-5" />
-              <span className="ml-3">Logout</span>
+              <span className="ml-3">{t('adminLayout.logout')}</span>
             </button>
           </div>
         </div>

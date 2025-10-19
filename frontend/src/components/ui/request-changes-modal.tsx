@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface RequestChangesModalProps {
   isOpen: boolean;
@@ -17,9 +18,10 @@ export function RequestChangesModal({
   isOpen,
   onClose,
   onSubmit,
-  title = 'Request Changes',
+  title,
   isLoading = false,
 }: RequestChangesModalProps) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     subject: '',
     message: '',
@@ -32,13 +34,13 @@ export function RequestChangesModal({
     const newErrors: Record<string, string> = {};
 
     if (!formData.subject.trim()) {
-      newErrors.subject = 'Subject is required';
+      newErrors.subject = t('requestChangesModal.error.subjectRequired');
     }
 
     if (!formData.message.trim()) {
-      newErrors.message = 'Message is required';
+      newErrors.message = t('requestChangesModal.error.messageRequired');
     } else if (formData.message.length < 10) {
-      newErrors.message = 'Message must be at least 10 characters';
+      newErrors.message = t('requestChangesModal.error.messageTooShort');
     }
 
     setErrors(newErrors);
@@ -66,7 +68,7 @@ export function RequestChangesModal({
       <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
-          <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+          <h3 className="text-xl font-bold text-gray-900">{title || t('requestChangesModal.defaultTitle')}</h3>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -82,7 +84,7 @@ export function RequestChangesModal({
             {/* Subject */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subject *
+                {t('requestChangesModal.subject')} *
               </label>
               <Input
                 type="text"
@@ -91,7 +93,7 @@ export function RequestChangesModal({
                   setFormData({ ...formData, subject: e.target.value });
                   setErrors({ ...errors, subject: '' });
                 }}
-                placeholder="e.g., Update scholarship requirements"
+                placeholder={t('requestChangesModal.subjectPlaceholder')}
                 className={errors.subject ? 'border-red-500' : ''}
                 disabled={isLoading}
               />
@@ -103,7 +105,7 @@ export function RequestChangesModal({
             {/* Message */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Detailed Message *
+                {t('requestChangesModal.message')} *
               </label>
               <textarea
                 value={formData.message}
@@ -111,7 +113,7 @@ export function RequestChangesModal({
                   setFormData({ ...formData, message: e.target.value });
                   setErrors({ ...errors, message: '' });
                 }}
-                placeholder="Describe what changes are needed..."
+                placeholder={t('requestChangesModal.messagePlaceholder')}
                 rows={5}
                 className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.message ? 'border-red-500' : 'border-gray-300'
@@ -122,7 +124,7 @@ export function RequestChangesModal({
                 <p className="text-sm text-red-600 mt-1">{errors.message}</p>
               )}
               <p className="text-xs text-gray-500 mt-1">
-                {formData.message.length} characters (minimum 10)
+                {t('requestChangesModal.charactersCount').replace('{count}', formData.message.length.toString())}
               </p>
             </div>
           </div>
@@ -136,14 +138,14 @@ export function RequestChangesModal({
               className="flex-1"
               disabled={isLoading}
             >
-              Cancel
+              {t('requestChangesModal.cancel')}
             </Button>
             <Button
               type="submit"
               className="flex-1 bg-blue-600 hover:bg-blue-700"
               disabled={isLoading}
             >
-              {isLoading ? 'Sending...' : 'Send Request'}
+              {isLoading ? t('requestChangesModal.sending') : t('requestChangesModal.send')}
             </Button>
           </div>
         </form>
