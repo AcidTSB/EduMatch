@@ -43,11 +43,11 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
             {scholarship.title}
           </CardTitle>
           {showMatchScore && scholarship.matchScore && (
-            <div className="flex flex-col items-center min-w-0">
+            <div className="flex flex-col items-center flex-shrink-0 min-w-[50px]">
               <div className={`text-lg font-bold ${getMatchScoreColor(scholarship.matchScore)}`}>
                 {scholarship.matchScore}%
               </div>
-              <span className="text-xs text-muted-foreground">{t('scholarshipCard.match')}</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('scholarshipCard.match')}</span>
             </div>
           )}
         </div>

@@ -34,6 +34,7 @@ import { MatchToast } from '@/components/MatchToast';
 import { ScholarshipCard } from '@/components/ScholarshipCard';
 import { useScholarshipsData, useApplicationsData, useNotificationsData } from '@/contexts/AppContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { parseNotification } from '@/lib/notification-templates';
 
 export default function DashboardPage() {
   const { t } = useLanguage();
@@ -163,13 +164,16 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {dashboardData.notifications.slice(0, 5).map((notification) => (
-                    <div key={notification.id} className={`p-3 rounded-lg border ${!notification.read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
-                      <h5 className="font-medium text-sm text-gray-900">{notification.title}</h5>
-                      <p className="text-xs text-gray-600 mt-1">{notification.message}</p>
-                      <p className="text-xs text-gray-500 mt-2">{formatDate(notification.createdAt.toString())}</p>
-                    </div>
-                  ))}
+                  {dashboardData.notifications.slice(0, 5).map((notification) => {
+                    const { templateKey, params } = parseNotification(notification);
+                    return (
+                      <div key={notification.id} className={`p-3 rounded-lg border ${!notification.read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                        <h5 className="font-medium text-sm text-gray-900">{t(templateKey + '.title', params || {})}</h5>
+                        <p className="text-xs text-gray-600 mt-1">{t(templateKey, params || {})}</p>
+                        <p className="text-xs text-gray-500 mt-2">{formatDate(notification.createdAt.toString())}</p>
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

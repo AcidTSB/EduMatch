@@ -7,7 +7,7 @@ type Language = 'en' | 'vi';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number | undefined>) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -32,8 +32,19 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const t = (key: string): string => {
-    return translations[language]?.[key] || key;
+  const t = (key: string, params?: Record<string, string | number | undefined>): string => {
+    let translation = translations[language]?.[key] || key;
+    
+    // Replace parameters if provided
+    if (params) {
+      Object.entries(params).forEach(([paramKey, value]) => {
+        if (value !== undefined) {
+          translation = translation.replace(`{${paramKey}}`, String(value));
+        }
+      });
+    }
+    
+    return translation;
   };
 
   return (
@@ -463,6 +474,11 @@ const translations: Record<Language, Record<string, string>> = {
     'dashboard.stats.inReview': 'In Review',
     'dashboard.stats.accepted': 'Accepted',
     'dashboard.stats.saved': 'Saved',
+    'dashboard.recentApplications.title': 'Recent Applications',
+    'dashboard.recentApplications.viewAll': 'View All',
+    'dashboard.recentApplications.applied': 'Applied',
+    'dashboard.recentApplications.noApplications': 'No applications yet',
+    'dashboard.recentApplications.browse': 'Browse Scholarships',
     'dashboard.notifications.title': 'Recent Notifications',
     'dashboard.notifications.viewAll': 'View All',
     'dashboard.recommended.title': 'Recommended for You',
@@ -1482,6 +1498,28 @@ const translations: Record<Language, Record<string, string>> = {
     'notificationDropdown.noNotificationsDesc': 'You\'ll see real-time updates here',
     'notificationDropdown.viewAll': 'View all notifications',
     
+    // Notification Templates
+    'notification.applicationAccepted': 'Congratulations! Your application to {scholarshipName} has been accepted 🎉',
+    'notification.applicationAccepted.title': 'Application Accepted! 🎉',
+    'notification.applicationReceived': 'Your application to {scholarshipName} has been received',
+    'notification.applicationReceived.title': 'Application Received',
+    'notification.applicationUnderReview': 'Your application to {scholarshipName} is being reviewed',
+    'notification.applicationUnderReview.title': 'Application Status Update',
+    'notification.applicationWaitlist': 'Your application to {scholarshipName} is on the waitlist',
+    'notification.applicationWaitlist.title': 'Application Waitlisted',
+    'notification.newMatch': '{scholarshipName} matches your profile ✨',
+    'notification.newMatch.title': 'New Scholarship Match',
+    'notification.deadlineReminder': 'Application deadline for {scholarshipName} is approaching ({days} days left)',
+    'notification.deadlineReminder.title': 'Deadline Reminder',
+    'notification.reviewReminder': 'You have {count} pending applications that need review',
+    'notification.reviewReminder.title': 'Application Review Reminder',
+    'notification.newApplication': '{userName} has applied to {scholarshipName}',
+    'notification.newApplication.title': 'New Application Received',
+    'notification.newScholarship': 'New scholarship available: {scholarshipName}',
+    'notification.newScholarship.title': 'New Scholarship',
+    'notification.default': 'You have a new notification',
+    'notification.default.title': 'Notification',
+    
     // Application Status Card Component
     'applicationStatus.pending': 'Pending Review',
     'applicationStatus.pendingDesc': 'Your application is being reviewed',
@@ -1491,6 +1529,8 @@ const translations: Record<Language, Record<string, string>> = {
     'applicationStatus.acceptedDesc': 'Congratulations! Your application was accepted',
     'applicationStatus.rejected': 'Not Selected',
     'applicationStatus.rejectedDesc': 'Unfortunately, your application was not selected',
+    'applicationStatus.underReview': 'Under Review',
+    'applicationStatus.unknown': 'Unknown',
     'applicationStatus.waitlist': 'Waitlisted',
     'applicationStatus.waitlistDesc': 'You are on the waiting list',
     'applicationStatus.processing': 'Your application is being processed',
@@ -1749,10 +1789,10 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.scholarships': 'Học bổng',
     'nav.pricing': 'Bảng giá',
     'nav.contact': 'Liên hệ',
-    'nav.dashboard': 'Bảng điều khiển',
-    'nav.applications': 'Đơn xin',
+    'nav.dashboard': 'Tổng quan',
+    'nav.applications': 'Hồ sơ',
     'nav.messages': 'Tin nhắn',
-    'nav.myScholarships': 'Học bổng của tôi',
+    'nav.myScholarships': 'Học bổng',
     'nav.analytics': 'Thống kê',
     'nav.users': 'Người dùng',
     
@@ -2153,6 +2193,11 @@ const translations: Record<Language, Record<string, string>> = {
     'dashboard.stats.inReview': 'Đang xem xét',
     'dashboard.stats.accepted': 'Được chấp nhận',
     'dashboard.stats.saved': 'Đã lưu',
+    'dashboard.recentApplications.title': 'Đơn gần đây',
+    'dashboard.recentApplications.viewAll': 'Xem tất cả',
+    'dashboard.recentApplications.applied': 'Đã nộp',
+    'dashboard.recentApplications.noApplications': 'Chưa có đơn nào',
+    'dashboard.recentApplications.browse': 'Duyệt học bổng',
     'dashboard.notifications.title': 'Thông báo gần đây',
     'dashboard.notifications.viewAll': 'Xem tất cả',
     'dashboard.recommended.title': 'Đề xuất cho bạn',
@@ -3172,6 +3217,28 @@ const translations: Record<Language, Record<string, string>> = {
     'notificationDropdown.noNotificationsDesc': 'Bạn sẽ thấy cập nhật thời gian thực ở đây',
     'notificationDropdown.viewAll': 'Xem tất cả thông báo',
     
+    // Notification Templates
+    'notification.applicationAccepted': 'Chúc mừng! Đơn xin học bổng {scholarshipName} đã được chấp nhận 🎉',
+    'notification.applicationAccepted.title': 'Đơn được chấp nhận! 🎉',
+    'notification.applicationReceived': 'Đơn xin học bổng {scholarshipName} đã được nhận',
+    'notification.applicationReceived.title': 'Đã nhận đơn',
+    'notification.applicationUnderReview': 'Đơn xin học bổng {scholarshipName} đang được xem xét',
+    'notification.applicationUnderReview.title': 'Cập nhật trạng thái đơn',
+    'notification.applicationWaitlist': 'Đơn xin học bổng {scholarshipName} trong danh sách chờ',
+    'notification.applicationWaitlist.title': 'Đơn trong danh sách chờ',
+    'notification.newMatch': '{scholarshipName} phù hợp với hồ sơ của bạn ✨',
+    'notification.newMatch.title': 'Học bổng phù hợp',
+    'notification.deadlineReminder': 'Hạn nộp đơn cho {scholarshipName} sắp đến ({days} ngày còn lại)',
+    'notification.deadlineReminder.title': 'Nhắc nhở hạn nộp',
+    'notification.reviewReminder': 'Bạn có {count} đơn đang chờ xem xét',
+    'notification.reviewReminder.title': 'Nhắc nhở xem xét đơn',
+    'notification.newApplication': '{userName} đã nộp đơn cho {scholarshipName}',
+    'notification.newApplication.title': 'Đơn mới nhận được',
+    'notification.newScholarship': 'Học bổng mới: {scholarshipName}',
+    'notification.newScholarship.title': 'Học bổng mới',
+    'notification.default': 'Bạn có thông báo mới',
+    'notification.default.title': 'Thông báo',
+    
     // Application Status Card Component
     'applicationStatus.pending': 'Đang chờ xét duyệt',
     'applicationStatus.pendingDesc': 'Đơn của bạn đang được xem xét',
@@ -3181,6 +3248,8 @@ const translations: Record<Language, Record<string, string>> = {
     'applicationStatus.acceptedDesc': 'Chúc mừng! Đơn của bạn đã được chấp nhận',
     'applicationStatus.rejected': 'Không được chọn',
     'applicationStatus.rejectedDesc': 'Rất tiếc, đơn của bạn không được chọn',
+    'applicationStatus.underReview': 'Đang xem xét',
+    'applicationStatus.unknown': 'Không xác định',
     'applicationStatus.waitlist': 'Trong danh sách chờ',
     'applicationStatus.waitlistDesc': 'Bạn đang trong danh sách chờ',
     'applicationStatus.processing': 'Đơn của bạn đang được xử lý',

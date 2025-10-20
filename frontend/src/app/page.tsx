@@ -1,10 +1,13 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useLanguage } from '@/contexts/LanguageContext'
+import { useAuth } from '@/lib/auth'
 import { 
   GraduationCap, 
   Brain, 
@@ -20,6 +23,37 @@ import {
 
 export default function HomePage() {
   const { t } = useLanguage();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  // Redirect authenticated users to their dashboard
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user?.role) {
+      switch (user.role) {
+        case 'admin':
+          router.replace('/admin');
+          break;
+        case 'provider':
+          router.replace('/provider/dashboard');
+          break;
+        case 'applicant':
+          router.replace('/applicant/dashboard');
+          break;
+      }
+    }
+  }, [isLoading, isAuthenticated, user, router]);
+
+  // Show loading while checking auth or redirecting
+  if (isLoading || (isAuthenticated && user?.role)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">{t('common.loading')}</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen">

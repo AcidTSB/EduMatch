@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useNotificationStore } from '@/stores/realtimeStore';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatDistanceToNow } from 'date-fns';
+import { parseNotification, getNotificationIcon } from '@/lib/notification-templates';
 
 export function NotificationDropdown() {
   const { t } = useLanguage();
@@ -18,23 +19,6 @@ export function NotificationDropdown() {
 
   const handleMarkAllAsRead = () => {
     markAllAsRead();
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case 'status':
-        return '📋';
-      case 'new_scholarship':
-        return '🎓';
-      case 'message':
-        return '💬';
-      case 'reminder':
-        return '⏰';
-      case 'match':
-        return '✨';
-      default:
-        return '🔔';
-    }
   };
 
   return (
@@ -70,37 +54,40 @@ export function NotificationDropdown() {
           </div>
           <div className="max-h-96 overflow-y-auto">
             {notifications.length > 0 ? (
-              notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${
-                    !notification.read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
-                  }`}
-                  onClick={() => !notification.read && handleMarkAsRead(notification.id)}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="text-lg flex-shrink-0">
-                      {getNotificationIcon(notification.type)}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <p className="font-medium text-sm truncate">
-                          {notification.title}
+              notifications.map((notification) => {
+                const { templateKey, params } = parseNotification(notification);
+                return (
+                  <div
+                    key={notification.id}
+                    className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${
+                      !notification.read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                    }`}
+                    onClick={() => !notification.read && handleMarkAsRead(notification.id)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-lg flex-shrink-0">
+                        {getNotificationIcon(notification.type)}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <p className="font-medium text-sm">
+                            {t(templateKey + '.title', params || {})}
+                          </p>
+                          {!notification.read && (
+                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></div>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+                          {t(templateKey, params || {})}
                         </p>
-                        {!notification.read && (
-                          <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></div>
-                        )}
+                        <p className="text-xs text-gray-400 mt-1">
+                          {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                        </p>
                       </div>
-                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
-                      </p>
                     </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="p-8 text-center text-gray-500">
                 <Bell className="h-12 w-12 mx-auto text-gray-300 mb-4" />

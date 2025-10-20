@@ -452,8 +452,8 @@ class MockDataStore {
         id: 'notif1',
         userId: '1',
         title: 'Application Status Update',
-        message: 'Your application for MIT AI Research Fellowship is now under review.',
-        type: 'info',
+        message: 'Your application to MIT AI Research Fellowship is being reviewed',
+        type: 'APPLICATION_STATUS',
         read: false,
         createdAt: new Date('2024-09-28'),
         actionUrl: '/applicant/applications'
@@ -462,8 +462,8 @@ class MockDataStore {
         id: 'notif2',
         userId: '1',
         title: 'Application Accepted!',
-        message: 'Congratulations! Your application for Full-Stack Development Research Grant has been accepted.',
-        type: 'success',
+        message: 'Congratulations! Your application to Full-Stack Development Research Grant has been accepted',
+        type: 'APPLICATION_STATUS',
         read: false,
         createdAt: new Date('2024-09-25'),
         actionUrl: '/applicant/applications'
@@ -472,8 +472,8 @@ class MockDataStore {
         id: 'notif3',
         userId: '1',
         title: 'Deadline Reminder',
-        message: 'Google PhD Fellowship application deadline is in 2 weeks.',
-        type: 'warning',
+        message: 'Application deadline for Google PhD Fellowship is approaching (14 days left)',
+        type: 'REMINDER',
         read: true,
         createdAt: new Date('2024-09-20'),
         actionUrl: '/applicant/scholarships/sch4'
@@ -482,8 +482,8 @@ class MockDataStore {
         id: 'notif4',
         userId: '1',
         title: 'New Scholarship Match',
-        message: 'We found 3 new scholarships that match your profile.',
-        type: 'info',
+        message: 'Stanford AI Program matches your profile',
+        type: 'MATCH',
         read: true,
         createdAt: new Date('2024-09-18'),
         actionUrl: '/applicant/scholarships'

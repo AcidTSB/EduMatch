@@ -158,8 +158,8 @@ export function Navbar() {
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
+        <div className="flex items-center h-16">
+          {/* LEFT: Logo - Always at the far left */}
           <div className="flex-shrink-0 flex items-center">
             <Link href="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -169,8 +169,8 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center flex-1 justify-center">
+          {/* CENTER: Navigation Links - Always in the middle */}
+          <div className="hidden lg:flex flex-1 items-center justify-center">
             <div className="flex items-center space-x-1">
               {/* For authenticated users - show fewer items, prioritize key actions */}
               {isAuthenticated ? (
@@ -400,8 +400,8 @@ export function Navbar() {
             </div>
           </div>
 
-          {/* Right side - Actions */}
-          <div className="hidden lg:flex items-center space-x-3">
+          {/* RIGHT: User Actions - Always at the far right */}
+          <div className="hidden lg:flex items-center space-x-3 flex-shrink-0">
             {/* Language Selector */}
             <LanguageSelector />
             
