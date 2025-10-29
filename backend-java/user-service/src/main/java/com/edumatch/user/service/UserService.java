@@ -83,7 +83,6 @@ public class UserService {
         profile.setInstitution(request.getInstitution());
         profile.setCountry(request.getCountry());
         profile.setResearchInterests(request.getResearchInterests());
-
         ApplicantProfile updatedProfile = applicantProfileRepository.save(profile);
         return ApplicantProfileDto.fromEntity(updatedProfile);
     }

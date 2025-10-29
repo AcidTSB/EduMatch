@@ -55,6 +55,9 @@ public class ScholarshipService {
                 .minGpa(request.getMinGpa())
                 .tags(tags)
                 .requiredSkills(skills)
+                .minExperienceLevel(request.getMinExperienceLevel())
+                .position(request.getPosition())
+                .viewsCnt(0) // Luôn đặt là 0 khi mới tạo
                 .build();
 
         Opportunity savedOpp = opportunityRepository.save(opportunity);

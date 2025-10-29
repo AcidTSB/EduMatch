@@ -20,6 +20,9 @@ public class OpportunityDto {
     private BigDecimal minGpa;
     private List<String> tags;
     private List<String> requiredSkills;
+    private String minExperienceLevel;
+    private String position;
+    private Integer viewsCnt;
 
     public static OpportunityDto fromEntity(Opportunity opp) {
         return OpportunityDto.builder()
@@ -32,6 +35,9 @@ public class OpportunityDto {
                 .minGpa(opp.getMinGpa())
                 .tags(opp.getTags().stream().map(tag -> tag.getName()).collect(Collectors.toList()))
                 .requiredSkills(opp.getRequiredSkills().stream().map(skill -> skill.getName()).collect(Collectors.toList()))
+                .minExperienceLevel(opp.getMinExperienceLevel())
+                .position(opp.getPosition())
+                .viewsCnt(opp.getViewsCnt())
                 .build();
     }
 }
