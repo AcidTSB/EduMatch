@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GraduationCap, CheckCircle } from 'lucide-react';
+import { GraduationCap, CheckCircle, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useApplications } from '@/hooks/api';
 import { Scholarship } from '@/types';
 import { toast } from 'react-hot-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ApplyButtonProps {
   scholarship: Scholarship;
@@ -34,6 +35,7 @@ export function ApplyButton({
   showDialog = true
 }: ApplyButtonProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [applicationData, setApplicationData] = useState({
     coverLetter: '',
@@ -43,11 +45,34 @@ export function ApplyButton({
     linkedinUrl: '',
     githubUrl: ''
   });
+  const [cvFile, setCvFile] = useState<File | null>(null);
 
   const { submitApplication, loading: applicationLoading } = useApplications();
 
   const isDeadlinePassed = new Date() > new Date(scholarship.applicationDeadline);
   const canApply = scholarship.status === 'PUBLISHED' && !isDeadlinePassed && !hasApplied;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error(t('applyButton.fileTooLarge') || 'File size must be less than 5MB');
+        return;
+      }
+      // Check file type
+      const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error(t('applyButton.invalidFileType') || 'Only PDF and Word documents are allowed');
+        return;
+      }
+      setCvFile(file);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setCvFile(null);
+  };
 
   const handleApply = async () => {
     if (!canApply) return;
@@ -56,10 +81,11 @@ export function ApplyButton({
       await submitApplication({
         scholarshipId: scholarship.id,
         ...applicationData,
+        cvFile: cvFile?.name, // In real app, would upload file to server
       });
 
       setIsDialogOpen(false);
-      toast.success('Application submitted successfully!');
+      toast.success(t('applyButton.submitSuccess') || 'Application submitted successfully!');
       
       // Reset form
       setApplicationData({
@@ -70,11 +96,12 @@ export function ApplyButton({
         linkedinUrl: '',
         githubUrl: ''
       });
+      setCvFile(null);
 
       // Refresh the page or redirect
       router.refresh();
     } catch (error) {
-      toast.error('Failed to submit application. Please try again.');
+      toast.error(t('applyButton.submitError') || 'Failed to submit application. Please try again.');
     }
   };
 
@@ -90,15 +117,15 @@ export function ApplyButton({
     hasApplied ? (
       <>
         <CheckCircle className="h-4 w-4 mr-2" />
-        Applied
+        {t('applyButton.applied') || 'Applied'}
       </>
     ) : canApply ? (
       <>
         <GraduationCap className="h-4 w-4 mr-2" />
-        Apply Now
+        {t('applyButton.applyNow') || 'Apply Now'}
       </>
     ) : (
-      isDeadlinePassed ? "Deadline Passed" : "View Details"
+      isDeadlinePassed ? (t('applyButton.deadlinePassed') || "Deadline Passed") : (t('applyButton.viewDetails') || "View Details")
     )
   );
 
@@ -155,46 +182,99 @@ export function ApplyButton({
           {buttonContent}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Apply for {scholarship.title}</DialogTitle>
+          <DialogTitle>{t('applyButton.title') || 'Apply for'} {scholarship.title}</DialogTitle>
           <DialogDescription>
-            Submit your application for this scholarship. Make sure to provide all required information.
+            {t('applyButton.description') || 'Submit your application for this scholarship. Make sure to provide all required information.'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
+          {/* CV Upload */}
           <div className="space-y-2">
-            <Label htmlFor="coverLetter">Cover Letter *</Label>
+            <Label htmlFor="cvFile">
+              {t('applyButton.cvFile') || 'CV/Resume'} *
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="cvFile"
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => document.getElementById('cvFile')?.click()}
+                className="w-full"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {cvFile ? cvFile.name : (t('applyButton.uploadCV') || 'Upload CV (PDF or Word)')}
+              </Button>
+              {cvFile && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRemoveFile}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t('applyButton.maxFileSize') || 'Maximum file size: 5MB. Accepted formats: PDF, DOC, DOCX'}
+            </p>
+          </div>
+
+          {/* Cover Letter */}
+          <div className="space-y-2">
+            <Label htmlFor="coverLetter">
+              {t('applyButton.coverLetter') || 'Cover Letter'} *
+            </Label>
             <Textarea
               id="coverLetter"
-              placeholder="Write your cover letter..."
+              placeholder={t('applyButton.coverLetterPlaceholder') || 'Write your cover letter...'}
               value={applicationData.coverLetter}
               onChange={(e) => setApplicationData({...applicationData, coverLetter: e.target.value})}
               className="min-h-[120px]"
             />
           </div>
+
+          {/* Motivation */}
           <div className="space-y-2">
-            <Label htmlFor="motivation">Motivation *</Label>
+            <Label htmlFor="motivation">
+              {t('applyButton.motivation') || 'Motivation'} *
+            </Label>
             <Textarea
               id="motivation"
-              placeholder="Why are you interested in this scholarship?"
+              placeholder={t('applyButton.motivationPlaceholder') || 'Why are you interested in this scholarship?'}
               value={applicationData.motivation}
               onChange={(e) => setApplicationData({...applicationData, motivation: e.target.value})}
               className="min-h-[120px]"
             />
           </div>
+
+          {/* Additional Information */}
           <div className="space-y-2">
-            <Label htmlFor="additionalInfo">Additional Information</Label>
+            <Label htmlFor="additionalInfo">
+              {t('applyButton.additionalInfo') || 'Additional Information'}
+            </Label>
             <Textarea
               id="additionalInfo"
-              placeholder="Any additional information you'd like to share..."
+              placeholder={t('applyButton.additionalInfoPlaceholder') || 'Any additional information you\'d like to share...'}
               value={applicationData.additionalInfo}
               onChange={(e) => setApplicationData({...applicationData, additionalInfo: e.target.value})}
             />
           </div>
+
+          {/* Optional URLs */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="portfolioUrl">Portfolio URL</Label>
+              <Label htmlFor="portfolioUrl">
+                {t('applyButton.portfolioUrl') || 'Portfolio URL'} ({t('applyButton.optional') || 'Optional'})
+              </Label>
               <Input
                 id="portfolioUrl"
                 type="url"
@@ -204,7 +284,9 @@ export function ApplyButton({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="linkedinUrl">LinkedIn URL</Label>
+              <Label htmlFor="linkedinUrl">
+                {t('applyButton.linkedinUrl') || 'LinkedIn URL'} ({t('applyButton.optional') || 'Optional'})
+              </Label>
               <Input
                 id="linkedinUrl"
                 type="url"
@@ -214,8 +296,12 @@ export function ApplyButton({
               />
             </div>
           </div>
+
+          {/* GitHub URL */}
           <div className="space-y-2">
-            <Label htmlFor="githubUrl">GitHub URL</Label>
+            <Label htmlFor="githubUrl">
+              {t('applyButton.githubUrl') || 'GitHub URL'} ({t('applyButton.optional') || 'Optional'})
+            </Label>
             <Input
               id="githubUrl"
               type="url"
@@ -225,19 +311,21 @@ export function ApplyButton({
             />
           </div>
         </div>
+
+        {/* Actions */}
         <div className="flex justify-end space-x-2">
           <Button 
             variant="outline" 
             onClick={() => setIsDialogOpen(false)}
             disabled={applicationLoading}
           >
-            Cancel
+            {t('applyButton.cancel') || 'Cancel'}
           </Button>
           <Button 
             onClick={handleApply}
-            disabled={applicationLoading || !applicationData.coverLetter || !applicationData.motivation}
+            disabled={applicationLoading || !applicationData.coverLetter || !applicationData.motivation || !cvFile}
           >
-            {applicationLoading ? "Submitting..." : "Submit Application"}
+            {applicationLoading ? (t('applyButton.submitting') || "Submitting...") : (t('applyButton.submit') || "Submit Application")}
           </Button>
         </div>
       </DialogContent>

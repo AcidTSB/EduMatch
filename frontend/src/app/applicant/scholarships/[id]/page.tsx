@@ -32,7 +32,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ApplyButton } from '@/components/ApplyButton';
 import { useApplications, useSavedScholarships } from '@/hooks/api';
-import { mockScholarships } from '@/lib/mock-data';
+import { mockScholarships } from '@/lib/mock-api';
 import { Scholarship, ScholarshipType, ScholarshipStatus } from '@/types';
 import { formatDate, formatCurrency, cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';

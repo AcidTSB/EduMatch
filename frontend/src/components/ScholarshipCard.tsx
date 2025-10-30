@@ -7,8 +7,10 @@ import { Scholarship } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ApplyButton } from '@/components/ApplyButton';
 import { formatDate, getDaysUntilDeadline, truncateText, getMatchScoreColor } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useApplications } from '@/hooks/api';
 
 interface ScholarshipCardProps {
   scholarship: Scholarship;
@@ -18,6 +20,25 @@ interface ScholarshipCardProps {
 
 export function ScholarshipCard({ scholarship, showMatchScore = false, className }: ScholarshipCardProps) {
   const { t } = useLanguage();
+  const { checkApplicationStatus } = useApplications();
+  const [hasApplied, setHasApplied] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  
+  React.useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const status = await checkApplicationStatus(scholarship.id);
+        setHasApplied(!!status);
+      } catch (error) {
+        console.error('Error checking application status:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkStatus();
+  }, [scholarship.id, checkApplicationStatus]);
+  
   const daysUntilDeadline = getDaysUntilDeadline(scholarship.deadline || scholarship.applicationDeadline);
   const isDeadlineSoon = daysUntilDeadline <= 7 && daysUntilDeadline >= 0;
   const isExpired = daysUntilDeadline < 0;
@@ -131,17 +152,13 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
           </Link>
         </Button>
         
-        {isExpired ? (
-          <Button disabled className="flex-1">
-            {t('scholarshipCard.closed')}
-          </Button>
-        ) : (
-          <Button asChild className="flex-1">
-            <Link href={`/applicant/scholarships/${scholarship.id}?apply=true`}>
-              {t('scholarshipCard.applyNow')}
-            </Link>
-          </Button>
-        )}
+        <ApplyButton 
+          scholarship={scholarship}
+          hasApplied={hasApplied}
+          disabled={loading || isExpired}
+          className="flex-1"
+          showDialog={true}
+        />
       </CardFooter>
     </Card>
   );
