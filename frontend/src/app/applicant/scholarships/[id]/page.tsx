@@ -122,7 +122,7 @@ export default function ScholarshipDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="max-w-full mx-auto px-4 py-8">
           <div className="animate-pulse">
             <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
             <div className="bg-white rounded-lg shadow-sm p-6">
@@ -143,7 +143,7 @@ export default function ScholarshipDetailPage() {
   if (!scholarship) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="max-w-full mx-auto px-4 py-8">
           <Button 
             variant="ghost" 
             onClick={() => router.back()}
@@ -172,7 +172,7 @@ export default function ScholarshipDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-full mx-auto px-4 py-8">
         {/* Back Button */}
         <Button 
           variant="ghost" 

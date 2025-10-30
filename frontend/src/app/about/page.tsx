@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { 
   Users, 
@@ -233,11 +234,16 @@ export default function AboutPage() {
                   'card-gradient-blue'} card-hover
               `}>
                 <CardContent className="p-6 text-center">
-                  <img
-                    src={member.image}
-                    alt={member.name}
-                    className="w-20 h-20 rounded-full mx-auto mb-4 bg-gray-200 ring-4 ring-white shadow-lg"
-                  />
+                  <div className="w-20 h-20 rounded-full mx-auto mb-4 bg-gray-200 ring-4 ring-white shadow-lg relative overflow-hidden">
+                    <Image
+                      src={member.image}
+                      alt={member.name}
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                      loading="lazy"
+                    />
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">
                     {member.name}
                   </h3>

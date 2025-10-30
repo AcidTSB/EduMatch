@@ -11,45 +11,60 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/auth/login/page": [
+    "/about/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/auth/login/page.js"
-    ],
-    "/applicant/dashboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/applicant/dashboard/page.js"
-    ],
-    "/applicant/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/applicant/layout.js"
-    ],
-    "/applicant/applications/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/applicant/applications/page.js"
+      "static/chunks/app/about/page.js"
     ],
     "/applicant/scholarships/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/applicant/scholarships/page.js"
     ],
-    "/messages/page": [
+    "/applicant/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/messages/page.js"
+      "static/chunks/app/applicant/layout.js"
     ],
-    "/applicant/profile/page": [
+    "/pricing/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/applicant/profile/page.js"
+      "static/chunks/app/pricing/page.js"
+    ],
+    "/contact/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/contact/page.js"
     ],
     "/applicant/scholarships/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/applicant/scholarships/[id]/page.js"
+    ],
+    "/auth/login/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/auth/login/page.js"
+    ],
+    "/auth/forgot-password/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/auth/forgot-password/page.js"
+    ],
+    "/applicant/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/applicant/dashboard/page.js"
+    ],
+    "/applicant/applications/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/applicant/applications/page.js"
+    ],
+    "/messages/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/messages/page.js"
     ],
     "/provider/dashboard/page": [
       "static/chunks/webpack.js",
@@ -61,20 +76,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/provider/layout.js"
     ],
+    "/provider/scholarships/[id]/applications/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/provider/scholarships/[id]/applications/page.js"
+    ],
     "/provider/scholarships/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/provider/scholarships/page.js"
-    ],
-    "/provider/applications/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/provider/applications/page.js"
-    ],
-    "/provider/analytics/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/provider/analytics/page.js"
     ],
     "/admin/page": [
       "static/chunks/webpack.js",
@@ -86,30 +96,25 @@
       "static/chunks/main-app.js",
       "static/chunks/app/admin/layout.js"
     ],
-    "/admin/scholarships/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/scholarships/page.js"
-    ],
-    "/admin/users/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/users/page.js"
-    ],
     "/admin/applications/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/admin/applications/page.js"
     ],
-    "/admin/analytics/page": [
+    "/admin/scholarships/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/analytics/page.js"
+      "static/chunks/app/admin/scholarships/page.js"
     ],
-    "/admin/settings/page": [
+    "/provider/analytics/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/settings/page.js"
+      "static/chunks/app/provider/analytics/page.js"
+    ],
+    "/provider/applications/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/provider/applications/page.js"
     ]
   }
 }

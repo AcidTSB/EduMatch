@@ -22,19 +22,6 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // ===== REDIRECT AUTHENTICATED USERS FROM HOME PAGE =====
-  // When authenticated users visit home page, redirect to their dashboard
-  if (pathname === '/' && isAuthenticated && userRole) {
-    switch (userRole) {
-      case 'admin':
-        return NextResponse.redirect(new URL('/admin', request.url));
-      case 'provider':
-        return NextResponse.redirect(new URL('/provider/dashboard', request.url));
-      case 'applicant':
-        return NextResponse.redirect(new URL('/applicant/dashboard', request.url));
-    }
-  }
-
   // Allow public access to scholarships list and details for browsing
   const publicScholarshipRoutes = [
     '/applicant/scholarships',

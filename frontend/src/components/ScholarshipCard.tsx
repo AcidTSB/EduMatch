@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Calendar, MapPin, Clock, GraduationCap, DollarSign } from 'lucide-react';
 import { Scholarship } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import { ApplyButton } from '@/components/ApplyButton';
 import { formatDate, getDaysUntilDeadline, truncateText, getMatchScoreColor } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useApplications } from '@/hooks/api';
+import { scholarshipCardVariants } from '@/lib/animations';
 
 interface ScholarshipCardProps {
   scholarship: Scholarship;
@@ -56,9 +58,16 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
   const deadlineStatus = getDeadlineStatus();
 
   return (
-    <Card className={`flex flex-col h-full hover:shadow-elevated transition-shadow duration-200 ${className}`}>
-      {/* Header */}
-      <CardHeader className="pb-3">
+    <motion.div
+      variants={scholarshipCardVariants}
+      initial="initial"
+      animate="animate"
+      whileHover="hover"
+      whileTap={{ scale: 0.98 }}
+    >
+      <Card className={`flex flex-col h-full ${className}`}>
+        {/* Header */}
+        <CardHeader className="pb-3">
         <div className="flex justify-between items-start gap-3">
           <CardTitle className="text-lg font-semibold line-clamp-2 text-balance">
             {scholarship.title}
@@ -151,8 +160,7 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
             {t('scholarshipCard.viewDetails')}
           </Link>
         </Button>
-        
-        <ApplyButton 
+        <ApplyButton
           scholarship={scholarship}
           hasApplied={hasApplied}
           disabled={loading || isExpired}
@@ -161,5 +169,6 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
         />
       </CardFooter>
     </Card>
+    </motion.div>
   );
 }

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -17,20 +18,21 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const { login, error: authError } = useAuth();
+  const { t } = useLanguage();
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
     if (!email.trim()) {
-      newErrors.email = 'Email is required';
+      newErrors.email = t('login.emailRequired');
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = t('login.emailInvalid');
     }
 
     if (!password.trim()) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('login.passwordRequired');
     } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = t('login.passwordLength');
     }
 
     setErrors(newErrors);
@@ -50,7 +52,7 @@ export default function LoginPage() {
       // Redirect is handled automatically in auth.ts based on role
     } catch (error) {
       console.error('Login failed:', error);
-      setErrors({ submit: authError || 'Invalid email or password. Please try again.' });
+      setErrors({ submit: authError || t('login.invalidCredentials') });
     } finally {
       setIsLoading(false);
     }
@@ -72,17 +74,17 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-blue-50 via-white to-brand-cyan-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-4">
-            <div className="w-12 h-12 bg-brand-blue-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">E</span>
+          <CardHeader className="space-y-1">
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-brand-blue-500 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-xl">E</span>
+              </div>
             </div>
-          </div>
-          <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
-          <p className="text-muted-foreground text-center">
-            Sign in to your EduMatch account
-          </p>
-        </CardHeader>
+            <CardTitle className="text-2xl text-center">{t('login.welcomeBack')}</CardTitle>
+            <p className="text-muted-foreground text-center">
+              {t('login.subtitle')}
+            </p>
+          </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {errors.submit && (
@@ -96,7 +98,7 @@ export default function LoginPage() {
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder={t('login.emailPlaceholder')}
                   value={email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="pl-10"
@@ -110,7 +112,7 @@ export default function LoginPage() {
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
+                  placeholder={t('login.passwordPlaceholder')}
                   value={password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   className="pl-10 pr-10"
@@ -143,14 +145,14 @@ export default function LoginPage() {
                   htmlFor="remember-me"
                   className="text-sm text-muted-foreground cursor-pointer"
                 >
-                  Remember me
+                  {t('login.rememberMe')}
                 </label>
               </div>
               <Link
                 href="/auth/forgot-password"
                 className="text-sm text-brand-blue-500 hover:underline"
               >
-                Forgot password?
+                {t('login.forgotPassword')}
               </Link>
             </div>
 
@@ -160,17 +162,17 @@ export default function LoginPage() {
               loading={isLoading}
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? t('login.signingIn') : t('login.signIn')}
               {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
             </Button>
 
             <div className="text-center text-sm text-muted-foreground">
-              Don't have an account?{' '}
+              {t('login.noAccount')}{' '}
               <Link
                 href="/auth/register"
                 className="text-brand-blue-500 hover:underline font-medium"
               >
-                Sign up
+                {t('login.signUp')}
               </Link>
             </div>
           </form>
@@ -178,21 +180,21 @@ export default function LoginPage() {
           {/* Demo accounts */}
           <div className="mt-6 pt-6 border-t">
             <p className="text-xs text-muted-foreground text-center mb-3">
-              Demo accounts (for testing):
+              {t('login.demoAccounts')}
             </p>
             <div className="space-y-2 text-xs">
               <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                <p className="font-medium text-blue-900">👨‍💼 Admin Account</p>
+                <p className="font-medium text-blue-900">{t('login.adminAccount')}</p>
                 <p className="text-blue-700">Email: admin@edumatch.com</p>
                 <p className="text-blue-700">Password: any password</p>
               </div>
               <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                <p className="font-medium text-green-900">🎓 Student Account</p>
+                <p className="font-medium text-green-900">{t('login.studentAccount')}</p>
                 <p className="text-green-700">Email: john.doe@student.edu</p>
                 <p className="text-green-700">Password: any password</p>
               </div>
               <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                <p className="font-medium text-purple-900">🏛️ Provider Account</p>
+                <p className="font-medium text-purple-900">{t('login.providerAccount')}</p>
                 <p className="text-purple-700">Email: mit@scholarships.edu</p>
                 <p className="text-purple-700">Password: any password</p>
               </div>

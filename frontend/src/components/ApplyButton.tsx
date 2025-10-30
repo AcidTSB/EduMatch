@@ -192,7 +192,7 @@ export function ApplyButton({
         <div className="space-y-4 py-4">
           {/* CV Upload */}
           <div className="space-y-2">
-            <Label htmlFor="cvFile">
+            <Label>
               {t('applyButton.cvFile') || 'CV/Resume'} *
             </Label>
             <div className="flex items-center gap-2">
@@ -203,28 +203,31 @@ export function ApplyButton({
                 onChange={handleFileChange}
                 className="hidden"
               />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => document.getElementById('cvFile')?.click()}
-                className="w-full"
+              <Label 
+                htmlFor="cvFile"
+                className="flex-1 cursor-pointer"
               >
-                <Upload className="h-4 w-4 mr-2" />
-                {cvFile ? cvFile.name : (t('applyButton.uploadCV') || 'Upload CV (PDF or Word)')}
-              </Button>
+                <div className="flex items-center gap-2 w-full h-10 px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md transition-colors">
+                  <Upload className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-sm font-normal truncate">
+                    {cvFile ? cvFile.name : (t('applyButton.uploadCV') || 'Tải lên CV')}
+                  </span>
+                </div>
+              </Label>
               {cvFile && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
                   onClick={handleRemoveFile}
+                  className="flex-shrink-0"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              {t('applyButton.maxFileSize') || 'Maximum file size: 5MB. Accepted formats: PDF, DOC, DOCX'}
+              {t('applyButton.maxFileSize') || 'Kích thước tối đa: 5MB (PDF, DOC, DOCX)'}
             </p>
           </div>
 

@@ -26,25 +26,8 @@ export default function HomePage() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
-  // Redirect authenticated users to their dashboard
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user?.role) {
-      switch (user.role) {
-        case 'admin':
-          router.replace('/admin');
-          break;
-        case 'provider':
-          router.replace('/provider/dashboard');
-          break;
-        case 'applicant':
-          router.replace('/applicant/dashboard');
-          break;
-      }
-    }
-  }, [isLoading, isAuthenticated, user, router]);
-
-  // Show loading while checking auth or redirecting
-  if (isLoading || (isAuthenticated && user?.role)) {
+  // Show loading while checking auth
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

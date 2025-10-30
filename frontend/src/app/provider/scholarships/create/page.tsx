@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { toast } from 'react-hot-toast';
 
 const STUDY_FIELDS = [
   'Computer Science',
@@ -59,6 +61,7 @@ const EDUCATION_LEVELS = [
 
 export default function CreateScholarshipPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -88,10 +91,10 @@ export default function CreateScholarshipPage() {
       // In a real app, you would make an API call here
       console.log('Creating scholarship:', formData);
       
-      alert('Scholarship created successfully!');
+      toast.success(t('createScholarship.success'));
       router.push('/provider/scholarships');
     } catch (error) {
-      alert('Failed to create scholarship');
+      toast.error(t('createScholarship.error'));
       console.error('Error creating scholarship:', error);
     } finally {
       setLoading(false);
@@ -167,11 +170,11 @@ export default function CreateScholarshipPage() {
             className="mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Scholarships
+            {t('createScholarship.backButton')}
           </Button>
-          <h1 className="text-3xl font-bold text-foreground">Create New Scholarship</h1>
+          <h1 className="text-3xl font-bold text-foreground">{t('createScholarship.title')}</h1>
           <p className="text-muted-foreground mt-2">
-            Fill in the details for your scholarship opportunity
+            {t('createScholarship.subtitle')}
           </p>
         </div>
       </div>
@@ -181,40 +184,40 @@ export default function CreateScholarshipPage() {
           {/* Basic Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
+              <CardTitle>{t('createScholarship.basicInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <Label htmlFor="title">Scholarship Title *</Label>
+                <Label htmlFor="title">{t('createScholarship.scholarshipTitle')} *</Label>
                 <Input
                   id="title"
                   required
                   value={formData.title}
                   onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Enter scholarship title"
+                  placeholder={t('createScholarship.titlePlaceholder')}
                   className="mt-2"
                 />
               </div>
 
               <div>
-                <Label htmlFor="description">Description *</Label>
+                <Label htmlFor="description">{t('createScholarship.description')} *</Label>
                 <Textarea
                   id="description"
                   required
                   rows={6}
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe the scholarship opportunity, goals, and what you're looking for in candidates..."
+                  placeholder={t('createScholarship.descriptionPlaceholder')}
                   className="mt-2"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Label htmlFor="country">Country *</Label>
+                  <Label htmlFor="country">{t('createScholarship.country')} *</Label>
                   <Select value={formData.country} onValueChange={(value) => setFormData(prev => ({ ...prev, country: value }))}>
                     <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Select country" />
+                      <SelectValue placeholder={t('createScholarship.selectCountry')} />
                     </SelectTrigger>
                     <SelectContent>
                       {COUNTRIES.map(country => (
@@ -227,10 +230,10 @@ export default function CreateScholarshipPage() {
                 </div>
 
                 <div>
-                  <Label htmlFor="level">Education Level *</Label>
+                  <Label htmlFor="level">{t('createScholarship.educationLevel')} *</Label>
                   <Select value={formData.level} onValueChange={(value) => setFormData(prev => ({ ...prev, level: value }))}>
                     <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Select education level" />
+                      <SelectValue placeholder={t('createScholarship.selectLevel')} />
                     </SelectTrigger>
                     <SelectContent>
                       {EDUCATION_LEVELS.map(level => (
@@ -244,7 +247,7 @@ export default function CreateScholarshipPage() {
               </div>
 
               <div>
-                <Label>Fields of Study</Label>
+                <Label>{t('createScholarship.fieldsOfStudy')}</Label>
                 <div className="mt-2 space-y-3">
                   <div className="flex flex-wrap gap-2">
                     {formData.field.map((field, index) => (
@@ -262,7 +265,7 @@ export default function CreateScholarshipPage() {
                   </div>
                   <Select onValueChange={addField}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Add field of study" />
+                      <SelectValue placeholder={t('createScholarship.addField')} />
                     </SelectTrigger>
                     <SelectContent>
                       {STUDY_FIELDS.filter(field => !formData.field.includes(field)).map(field => (
@@ -277,21 +280,21 @@ export default function CreateScholarshipPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Label htmlFor="studyMode">Study Mode *</Label>
+                  <Label htmlFor="studyMode">{t('createScholarship.studyMode')} *</Label>
                   <Select value={formData.studyMode} onValueChange={(value: 'Full-time' | 'Part-time' | 'Remote') => setFormData(prev => ({ ...prev, studyMode: value }))}>
                     <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Select study mode" />
+                      <SelectValue placeholder={t('createScholarship.selectStudyMode')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Full-time">Full-time</SelectItem>
-                      <SelectItem value="Part-time">Part-time</SelectItem>
-                      <SelectItem value="Remote">Remote</SelectItem>
+                      <SelectItem value="Full-time">{t('createScholarship.fullTime')}</SelectItem>
+                      <SelectItem value="Part-time">{t('createScholarship.partTime')}</SelectItem>
+                      <SelectItem value="Remote">{t('createScholarship.remote')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 <div>
-                  <Label htmlFor="deadline">Application Deadline *</Label>
+                  <Label htmlFor="deadline">{t('createScholarship.deadline')} *</Label>
                   <Input
                     id="deadline"
                     type="date"
@@ -304,12 +307,12 @@ export default function CreateScholarshipPage() {
               </div>
 
               <div>
-                <Label htmlFor="stipend">Stipend Amount</Label>
+                <Label htmlFor="stipend">{t('createScholarship.stipend')}</Label>
                 <Input
                   id="stipend"
                   value={formData.stipend}
                   onChange={(e) => setFormData(prev => ({ ...prev, stipend: e.target.value }))}
-                  placeholder="e.g., $50,000/year, €30,000/year, Full tuition coverage"
+                  placeholder={t('createScholarship.stipendPlaceholder')}
                   className="mt-2"
                 />
               </div>
@@ -319,7 +322,7 @@ export default function CreateScholarshipPage() {
           {/* Requirements */}
           <Card>
             <CardHeader>
-              <CardTitle>Eligibility Requirements</CardTitle>
+              <CardTitle>{t('createScholarship.requirements')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {formData.requirements.map((requirement, index) => (
@@ -328,7 +331,7 @@ export default function CreateScholarshipPage() {
                     required
                     value={requirement}
                     onChange={(e) => updateRequirement(index, e.target.value)}
-                    placeholder="Enter a requirement (e.g., Minimum GPA of 3.5)"
+                    placeholder={t('createScholarship.requirementPlaceholder')}
                     className="flex-1"
                   />
                   {formData.requirements.length > 1 && (
@@ -349,7 +352,7 @@ export default function CreateScholarshipPage() {
                 onClick={addRequirement}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Requirement
+                {t('createScholarship.addRequirement')}
               </Button>
             </CardContent>
           </Card>
@@ -357,7 +360,7 @@ export default function CreateScholarshipPage() {
           {/* Benefits */}
           <Card>
             <CardHeader>
-              <CardTitle>Scholarship Benefits</CardTitle>
+              <CardTitle>{t('createScholarship.benefits')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {formData.benefits.map((benefit, index) => (
@@ -366,7 +369,7 @@ export default function CreateScholarshipPage() {
                     required
                     value={benefit}
                     onChange={(e) => updateBenefit(index, e.target.value)}
-                    placeholder="Enter a benefit (e.g., Full tuition coverage, Monthly stipend)"
+                    placeholder={t('createScholarship.benefitPlaceholder')}
                     className="flex-1"
                   />
                   {formData.benefits.length > 1 && (
@@ -387,7 +390,7 @@ export default function CreateScholarshipPage() {
                 onClick={addBenefit}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Benefit
+                {t('createScholarship.addBenefit')}
               </Button>
             </CardContent>
           </Card>
@@ -395,42 +398,42 @@ export default function CreateScholarshipPage() {
           {/* Additional Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Additional Information</CardTitle>
+              <CardTitle>{t('createScholarship.additionalInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <Label htmlFor="applicationProcess">Application Process</Label>
+                <Label htmlFor="applicationProcess">{t('createScholarship.applicationProcess')}</Label>
                 <Textarea
                   id="applicationProcess"
                   rows={4}
                   value={formData.applicationProcess}
                   onChange={(e) => setFormData(prev => ({ ...prev, applicationProcess: e.target.value }))}
-                  placeholder="Describe the application process, required documents, and any additional steps..."
+                  placeholder={t('createScholarship.processPlaceholder')}
                   className="mt-2"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Label htmlFor="contactEmail">Contact Email</Label>
+                  <Label htmlFor="contactEmail">{t('createScholarship.contactEmail')}</Label>
                   <Input
                     id="contactEmail"
                     type="email"
                     value={formData.contactEmail}
                     onChange={(e) => setFormData(prev => ({ ...prev, contactEmail: e.target.value }))}
-                    placeholder="contact@organization.com"
+                    placeholder={t('createScholarship.emailPlaceholder')}
                     className="mt-2"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="website">Website</Label>
+                  <Label htmlFor="website">{t('createScholarship.website')}</Label>
                   <Input
                     id="website"
                     type="url"
                     value={formData.website}
                     onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
-                    placeholder="https://www.organization.com"
+                    placeholder={t('createScholarship.websitePlaceholder')}
                     className="mt-2"
                   />
                 </div>
@@ -441,7 +444,7 @@ export default function CreateScholarshipPage() {
           {/* Publishing Options */}
           <Card>
             <CardHeader>
-              <CardTitle>Publishing Options</CardTitle>
+              <CardTitle>{t('createScholarship.publishingOptions')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center space-x-2">
@@ -451,7 +454,7 @@ export default function CreateScholarshipPage() {
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPublished: checked as boolean }))}
                 />
                 <Label htmlFor="isPublished">
-                  Publish immediately (if unchecked, scholarship will be saved as draft)
+                  {t('createScholarship.publishImmediately')}
                 </Label>
               </div>
             </CardContent>
@@ -465,14 +468,14 @@ export default function CreateScholarshipPage() {
               onClick={() => router.push('/provider/scholarships')}
               className="flex-1"
             >
-              Cancel
+              {t('createScholarship.cancel')}
             </Button>
             <Button
               type="submit"
               disabled={loading}
               className="flex-1"
             >
-              {loading ? 'Creating...' : formData.isPublished ? 'Create & Publish' : 'Save as Draft'}
+              {loading ? t('createScholarship.creating') : formData.isPublished ? t('createScholarship.createAndPublish') : t('createScholarship.saveAsDraft')}
             </Button>
           </div>
         </form>

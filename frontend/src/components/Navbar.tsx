@@ -74,7 +74,7 @@ export function Navbar() {
   if (isLoading) {
     return (
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex-shrink-0 flex items-center">
@@ -157,8 +157,8 @@ export function Navbar() {
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center h-16">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
           {/* LEFT: Logo - Always at the far left */}
           <div className="flex-shrink-0 flex items-center">
             <Link href="/" className="flex items-center space-x-2">
@@ -169,8 +169,8 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* CENTER: Navigation Links - Always in the middle */}
-          <div className="hidden lg:flex flex-1 items-center justify-center">
+          {/* CENTER: Navigation Links - Centered in the middle */}
+          <div className="hidden lg:flex absolute left-1/2 transform -translate-x-1/2">
             <div className="flex items-center space-x-1">
               {/* For authenticated users - show fewer items, prioritize key actions */}
               {isAuthenticated ? (
@@ -179,7 +179,7 @@ export function Navbar() {
                   <Link
                     href="/"
                     className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                       isActive('/')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -194,7 +194,7 @@ export function Navbar() {
                       <Link
                         href="/applicant/dashboard"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/applicant/dashboard')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -205,7 +205,7 @@ export function Navbar() {
                       <Link
                         href="/applicant/scholarships"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/applicant/scholarships')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -216,7 +216,7 @@ export function Navbar() {
                       <Link
                         href="/applicant/applications"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/applicant/applications')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -232,7 +232,7 @@ export function Navbar() {
                       <Link
                         href="/provider/dashboard"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/provider/dashboard')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -243,7 +243,7 @@ export function Navbar() {
                       <Link
                         href="/provider/scholarships"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/provider/scholarships')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -254,7 +254,7 @@ export function Navbar() {
                       <Link
                         href="/provider/applications"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/provider/applications')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -265,7 +265,7 @@ export function Navbar() {
                       <Link
                         href="/provider/analytics"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/provider/analytics')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -281,7 +281,7 @@ export function Navbar() {
                       <Link
                         href="/admin"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           pathname === '/admin'
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -292,7 +292,7 @@ export function Navbar() {
                       <Link
                         href="/admin/users"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/admin/users')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -303,7 +303,7 @@ export function Navbar() {
                       <Link
                         href="/admin/scholarships"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/admin/scholarships')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -314,7 +314,7 @@ export function Navbar() {
                       <Link
                         href="/admin/applications"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/admin/applications')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -328,7 +328,7 @@ export function Navbar() {
                   <Link
                     href="/messages"
                     className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                       isActive('/messages')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -343,7 +343,7 @@ export function Navbar() {
                   <Link
                     href="/"
                     className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                       isActive('/')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -354,7 +354,7 @@ export function Navbar() {
                   <Link
                     href="/about"
                     className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                       isActive('/about')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -365,7 +365,7 @@ export function Navbar() {
                   <Link
                     href="/applicant/scholarships"
                     className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                       isActive('/applicant/scholarships')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -376,7 +376,7 @@ export function Navbar() {
                   <Link
                     href="/pricing"
                     className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                       isActive('/pricing')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -387,7 +387,7 @@ export function Navbar() {
                   <Link
                     href="/contact"
                     className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                       isActive('/contact')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"

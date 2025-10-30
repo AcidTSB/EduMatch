@@ -249,7 +249,7 @@ export default function ProviderAnalyticsPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-gradient-to-r from-brand-blue-50 to-brand-cyan-50 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">
             <div>
               <h1 className="text-4xl font-bold text-gray-900">{t('providerAnalytics.title')}</h1>
@@ -289,7 +289,7 @@ export default function ProviderAnalyticsPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Overview Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard

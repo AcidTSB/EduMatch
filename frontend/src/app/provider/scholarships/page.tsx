@@ -15,6 +15,7 @@ import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext'
 import { Scholarship, ScholarshipStatus } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { LazyList } from '@/components/LazyList';
 
 export default function ProviderScholarshipsPage() {
   const { t } = useLanguage();
@@ -212,7 +213,7 @@ export default function ProviderScholarshipsPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-gradient-to-r from-brand-blue-50 to-brand-cyan-50 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground">{t('providerScholarships.title')}</h1>
@@ -228,7 +229,7 @@ export default function ProviderScholarshipsPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
@@ -335,69 +336,74 @@ export default function ProviderScholarshipsPage() {
               </CardContent>
             </Card>
           ) : (
-            filteredScholarships.map((scholarship) => (
-              <Card key={scholarship.id}>
-                <CardContent className="p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-semibold">{scholarship.title}</h3>
-                        <Badge variant={getStatusColor((scholarship as any).status)}>
-                          {(scholarship as any).status}
-                        </Badge>
+            <LazyList
+              items={filteredScholarships}
+              renderItem={(scholarship) => (
+                <Card key={scholarship.id}>
+                  <CardContent className="p-6">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-lg font-semibold">{scholarship.title}</h3>
+                          <Badge variant={getStatusColor((scholarship as any).status)}>
+                            {(scholarship as any).status}
+                          </Badge>
+                        </div>
+                        
+                        <p className="text-muted-foreground mb-3 line-clamp-2">{scholarship.description}</p>
+                        
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center">
+                            <DollarSign className="h-4 w-4 mr-1" />
+                            {scholarship.stipend}
+                          </div>
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-1" />
+                            Deadline: {scholarship.deadline ? formatDate(scholarship.deadline) : 'TBA'}
+                          </div>
+                          <div className="flex items-center">
+                            <Users className="h-4 w-4 mr-1" />
+                            {(scholarship as any).applicationCount || 0} applications
+                          </div>
+                        </div>
                       </div>
-                      
-                      <p className="text-muted-foreground mb-3 line-clamp-2">{scholarship.description}</p>
-                      
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center">
-                          <DollarSign className="h-4 w-4 mr-1" />
-                          {scholarship.stipend}
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          Deadline: {scholarship.deadline ? formatDate(scholarship.deadline) : 'TBA'}
-                        </div>
-                        <div className="flex items-center">
-                          <Users className="h-4 w-4 mr-1" />
-                          {(scholarship as any).applicationCount || 0} applications
-                        </div>
+
+                      <div className="flex items-center space-x-3">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => router.push(`/provider/scholarships/${scholarship.id}/applications`)}
+                        >
+                          <Users className="h-4 w-4 mr-2" />
+                          Applications
+                        </Button>
+
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </Button>
+                          </DialogTrigger>
+                          <ScholarshipDetailModal scholarship={scholarship} />
+                        </Dialog>
+
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </Button>
+
+                        <Button variant="outline" size="sm" className="text-danger-600 hover:text-danger-700 hover:bg-danger-50">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-
-                    <div className="flex items-center space-x-3">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => router.push(`/provider/scholarships/${scholarship.id}/applications`)}
-                      >
-                        <Users className="h-4 w-4 mr-2" />
-                        Applications
-                      </Button>
-
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="outline" size="sm">
-                            <Eye className="h-4 w-4 mr-2" />
-                            View
-                          </Button>
-                        </DialogTrigger>
-                        <ScholarshipDetailModal scholarship={scholarship} />
-                      </Dialog>
-
-                      <Button variant="outline" size="sm">
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit
-                      </Button>
-
-                      <Button variant="outline" size="sm" className="text-danger-600 hover:text-danger-700 hover:bg-danger-50">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              )}
+              itemsPerPage={10}
+              className="space-y-6"
+            />
           )}
         </div>
       </div>

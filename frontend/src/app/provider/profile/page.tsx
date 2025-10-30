@@ -128,7 +128,7 @@ export default function ProviderProfilePage() {
         )}
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         {/* Profile Header */}
         <div className="relative -mt-16 pb-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-end space-y-4 sm:space-y-0 sm:space-x-6">
