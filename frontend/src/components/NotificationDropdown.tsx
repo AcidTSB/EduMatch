@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNotificationStore } from '@/stores/realtimeStore';
+import { useRealTime } from '@/providers/RealTimeProvider';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatDistanceToNow } from 'date-fns';
 import { parseNotification, getNotificationIcon } from '@/lib/notification-templates';
@@ -11,7 +11,12 @@ import { parseNotification, getNotificationIcon } from '@/lib/notification-templ
 export function NotificationDropdown() {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotificationStore();
+  const { 
+    notifications, 
+    notificationUnreadCount: unreadCount, 
+    markNotificationsAsRead: markAsRead, 
+    markAllNotificationsAsRead: markAllAsRead 
+  } = useRealTime();
 
   const handleMarkAsRead = (notificationId: string) => {
     markAsRead([notificationId]);

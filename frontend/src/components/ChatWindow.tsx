@@ -35,7 +35,7 @@ export function ChatWindow({
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { messages, typingUsers, addMessage } = useMessageStore();
-  const { socket, sendMessage, joinChatRoom, leaveChatRoom } = useRealTime();
+  const { socket, sendMessage, joinChatRoom, leaveChatRoom, markMessagesAsRead } = useRealTime();
   
   const roomMessages = messages[roomId] || [];
   const otherUserTyping = typingUsers[roomId]?.includes(otherUserId) || false;
@@ -43,6 +43,15 @@ export function ChatWindow({
   useEffect(() => {
     if (isOpen) {
       joinChatRoom(roomId);
+      
+      // Mark all messages in this room as read when opening chat
+      const unreadMessageIds = roomMessages
+        .filter((msg: any) => msg.senderId === otherUserId && msg.status !== 'read')
+        .map((msg: any) => msg.id);
+      
+      if (unreadMessageIds.length > 0) {
+        markMessagesAsRead(roomId, unreadMessageIds);
+      }
     } else {
       leaveChatRoom(roomId);
     }
@@ -52,7 +61,7 @@ export function ChatWindow({
         leaveChatRoom(roomId);
       }
     };
-  }, [isOpen, roomId, joinChatRoom, leaveChatRoom]);
+  }, [isOpen, roomId, joinChatRoom, leaveChatRoom, markMessagesAsRead, otherUserId, roomMessages.length]);
 
   useEffect(() => {
     scrollToBottom();
@@ -65,21 +74,10 @@ export function ChatWindow({
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
 
-    // Send via socket
-    sendMessage(otherUserId, newMessage.trim());
-
-    // Add to local state immediately for better UX
-    const message: Message = {
-      id: `temp-${Date.now()}`,
-      senderId: currentUserId,
-      receiverId: otherUserId,
-      content: newMessage.trim(),
-      createdAt: new Date().toISOString(),
-      status: 'sent',
-      type: 'text'
-    };
+    // Send via socket - sendMessage takes roomId, not otherUserId
+    // It will automatically add to local state for instant feedback
+    sendMessage(roomId, newMessage.trim());
     
-    addMessage(roomId, message);
     setNewMessage('');
     setIsTyping(false);
   };
@@ -87,7 +85,7 @@ export function ChatWindow({
   const handleTyping = (value: string) => {
     setNewMessage(value);
     
-    if (!isTyping && value.trim()) {
+    if (!isTyping && value.trim() && socket) {
       setIsTyping(true);
       socket.emit('typing', { userId: currentUserId, roomId, isTyping: true });
     }
@@ -97,11 +95,21 @@ export function ChatWindow({
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // Set new timeout to stop typing indicator
-    typingTimeoutRef.current = setTimeout(() => {
+    // Set new timeout to stop typing indicator after 3 seconds of inactivity
+    if (value.trim()) {
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        if (socket) {
+          socket.emit('typing', { userId: currentUserId, roomId, isTyping: false });
+        }
+      }, 3000); // 3 seconds instead of 1
+    } else {
+      // If input is empty, stop typing immediately
       setIsTyping(false);
-      socket.emit('typing', { userId: currentUserId, roomId, isTyping: false });
-    }, 1000);
+      if (socket) {
+        socket.emit('typing', { userId: currentUserId, roomId, isTyping: false });
+      }
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

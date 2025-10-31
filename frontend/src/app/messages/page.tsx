@@ -20,145 +20,156 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { MessageList, QuickContacts } from '@/components/messaging/MessageComponents';
 import { ChatWindow } from '@/components/ChatWindow';
-import { useMessageStore, useNotificationStore } from '@/stores/realtimeStore';
 import { useRealTime } from '@/providers/RealTimeProvider';
 import { useAuth } from '@/lib/auth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Link from 'next/link';
 
-// Mock data - replace with real API calls
-const mockMessages = [
-  {
-    id: '1',
-    senderName: 'MIT Research Institute',
-    senderRole: 'provider' as const,
-    content: 'Thank you for your application. We would like to schedule an interview to discuss your research interests further.',
-    timestamp: '2024-09-30T10:30:00Z',
-    isRead: false,
-    senderAvatar: ''
-  },
-  {
-    id: '2',
-    senderName: 'Stanford University',
-    senderRole: 'provider' as const,
-    content: 'Your application has been received and is currently under review. We will contact you within 2 weeks.',
-    timestamp: '2024-09-29T15:45:00Z',
-    isRead: true,
-    senderAvatar: ''
-  },
-  {
-    id: '3',
-    senderName: 'John Doe',
-    senderRole: 'applicant' as const,
-    content: 'Hi, I have a question about the research fellowship requirements. Could you please clarify the minimum GPA requirement?',
-    timestamp: '2024-09-29T09:15:00Z',
-    isRead: false,
-    senderAvatar: ''
-  }
-];
-
-const mockContacts = [
-  {
-    id: 'provider1',
-    name: 'MIT Research Institute',
-    role: 'provider',
-    avatar: '',
-    isOnline: true,
-    unreadCount: 2,
-    lastSeen: '2024-09-30T10:00:00Z'
-  },
-  {
-    id: 'provider2',
-    name: 'Stanford University', 
-    role: 'provider',
-    avatar: '',
-    isOnline: false,
-    unreadCount: 0,
-    lastSeen: '2024-09-29T15:30:00Z'
-  },
-  {
-    id: 'student1',
-    name: 'John Doe',
-    role: 'applicant',
-    avatar: '',
-    isOnline: true,
-    unreadCount: 1,
-    lastSeen: '2024-09-30T11:30:00Z'
-  }
-];
-
 export default function MessagesPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const { socket, sendMessage } = useRealTime();
-  const { messages, chatRooms } = useMessageStore();
-  const { notifications } = useNotificationStore();
+  const { 
+    messages, 
+    chatRooms, 
+    onlineUsers,
+    onlineUsersMap,
+    isConnected,
+    sendMessage,
+    markMessagesAsRead,
+    isRealTimeEnabled 
+  } = useRealTime();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContactId, setSelectedContactId] = useState<string>();
   const [isMessagePanelOpen, setIsMessagePanelOpen] = useState(false);
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
 
-  // Get real-time messages and contacts from stores
-  const realTimeMessages = React.useMemo(() => {
-    const allMessages: any[] = [];
+  // Get recent conversations (grouped by user, not individual messages)
+  const recentConversations = React.useMemo(() => {
+    if (!user) return [];
+    
+    const conversationsMap = new Map<string, any>();
+    
+    // Go through all messages and group by other user
     Object.entries(messages).forEach(([roomId, roomMessages]) => {
-      (roomMessages as any[]).forEach(msg => {
-        if (msg.receiverId === user?.id) {
-          allMessages.push({
-            id: msg.id,
-            senderName: msg.senderId, // In real app, you'd lookup user name
-            senderRole: 'provider', // In real app, you'd lookup user role
-            content: msg.content,
-            timestamp: msg.createdAt,
-            isRead: msg.status === 'read',
-            senderAvatar: '',
-            senderId: msg.senderId
-          });
-        }
+      if (!roomMessages || roomMessages.length === 0) return;
+      
+      // Get the other participant ID from room ID
+      const otherUserId = roomId.startsWith(user.id + '-') 
+        ? roomId.substring(user.id.length + 1)
+        : roomId.endsWith('-' + user.id)
+        ? roomId.substring(0, roomId.length - user.id.length - 1)
+        : null;
+      
+      if (!otherUserId) return;
+      
+      // Get the last message in this room
+      const sortedMessages = [...(roomMessages as any[])].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      const lastMessage = sortedMessages[0];
+      
+      // Count unread messages from other user
+      const unreadCount = (roomMessages as any[]).filter(
+        msg => msg.senderId === otherUserId && msg.status !== 'read'
+      ).length;
+      
+      // Get user info
+      const userInfo = onlineUsersMap.get(otherUserId);
+      
+      conversationsMap.set(otherUserId, {
+        id: lastMessage.id,
+        userId: otherUserId,
+        senderName: userInfo?.name || otherUserId,
+        senderRole: userInfo?.role || 'applicant',
+        content: lastMessage.content,
+        timestamp: lastMessage.createdAt,
+        isRead: lastMessage.status === 'read',
+        senderAvatar: '',
+        senderId: lastMessage.senderId,
+        isFromCurrentUser: lastMessage.senderId === user.id,
+        unreadCount,
+        isOnline: onlineUsers.includes(otherUserId)
       });
     });
-    return allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [messages, user?.id]);
-
-  // Get online users as contacts
-  const onlineContacts = React.useMemo(() => {
-    if (!socket?.onlineUsers || !user) return [];
     
-    return socket.onlineUsers
-      .filter((userId: string) => userId !== user.id)
-      .map((userId: string) => ({
-        id: userId,
-        name: userId, // In real app, you'd lookup user name
-        role: 'applicant', // In real app, you'd lookup user role
-        avatar: '',
-        isOnline: true,
-        unreadCount: 0, // Calculate from messages
-        lastSeen: new Date().toISOString()
-      }));
-  }, [socket?.onlineUsers, user?.id]);
+    // Convert to array and sort by timestamp
+    return Array.from(conversationsMap.values()).sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  }, [messages, user?.id, onlineUsersMap, onlineUsers]);
 
-  // Filter messages and contacts based on search query
-  const filteredMessages = realTimeMessages.filter(message =>
-    message.senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    message.content.toLowerCase().includes(searchQuery.toLowerCase())
+  // Convert chat rooms to contacts
+  const onlineContacts = React.useMemo(() => {
+    if (!user) return [];
+    
+    // Get contacts from chat rooms
+    const roomContacts = Object.entries(chatRooms)
+      .map(([roomId, room]: [string, any]) => {
+        const otherParticipantId = room.participants?.find((p: string) => p !== user.id);
+        if (!otherParticipantId) return null;
+        
+        const userInfo = onlineUsersMap.get(otherParticipantId);
+        
+        return {
+          id: otherParticipantId,
+          name: userInfo?.name || otherParticipantId,
+          role: userInfo?.role || 'applicant',
+          avatar: '',
+          isOnline: onlineUsers.includes(otherParticipantId),
+          unreadCount: room.unreadCount || 0,
+          lastSeen: room.updatedAt || new Date().toISOString()
+        };
+      })
+      .filter(Boolean) as any[];
+    
+    // Add online users who don't have chat rooms yet
+    const onlineContactsOnly = onlineUsers
+      .filter(userId => userId !== user.id)
+      .filter(userId => !roomContacts.find(c => c.id === userId))
+      .map(userId => {
+        const userInfo = onlineUsersMap.get(userId);
+        return {
+          id: userId,
+          name: userInfo?.name || userId,
+          role: userInfo?.role || 'applicant',
+          avatar: '',
+          isOnline: true,
+          unreadCount: 0,
+          lastSeen: new Date().toISOString()
+        };
+      });
+    
+    return [...roomContacts, ...onlineContactsOnly];
+  }, [chatRooms, onlineUsers, onlineUsersMap, user?.id]);
+
+  // Filter conversations and contacts based on search query
+  const filteredConversations = recentConversations.filter(conv =>
+    conv.senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredContacts = onlineContacts.filter(contact => {
-    if (!user) return false;
-    
-    const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Filter by user role (in real app, you'd have proper role checking)
-    return matchesSearch;
+    return contact.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const unreadCount = filteredMessages.filter(msg => !msg.isRead).length;
+  // Calculate unread count from messages
+  const unreadCount = React.useMemo(() => {
+    let count = 0;
+    Object.entries(messages).forEach(([roomId, roomMessages]) => {
+      (roomMessages as any[]).forEach((msg: any) => {
+        if (msg.receiverId === user?.id && msg.status !== 'read') {
+          count++;
+        }
+      });
+    });
+    return count;
+  }, [messages, user?.id]);
 
-  const handleMessageClick = (messageId: string) => {
-    // Find corresponding contact and open chat
-    const message = realTimeMessages.find(m => m.id === messageId);
-    if (message) {
-      setSelectedContactId(message.senderId);
+  const handleMessageClick = (conversationId: string) => {
+    // Find the conversation and open chat with that user
+    const conversation = recentConversations.find(c => c.id === conversationId);
+    if (conversation) {
+      setSelectedContactId(conversation.userId);
       setIsMessagePanelOpen(true);
     }
   };
@@ -202,7 +213,7 @@ export default function MessagesPage() {
             <div className="mt-4 sm:mt-0 flex items-center space-x-4">
               {/* Real-time Connection Status */}
               <div className="flex items-center gap-2">
-                {socket?.isConnected ? (
+                {isConnected ? (
                   <>
                     <Wifi className="h-4 w-4 text-green-600" />
                     <Badge variant="outline" className="text-green-700 border-green-300">
@@ -305,7 +316,7 @@ export default function MessagesPage() {
                 <MessageSquare className="h-6 w-6 text-brand-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{realTimeMessages.length}</p>
+                <p className="text-2xl font-bold">{recentConversations.length}</p>
                 <p className="text-xs text-muted-foreground">{t('messages.stats.total')}</p>
               </div>
             </CardContent>
@@ -338,7 +349,7 @@ export default function MessagesPage() {
           <Card>
             <CardContent className="flex items-center p-6">
               <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mr-4">
-                {socket?.isConnected ? (
+                {isConnected ? (
                   <Wifi className="h-6 w-6 text-purple-600" />
                 ) : (
                   <WifiOff className="h-6 w-6 text-purple-600" />
@@ -346,7 +357,7 @@ export default function MessagesPage() {
               </div>
               <div>
                 <p className="text-lg font-bold">
-                  {socket?.isConnected ? t('messages.connected') : t('messages.offline')}
+                  {isConnected ? t('messages.connected') : t('messages.offline')}
                 </p>
                 <p className="text-xs text-muted-foreground">{t('messages.stats.status')}</p>
               </div>
@@ -382,7 +393,7 @@ export default function MessagesPage() {
                   </CardHeader>
                   <CardContent>
                     <MessageList
-                      messages={filteredMessages}
+                      messages={filteredConversations}
                       onMessageClick={handleMessageClick}
                       emptyStateText={searchQuery ? t('messages.noMatches') : t('messages.noMessages')}
                     />
@@ -403,12 +414,12 @@ export default function MessagesPage() {
                           <p className="text-gray-500">
                             {searchQuery 
                               ? t('messages.noContacts')
-                              : socket?.isConnected 
+                              : isConnected 
                                 ? t('messages.noOnlineUsers')
                                 : t('messages.connectRequired')
                             }
                           </p>
-                          {!socket?.isConnected && (
+                          {!isConnected && (
                             <p className="text-xs text-red-500 mt-2">
                               {t('messages.connectionRequired')}
                             </p>

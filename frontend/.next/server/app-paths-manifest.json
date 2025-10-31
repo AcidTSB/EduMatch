@@ -1,7 +1,7 @@
 {
-  "/page": "app/page.js",
-  "/applicant/dashboard/page": "app/applicant/dashboard/page.js",
-  "/applicant/scholarships/page": "app/applicant/scholarships/page.js",
-  "/applicant/scholarships/[id]/page": "app/applicant/scholarships/[id]/page.js",
-  "/applicant/applications/page": "app/applicant/applications/page.js"
+  "/provider/dashboard/page": "app/provider/dashboard/page.js",
+  "/admin/scholarships/page": "app/admin/scholarships/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/applications/page": "app/admin/applications/page.js",
+  "/provider/scholarships/page": "app/provider/scholarships/page.js"
 }

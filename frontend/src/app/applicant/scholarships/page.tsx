@@ -26,7 +26,7 @@ import { formatDate, getDaysUntilDeadline } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import { ScholarshipCard } from '@/components/ScholarshipCard';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LazyList } from '@/components/LazyList';
+import { Pagination } from '@/components/Pagination';
 import { pageVariants, fadeInUpVariants } from '@/lib/animations';
 import { ScholarshipFilters, type ScholarshipFilterState } from '@/components/ScholarshipFilters';
 
@@ -37,6 +37,8 @@ export default function ScholarshipsPage() {
   const [levelFilter, setLevelFilter] = useState('all');
   const [fieldFilter, setFieldFilter] = useState('all');
   const [sortBy, setSortBy] = useState('deadline');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
   const [filters, setFilters] = useState<ScholarshipFilterState>({
     searchTerm: '',
     categories: [],
@@ -49,6 +51,11 @@ export default function ScholarshipsPage() {
   // Use API hooks
   const { scholarships, loading: scholarshipsLoading } = useScholarshipsData();
   const { isScholarshipSaved, toggle: toggleSaved } = useSavedScholarshipsData();
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, levelFilter, fieldFilter, sortBy, searchTerm]);
 
   // Filter and sort scholarships
   const filteredScholarships = React.useMemo(() => {
@@ -156,6 +163,18 @@ export default function ScholarshipsPage() {
 
     return filtered;
   }, [scholarships, filters, levelFilter, fieldFilter, sortBy]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredScholarships.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedScholarships = filteredScholarships.slice(startIndex, endIndex);
+
+  // Scroll to top when page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // Get unique fields and levels for filters
   const uniqueFields = React.useMemo(() => 
@@ -345,25 +364,40 @@ export default function ScholarshipsPage() {
             </CardContent>
           </Card>
         ) : (
-          <LazyList
-            items={filteredScholarships}
-            renderItem={(scholarship) => (
-              <ScholarshipCard
-                key={scholarship.id}
-                scholarship={scholarship}
-                showMatchScore={true}
-                className="w-full"
+          <>
+            <motion.div
+              className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 grid-equal-height"
+              variants={fadeInUpVariants}
+              initial="initial"
+              animate="animate"
+            >
+              {paginatedScholarships.map((scholarship) => (
+                <motion.div
+                  key={scholarship.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ScholarshipCard
+                    scholarship={scholarship}
+                    showMatchScore={true}
+                    className="w-full h-full"
+                  />
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredScholarships.length}
               />
             )}
-            itemsPerPage={12}
-            className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 grid-equal-height"
-            loadingElement={
-              <div className="flex flex-col items-center gap-2">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <p className="text-sm text-muted-foreground">{t('scholarshipList.loadingMore')}</p>
-              </div>
-            }
-          />
+          </>
         )}
       </div>
     </motion.div>

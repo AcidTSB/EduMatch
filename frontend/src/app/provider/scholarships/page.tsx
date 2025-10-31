@@ -15,7 +15,7 @@ import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext'
 import { Scholarship, ScholarshipStatus } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { LazyList } from '@/components/LazyList';
+import { Pagination } from '@/components/Pagination';
 
 export default function ProviderScholarshipsPage() {
   const { t } = useLanguage();
@@ -35,6 +35,8 @@ export default function ProviderScholarshipsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null);
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -72,6 +74,22 @@ export default function ProviderScholarshipsPage() {
     
     return matchesSearch && matchesStatus;
   });
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredScholarships.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedScholarships = filteredScholarships.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const stats = {
     total: scholarships.length,
@@ -336,74 +354,84 @@ export default function ProviderScholarshipsPage() {
               </CardContent>
             </Card>
           ) : (
-            <LazyList
-              items={filteredScholarships}
-              renderItem={(scholarship) => (
-                <Card key={scholarship.id}>
-                  <CardContent className="p-6">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-lg font-semibold">{scholarship.title}</h3>
-                          <Badge variant={getStatusColor((scholarship as any).status)}>
-                            {(scholarship as any).status}
-                          </Badge>
+            <>
+              <div className="space-y-6">
+                {paginatedScholarships.map((scholarship) => (
+                  <Card key={scholarship.id}>
+                    <CardContent className="p-6">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="text-lg font-semibold">{scholarship.title}</h3>
+                            <Badge variant={getStatusColor((scholarship as any).status)}>
+                              {(scholarship as any).status}
+                            </Badge>
+                          </div>
+                          
+                          <p className="text-muted-foreground mb-3 line-clamp-2">{scholarship.description}</p>
+                          
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                            <div className="flex items-center">
+                              <DollarSign className="h-4 w-4 mr-1" />
+                              {scholarship.stipend}
+                            </div>
+                            <div className="flex items-center">
+                              <Calendar className="h-4 w-4 mr-1" />
+                              Deadline: {scholarship.deadline ? formatDate(scholarship.deadline) : 'TBA'}
+                            </div>
+                            <div className="flex items-center">
+                              <Users className="h-4 w-4 mr-1" />
+                              {(scholarship as any).applicationCount || 0} applications
+                            </div>
+                          </div>
                         </div>
-                        
-                        <p className="text-muted-foreground mb-3 line-clamp-2">{scholarship.description}</p>
-                        
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center">
-                            <DollarSign className="h-4 w-4 mr-1" />
-                            {scholarship.stipend}
-                          </div>
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-1" />
-                            Deadline: {scholarship.deadline ? formatDate(scholarship.deadline) : 'TBA'}
-                          </div>
-                          <div className="flex items-center">
-                            <Users className="h-4 w-4 mr-1" />
-                            {(scholarship as any).applicationCount || 0} applications
-                          </div>
+
+                        <div className="flex items-center space-x-3">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => router.push(`/provider/scholarships/${scholarship.id}/applications`)}
+                          >
+                            <Users className="h-4 w-4 mr-2" />
+                            Applications
+                          </Button>
+
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Eye className="h-4 w-4 mr-2" />
+                                View
+                              </Button>
+                            </DialogTrigger>
+                            <ScholarshipDetailModal scholarship={scholarship} />
+                          </Dialog>
+
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+
+                          <Button variant="outline" size="sm" className="text-danger-600 hover:text-danger-700 hover:bg-danger-50">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-                      <div className="flex items-center space-x-3">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => router.push(`/provider/scholarships/${scholarship.id}/applications`)}
-                        >
-                          <Users className="h-4 w-4 mr-2" />
-                          Applications
-                        </Button>
-
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              <Eye className="h-4 w-4 mr-2" />
-                              View
-                            </Button>
-                          </DialogTrigger>
-                          <ScholarshipDetailModal scholarship={scholarship} />
-                        </Dialog>
-
-                        <Button variant="outline" size="sm">
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-
-                        <Button variant="outline" size="sm" className="text-danger-600 hover:text-danger-700 hover:bg-danger-50">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={filteredScholarships.length}
+                />
               )}
-              itemsPerPage={10}
-              className="space-y-6"
-            />
+            </>
           )}
         </div>
       </div>
