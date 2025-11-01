@@ -17,7 +17,7 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue queue() {
-        return new Queue(QUEUE_NAME);
+        return new Queue(QUEUE_NAME);   
     }
     @Bean
     public DirectExchange exchange() {

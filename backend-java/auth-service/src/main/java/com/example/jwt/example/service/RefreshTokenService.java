@@ -23,8 +23,16 @@ public class RefreshTokenService {
     private Long refreshTokenDurationMs;
 
     public RefreshToken createRefreshToken(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Xóa token cũ (nếu có)
+        refreshTokenRepository.findByUser(user)
+                .ifPresent(refreshTokenRepository::delete);
+
+        // Tạo token mới
         RefreshToken refreshToken = RefreshToken.builder()
-                .user(userRepository.findById(userId).get())
+                .user(user)
                 .token(UUID.randomUUID().toString())
                 .expiryDate(Instant.now().plusMillis(refreshTokenDurationMs))
                 .build();
