@@ -1,85 +1,120 @@
-version: '3.8'
+  services:
+    mysql:
+      image: mysql:8.0
+      container_name: mysql-jwt
+      environment:
+        MYSQL_ROOT_PASSWORD: 123456789
+        MYSQL_DATABASE: jwt
+      ports:
+        - "3306:3306"
+      volumes:
+        - mysql-data:/var/lib/mysql
+      healthcheck:
+        test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
 
-services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: edumatch_db
-      POSTGRES_HOST_AUTH_METHOD: trust
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - edumatch-network
+    app:
+      build:
+        context: backend-java/auth-service   # Thư mục chứa Dockerfile
+      container_name: spring-jwt
+      ports:
+        - "8080:8080"
+      environment:
+        SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/jwt?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+        SPRING_DATASOURCE_USERNAME: root
+        SPRING_DATASOURCE_PASSWORD: 123456789
+      depends_on:
+        mysql:
+          condition: service_healthy
+      restart: always
 
-  # Redis for caching
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    networks:
-      - edumatch-network
+  volumes:
+    mysql-data:
 
-  # Backend API
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    environment:
-      DATABASE_URL: postgresql://edumatch_user:edumatch_password@postgres:5432/edumatch_db
-      REDIS_URL: redis://redis:6379
-      JWT_SECRET: your-super-secret-jwt-key
-      AI_SERVICE_URL: http://ai-service:5000
-    ports:
-      - "3001:3001"
-    depends_on:
-      - postgres
-      - redis
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
-    networks:
-      - edumatch-network
-
-  # AI Service
-  ai-service:
-    build:
-      context: ./ai-service
-      dockerfile: Dockerfile
-    environment:
-      FLASK_ENV: production
-      DATABASE_URL: postgresql://edumatch_user:edumatch_password@postgres:5432/edumatch_db
-    ports:
-      - "5000:5000"
-    depends_on:
-      - postgres
-    networks:
-      - edumatch-network
-
-  # Frontend
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
-      NEXT_PUBLIC_SOCKET_URL: http://localhost:3001
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    networks:
-      - edumatch-network
-
-volumes:
-  postgres_data:
-
-networks:
-  edumatch-network:
-    driver: bridge
+  #version: '3.8'
+  #
+  #services:
+  #  # PostgreSQL Database
+  #  postgres:
+  #    image: postgres:15-alpine
+  #    environment:
+  #      POSTGRES_DB: edumatch_db
+  #      POSTGRES_HOST_AUTH_METHOD: trust
+  #    ports:
+  #      - "5432:5432"
+  #    volumes:
+  #      - postgres_data:/var/lib/postgresql/data
+  #    networks:
+  #      - edumatch-network
+  #
+  #  # Redis for caching
+  #  redis:
+  #    image: redis:7-alpine
+  #    ports:
+  #      - "6379:6379"
+  #    networks:
+  #      - edumatch-network
+  #
+  #  # Backend API
+  #  backend:
+  #    build:
+  #      context: ./backend
+  #      dockerfile: Dockerfile
+  #    environment:
+  #      DATABASE_URL: postgresql://edumatch_user:edumatch_password@postgres:5432/edumatch_db
+  #      REDIS_URL: redis://redis:6379
+  #      JWT_SECRET: your-super-secret-jwt-key
+  #      AI_SERVICE_URL: http://ai-service:5000
+  #    ports:
+  #      - "3001:3001"
+  #    depends_on:
+  #      - postgres
+  #      - redis
+  #    volumes:
+  #      - ./backend:/app
+  #      - /app/node_modules
+  #    networks:
+  #      - edumatch-network
+  #
+  #  # AI Service
+  #  ai-service:
+  #    build:
+  #      context: ./ai-service
+  #      dockerfile: Dockerfile
+  #    environment:
+  #      FLASK_ENV: production
+  #      DATABASE_URL: postgresql://edumatch_user:edumatch_password@postgres:5432/edumatch_db
+  #    ports:
+  #      - "5000:5000"
+  #    depends_on:
+  #      - postgres
+  #    networks:
+  #      - edumatch-network
+  #
+  #  # Frontend
+  #  frontend:
+  #    build:
+  #      context: ./frontend
+  #      dockerfile: Dockerfile
+  #    environment:
+  #      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+  #      NEXT_PUBLIC_SOCKET_URL: http://localhost:3001
+  #    ports:
+  #      - "3000:3000"
+  #    depends_on:
+  #      - backend
+  #    volumes:
+  #      - ./frontend:/app
+  #      - /app/node_modules
+  #      - /app/.next
+  #    networks:
+  #      - edumatch-network
+  #
+  #volumes:
+  #  postgres_data:
+  #
+  #networks:
+  #  edumatch-network:
+  #    driver: bridge
