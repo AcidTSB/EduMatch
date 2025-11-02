@@ -1,120 +1,165 @@
-  services:
-    mysql:
-      image: mysql:8.0
-      container_name: mysql-jwt
-      environment:
-        MYSQL_ROOT_PASSWORD: 123456789
-        MYSQL_DATABASE: jwt
-      ports:
-        - "3306:3306"
-      volumes:
-        - mysql-data:/var/lib/mysql
-      healthcheck:
-        test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-        interval: 5s
-        timeout: 5s
-        retries: 5
+# docker-compose.yml
+version: '3.8'
 
-    app:
-      build:
-        context: backend-java/auth-service   # Thư mục chứa Dockerfile
-      container_name: spring-jwt
-      ports:
-        - "8080:8080"
-      environment:
-        SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/jwt?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-        SPRING_DATASOURCE_USERNAME: root
-        SPRING_DATASOURCE_PASSWORD: 123456789
-      depends_on:
-        mysql:
-          condition: service_healthy
-      restart: always
+services:
+  
+  # === 1. API GATEWAY (Nginx) ===
+  api-gateway:
+    build: ./nginx-gateway
+    container_name: api-gateway
+    ports:
+      - "80:80"  # Mở cổng 80 cho người dùng truy cập
+    networks:
+      - edumatch-net
+    depends_on:
+      - frontend
+      - user-service
+      - scholarship-service
+      - chat-service
+      - matching-service
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
 
-  volumes:
-    mysql-data:
+  # === 2. FRONTEND (React) ===
+  frontend:
+    container_name: frontend
+    # "build: ./fE" nghĩa là "Tìm Dockerfile trong thư mục ./fE và build nó"
+    build: ./fE
+    ports:
+      - "3000:3000" # Mở cổng 3000 để debug (không bắt buộc)
+    networks:
+      - edumatch-net
+    # (Thêm biến môi trường nếu React cần)
 
-  #version: '3.8'
-  #
-  #services:
-  #  # PostgreSQL Database
-  #  postgres:
-  #    image: postgres:15-alpine
-  #    environment:
-  #      POSTGRES_DB: edumatch_db
-  #      POSTGRES_HOST_AUTH_METHOD: trust
-  #    ports:
-  #      - "5432:5432"
-  #    volumes:
-  #      - postgres_data:/var/lib/postgresql/data
-  #    networks:
-  #      - edumatch-network
-  #
-  #  # Redis for caching
-  #  redis:
-  #    image: redis:7-alpine
-  #    ports:
-  #      - "6379:6379"
-  #    networks:
-  #      - edumatch-network
-  #
-  #  # Backend API
-  #  backend:
-  #    build:
-  #      context: ./backend
-  #      dockerfile: Dockerfile
-  #    environment:
-  #      DATABASE_URL: postgresql://edumatch_user:edumatch_password@postgres:5432/edumatch_db
-  #      REDIS_URL: redis://redis:6379
-  #      JWT_SECRET: your-super-secret-jwt-key
-  #      AI_SERVICE_URL: http://ai-service:5000
-  #    ports:
-  #      - "3001:3001"
-  #    depends_on:
-  #      - postgres
-  #      - redis
-  #    volumes:
-  #      - ./backend:/app
-  #      - /app/node_modules
-  #    networks:
-  #      - edumatch-network
-  #
-  #  # AI Service
-  #  ai-service:
-  #    build:
-  #      context: ./ai-service
-  #      dockerfile: Dockerfile
-  #    environment:
-  #      FLASK_ENV: production
-  #      DATABASE_URL: postgresql://edumatch_user:edumatch_password@postgres:5432/edumatch_db
-  #    ports:
-  #      - "5000:5000"
-  #    depends_on:
-  #      - postgres
-  #    networks:
-  #      - edumatch-network
-  #
-  #  # Frontend
-  #  frontend:
-  #    build:
-  #      context: ./frontend
-  #      dockerfile: Dockerfile
-  #    environment:
-  #      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
-  #      NEXT_PUBLIC_SOCKET_URL: http://localhost:3001
-  #    ports:
-  #      - "3000:3000"
-  #    depends_on:
-  #      - backend
-  #    volumes:
-  #      - ./frontend:/app
-  #      - /app/node_modules
-  #      - /app/.next
-  #    networks:
-  #      - edumatch-network
-  #
-  #volumes:
-  #  postgres_data:
-  #
-  #networks:
-  #  edumatch-network:
-  #    driver: bridge
+  # === 3. BACKEND SERVICES ===
+
+  # --- User Service (Java) ---
+  user-service:
+    container_name: user-service
+    build: ./backend/user-service
+    ports:
+      - "8081:8080" # Map cổng 8080 của container ra 8081 của máy
+    environment:
+      - DB_HOST=java-db # Ví dụ, cho Java biết địa chỉ DB
+      - DB_PORT=5432
+    depends_on:
+      - java-db
+    networks:
+      - edumatch-net
+
+  # --- Scholarship Service (Java) ---
+  scholarship-service:
+    container_name: scholarship-service
+    build: ./backend/scholarship-service
+    ports:
+      - "8082:8080"
+    environment:
+      - DB_HOST=java-db
+      - DB_PORT=5432
+      - RABBITMQ_HOST=rabbitmq # Service này cần "bắn" event
+    depends_on:
+      - java-db
+      - rabbitmq
+    networks:
+      - edumatch-net
+
+  # --- Chat Service (Java) ---
+  chat-service:
+    container_name: chat-service
+    build: ./backend/chat-service
+    ports:
+      - "8083:8080"
+    networks:
+      - edumatch-net
+    # (Có thể cần DB hoặc Redis cho chat)
+
+  # --- Matching Service (Python) (Theo báo cáo của bạn) ---
+  matching-service:
+    container_name: matching-service
+    build: ./backend/matching-service
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - matching-db
+      - rabbitmq
+    networks:
+      - edumatch-net
+
+  matching-celery-worker:
+    container_name: matching-celery-worker
+    build: ./backend/matching-service
+    command: celery -A app.celery_app worker --loglevel=info
+    depends_on:
+      - matching-db
+      - rabbitmq
+    networks:
+      - edumatch-net
+
+  matching-consumer:
+    container_name: matching-consumer
+    build: ./backend/matching-service
+    command: python -m app.consumer
+    depends_on:
+      - rabbitmq
+      - matching-celery-worker
+    networks:
+      - edumatch-net
+
+  # === 4. INFRASTRUCTURE (Hạ tầng) ===
+
+  # --- Database cho các service Java ---
+  java-db:
+    image: postgres:14-alpine
+    container_name: java-db
+    environment:
+      - POSTGRES_USER=java_admin
+      - POSTGRES_PASSWORD=secure_password
+      - POSTGRES_DB=java_edumatch_db
+    ports:
+      - "5433:5432" # Map ra cổng 5433 (để không đụng matching-db)
+    volumes:
+      - java_db_data:/var/lib/postgresql/data
+    networks:
+      - edumatch-net
+
+  # --- Database cho Matching Service (Theo báo cáo của bạn) ---
+  matching-db:
+    image: postgres:14-alpine
+    container_name: matching-db
+    environment:
+      - POSTGRES_USER=matching_admin
+      - POSTGRES_PASSWORD=secure_password
+      - POSTGRES_DB=matching_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - matching_db_data:/var/lib/postgresql/data
+    networks:
+      - edumatch-net
+
+  # --- Message Broker (RabbitMQ) ---
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"  # Cổng giao tiếp
+      - "15672:15672" # Cổng UI (truy cập localhost:15672)
+    networks:
+      - edumatch-net
+
+# === 5. NETWORKS & VOLUMES ===
+
+# Mạng ảo để các container "nhìn thấy" nhau bằng tên
+networks:
+  edumatch-net:
+    driver: bridge
+
+# Nơi lưu trữ data (để không bị mất khi restart container)
+volumes:
+  java_db_data:
+  matching_db_data:
