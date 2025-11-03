@@ -1,12 +1,15 @@
 package com.edumatch.scholarship.dto;
 
 import com.edumatch.scholarship.model.Opportunity;
+import com.edumatch.scholarship.model.Skill;
+import com.edumatch.scholarship.model.Tag;
 import lombok.Builder;
 import lombok.Data;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.stream.Collectors;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Data
 @Builder
@@ -24,6 +27,7 @@ public class OpportunityDto {
     private String position;
     private Integer viewsCnt;
 
+    // Hàm helper để chuyển từ Entity (Database) -> DTO (API)
     public static OpportunityDto fromEntity(Opportunity opp) {
         return OpportunityDto.builder()
                 .id(opp.getId())
@@ -33,8 +37,14 @@ public class OpportunityDto {
                 .creatorUserId(opp.getCreatorUserId())
                 .applicationDeadline(opp.getApplicationDeadline())
                 .minGpa(opp.getMinGpa())
-                .tags(opp.getTags().stream().map(tag -> tag.getName()).collect(Collectors.toList()))
-                .requiredSkills(opp.getRequiredSkills().stream().map(skill -> skill.getName()).collect(Collectors.toList()))
+                // Chuyển Set<Tag> (Object) thành List<String> (Tên)
+                .tags(opp.getTags().stream()
+                        .map(Tag::getName)
+                        .collect(Collectors.toList()))
+                // Chuyển Set<Skill> (Object) thành List<String> (Tên)
+                .requiredSkills(opp.getRequiredSkills().stream()
+                        .map(Skill::getName)
+                        .collect(Collectors.toList()))
                 .minExperienceLevel(opp.getMinExperienceLevel())
                 .position(opp.getPosition())
                 .viewsCnt(opp.getViewsCnt())

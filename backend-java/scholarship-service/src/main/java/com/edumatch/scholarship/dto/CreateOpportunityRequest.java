@@ -24,11 +24,12 @@ public class CreateOpportunityRequest {
 
     private BigDecimal minGpa;
 
-    private List<String> tags; // Người dùng sẽ gửi lên một danh sách tên các tag
+    // Provider sẽ gửi lên 1 danh sách tên các Tag (String)
+    private List<String> tags;
 
-    private List<String> requiredSkills; // Tương tự với skills
+    // Tương tự với Skills
+    private List<String> requiredSkills;
 
     private String minExperienceLevel;
-
     private String position;
 }

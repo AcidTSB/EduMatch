@@ -2,11 +2,11 @@ package com.edumatch.scholarship.dto.client;
 
 import lombok.Data;
 
-// DTO này mô tả dữ liệu mà mong đợi nhận được từ User-Service
+// DTO đơn giản để hứng dữ liệu trả về từ Auth-Service
 @Data
 public class UserDetailDto {
     private Long id;
-    private String email;
-    private String fullName;
+    private String username;
+    //cần 2 trường này từ Auth-Service
     private Long organizationId;
 }

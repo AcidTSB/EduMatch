@@ -16,19 +16,32 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/opportunities")
+@RequestMapping("/api/opportunities") // Đường dẫn gốc cho các API Opportunity
 @RequiredArgsConstructor
 public class OpportunityController {
 
     private final ScholarshipService scholarshipService;
 
+    /**
+     * API để Provider (Employer) tạo một cơ hội/học bổng mới.
+     * Endpoint: POST /api/opportunities
+     */
     @PostMapping
+    // Yêu cầu user phải có vai trò 'ROLE_EMPLOYER' (giống Auth-Service)
     @PreAuthorize("hasRole('ROLE_EMPLOYER')")
     public ResponseEntity<OpportunityDto> createOpportunity(
+            // @Valid: Kích hoạt validation cho DTO (check @NotBlank, @Future...)
             @Valid @RequestBody CreateOpportunityRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
 
-        OpportunityDto createdOpportunity = scholarshipService.createOpportunity(request, userDetails.getUsername());
+            // @AuthenticationPrincipal: Lấy thông tin user (đã được giải mã từ JWT)
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        // 1. Gọi service layer để xử lý logic
+        OpportunityDto createdOpportunity = scholarshipService.createOpportunity(request, userDetails);
+
+        // 2. Trả về DTO với status 201 CREATED
         return new ResponseEntity<>(createdOpportunity, HttpStatus.CREATED);
     }
+
+    // Sẽ thêm các API khác như GET, PUT, DELETE vào sau
 }

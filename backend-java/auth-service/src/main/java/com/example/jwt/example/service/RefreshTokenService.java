@@ -4,6 +4,7 @@ import com.example.jwt.example.model.RefreshToken;
 import com.example.jwt.example.model.User;
 import com.example.jwt.example.repository.RefreshTokenRepository;
 import com.example.jwt.example.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ public class RefreshTokenService {
     @Value("${app.jwtRefreshExpirationMs}")
     private Long refreshTokenDurationMs;
 
+    @Transactional
     public RefreshToken createRefreshToken(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));

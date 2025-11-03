@@ -1,9 +1,11 @@
 package com.edumatch.scholarship.config;
 
+import com.edumatch.scholarship.security.JwtAuthenticationEntryPoint;
 import com.edumatch.scholarship.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -14,23 +16,40 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true)
-
+@EnableMethodSecurity(prePostEnabled = true) // Bật @PreAuthorize
+@RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final JwtAuthenticationEntryPoint unauthorizedHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                // Tắt CSRF (vì dùng API)
                 .csrf(AbstractHttpConfigurer::disable)
+
+                // Báo lỗi 401 khi user chưa xác thực
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+
+                // Không lưu session (vì dùng JWT)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth.anyRequest().authenticated());
+
+                // Định nghĩa các luật truy cập
+                .authorizeHttpRequests(auth -> auth
+                        // --- API Public (Không cần đăng nhập) ---
+                        // Cho phép xem (GET) danh sách và chi tiết học bổng
+                        .requestMatchers(HttpMethod.GET, "/api/scholarships").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/scholarships/**").permitAll()
+
+                        // --- API Protected (Phải đăng nhập) ---
+                        // Yêu cầu xác thực cho tất cả các API còn lại
+                        .anyRequest().authenticated()
+                );
+
+        // Thêm bộ lọc JWT vào trước bộ lọc mặc định
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 }

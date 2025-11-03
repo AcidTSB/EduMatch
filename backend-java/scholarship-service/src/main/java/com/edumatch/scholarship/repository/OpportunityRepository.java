@@ -9,5 +9,9 @@ import java.util.List;
 @Repository
 public interface OpportunityRepository extends JpaRepository<Opportunity, Long> {
 
+     // Lấy các cơ hội theo ID của người tạo (Provider)
+     List<Opportunity> findByCreatorUserId(Long creatorUserId);
+
+     // Lấy các cơ hội theo ID của tổ chức
      List<Opportunity> findByOrganizationId(Long organizationId);
 }
