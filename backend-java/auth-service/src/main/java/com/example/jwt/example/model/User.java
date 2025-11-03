@@ -41,6 +41,9 @@ public class User implements UserDetails {
     @Column(name = "last_name")
     private String lastName;
 
+    @Column(name = "organization_id")
+    private Long organizationId;
+
     private Boolean enabled = true;
 
     @ManyToMany(fetch = FetchType.EAGER)

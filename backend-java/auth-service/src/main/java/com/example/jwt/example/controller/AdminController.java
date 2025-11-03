@@ -66,6 +66,7 @@ public class AdminController {
                 .lastName(request.getLastName())
                 .enabled(true)
                 .roles(Collections.singleton(employerRole)) // dùng employerRole
+                .organizationId(request.getOrganizationId()) // Lưu organizationId
                 .build();
 
         userRepository.save(recruiter);

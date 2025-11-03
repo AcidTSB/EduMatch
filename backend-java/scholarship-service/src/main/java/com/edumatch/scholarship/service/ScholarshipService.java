@@ -20,6 +20,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+
 
 import java.util.HashSet;
 import java.util.Set;
@@ -51,20 +58,17 @@ public class ScholarshipService {
 
         // 1. GỌI AUTH-SERVICE (SYNC)
 
-        // --- TẠM THỜI VÔ HIỆU HÓA ĐỂ TEST ---
-        // log.info("Gọi Auth-Service để lấy thông tin cho user: {}", userDetails.getUsername());
-        // String username = userDetails.getUsername();
-        // UserDetailDto user = getUserDetailsFromAuthService(username);
+        // --- LẤY TOKEN TỪ SECURITY CONTEXT ---
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String token = (String) authentication.getCredentials();
+        // --- ------------------------------- ---
+
+        log.info("Gọi Auth-Service để lấy thông tin cho user: {}", userDetails.getUsername());
+        String username = userDetails.getUsername();
+
+        // --- TRUYỀN TOKEN VÀO HÀM HELPER ---
+        UserDetailDto user = getUserDetailsFromAuthService(username, token);
         // --- --------------------------------- ---
-
-        // --- DỮ LIỆU GIẢ MẠO (MOCK DATA) ĐỂ TEST ---
-        // Giả sử user đăng nhập là user ID=1 và thuộc tổ chức ID=1
-        log.warn("--- CHÚ Ý: ĐANG CHẠY VỚI DỮ LIỆU USER MOCK (GIẢ MẠO) ---");
-        UserDetailDto user = new UserDetailDto();
-        user.setId(1L); // ID của user (giả)
-        user.setOrganizationId(1L); // ID của tổ chức (giã)
-        // --- HẾT PHẦN GIẢ MẠO ---
-
 
         // 2. XỬ LÝ TAGS VÀ SKILLS
         log.info("Xử lý Tags và Skills...");
@@ -110,21 +114,36 @@ public class ScholarshipService {
     /**
      * Hàm helper gọi sang Auth-Service để lấy thông tin User
      */
-    private UserDetailDto getUserDetailsFromAuthService(String username) {
-        // QUAN TRỌNG:
-        // Endpoint này ('/api/internal/user/{username}') PHẢI TỒN TẠI
-        // bên Auth-Service và trả về UserDetailDto.
-        // Bạn sẽ cần phải thêm API này vào Auth-Service.
+    private UserDetailDto getUserDetailsFromAuthService(String username, String token) {
         String url = authServiceUrl + "/api/internal/user/" + username;
 
+        // --- TẠO HEADER VÀ GẮN TOKEN ---
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token); // Gắn token vào header
+        HttpEntity<Void> entity = new HttpEntity<>(headers); // Tạo entity chỉ chứa header
+        // --- --------------------------- ---
+
         try {
-            UserDetailDto user = restTemplate.getForObject(url, UserDetailDto.class);
+            // --- SỬ DỤNG .exchange() ĐỂ GỬI REQUEST VỚI HEADER ---
+            ResponseEntity<UserDetailDto> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    UserDetailDto.class
+            );
+            UserDetailDto user = response.getBody();
+            // --- ----------------------------------------------- ---
+
             if (user == null || user.getId() == null || user.getOrganizationId() == null) {
                 throw new ResourceNotFoundException("Không thể lấy thông tin user hoặc user không thuộc tổ chức nào.");
             }
             return user;
         } catch (HttpClientErrorException.NotFound ex) {
             throw new ResourceNotFoundException("Không tìm thấy User với username: " + username + " bên Auth-Service.");
+        } catch (HttpClientErrorException.Unauthorized ex) {
+            // (Catch lỗi 401 nếu token bị hết hạn giữa chừng)
+            log.error("Token bị từ chối bởi Auth-Service: {}", ex.getMessage());
+            throw new IllegalStateException("Token không hợp lệ khi gọi Auth-Service.");
         } catch (Exception ex) {
             log.error("Lỗi khi gọi Auth-Service: {}", ex.getMessage());
             throw new IllegalStateException("Không thể kết nối tới Auth-Service.");

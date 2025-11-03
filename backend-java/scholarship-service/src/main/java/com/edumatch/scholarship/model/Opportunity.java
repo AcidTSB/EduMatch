@@ -34,7 +34,6 @@ public class Opportunity {
     @Column(name = "creator_user_id", nullable = false)
     private Long creatorUserId; // BẮT BUỘC là Long
 
-    // Giả định Organization cũng được quản lý bởi Auth-Service
     // chỉ lưu ID
     @Column(name = "organization_id", nullable = false)
     private Long organizationId; // BẮT BUỘC là Long

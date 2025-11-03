@@ -25,4 +25,6 @@ public class SignUpRequest {
 
     @Size(max = 50)
     private String lastName;
+
+    private Long organizationId;
 }
