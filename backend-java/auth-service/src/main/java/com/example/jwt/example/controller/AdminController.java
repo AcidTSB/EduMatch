@@ -1,20 +1,32 @@
 package com.example.jwt.example.controller;
 
+import com.example.jwt.example.dto.request.RejectScholarshipRequest;
 import com.example.jwt.example.dto.request.SignUpRequest;
 import com.example.jwt.example.dto.response.ApiResponse;
+import com.example.jwt.example.dto.response.ScholarshipResponse;
 import com.example.jwt.example.dto.response.UserResponse;
+import com.example.jwt.example.model.AuditLog;
 import com.example.jwt.example.model.Role;
 import com.example.jwt.example.model.User;
 import com.example.jwt.example.repository.RoleRepository;
 import com.example.jwt.example.repository.UserRepository;
 import com.example.jwt.example.service.AdminUserService;
+import com.example.jwt.example.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.List;
 @RestController
@@ -27,6 +39,7 @@ public class AdminController {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final AdminUserService adminUserService;
+    private final AuditLogService auditLogService;
 
     @PostMapping("/create-employer")
     public ResponseEntity<?> createRecruiter(@RequestBody SignUpRequest request) {
@@ -170,5 +183,130 @@ public class AdminController {
                         .body(new ApiResponse(false, "User not found with id: " + id))
                 );
     }
+    // dữ liệu giả chưa có scholarships thật nếu có rồi kết nối với scholarships-service và ở đây chỉ gọi lại
+    private List<ScholarshipResponse> mockScholarships = List.of(
+            new ScholarshipResponse(1L, "Học bổng VinFuture", "VinGroup", "PENDING", "Học bổng toàn phần cho sinh viên xuất sắc"),
+            new ScholarshipResponse(2L, "Học bổng Chính phủ Nhật", "JICA", "APPROVED", "Toàn phần du học Nhật Bản"),
+            new ScholarshipResponse(3L, "Học bổng Techcombank", "Techcombank", "REJECTED", "Dành cho sinh viên ngành tài chính"),
+            new ScholarshipResponse(4L, "Học bổng ASEAN", "Singapore Gov", "APPROVED", "Học bổng ASEAN cho sinh viên Việt Nam")
+    );
+    // dữ liệu giả chưa có scholarships thật
+    @GetMapping("/scholarships")
+    public ResponseEntity<List<ScholarshipResponse>> getAllScholarships(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String provider
+    ) {
+        // Lọc danh sách học bổng theo tiêu chí
+        List<ScholarshipResponse> filtered = mockScholarships.stream()
+                .filter(s -> status == null || s.getStatus().equalsIgnoreCase(status))
+                .filter(s -> provider == null || s.getProvider().toLowerCase().contains(provider.toLowerCase()))
+                .filter(s -> keyword == null || s.getTitle().toLowerCase().contains(keyword.toLowerCase())
+                        || s.getDescription().toLowerCase().contains(keyword.toLowerCase()))
+                .toList();
+
+        return ResponseEntity.ok(filtered);
+    }
+    // dữ liệu giả chưa có scholarships thật
+    @GetMapping("/scholarships/{id}")
+    public ResponseEntity<ScholarshipResponse> getScholarshipById(@PathVariable Long id) {
+        return mockScholarships.stream()
+                .filter(s -> s.getId().equals(id))
+                .findFirst()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+    // dữ liệu giả chưa có scholarships thật
+    @PatchMapping("/scholarships/{id}/approve")
+    public ResponseEntity<?> approveScholarship(@PathVariable Long id) {
+        for (ScholarshipResponse s : mockScholarships) {
+            if (s.getId().equals(id)) {
+                if ("APPROVED".equalsIgnoreCase(s.getStatus())) {
+                    return ResponseEntity.badRequest()
+                            .body(new ApiResponse(false, "Scholarship already approved"));
+                }
+
+                s.setStatus("APPROVED");
+                return ResponseEntity.ok(
+                        new ApiResponse(true, "Scholarship approved successfully (ID = " + id + ")")
+                );
+            }
+        }
+
+        return ResponseEntity
+                .status(404)
+                .body(new ApiResponse(false, "Scholarship not found with id: " + id));
+    }
+    // dữ liệu giả chưa có scholarships thật
+    @PatchMapping("/scholarships/{id}/reject")
+    public ResponseEntity<?> rejectScholarship(
+            @PathVariable Long id,
+            @RequestBody RejectScholarshipRequest request
+    ) {
+        for (ScholarshipResponse s : mockScholarships) {
+            if (s.getId().equals(id)) {
+                if ("REJECTED".equalsIgnoreCase(s.getStatus())) {
+                    return ResponseEntity.badRequest()
+                            .body(new ApiResponse(false, "Scholarship already rejected"));
+                }
+
+                s.setStatus("REJECTED");
+                String reason = (request.getReason() != null && !request.getReason().isEmpty())
+                        ? request.getReason()
+                        : "No reason provided";
+
+                // Bạn có thể log ra hoặc lưu lý do này trong DB (nếu có)
+                System.out.println("Scholarship " + id + " rejected. Reason: " + reason);
+
+                return ResponseEntity.ok(
+                        new ApiResponse(true, "Scholarship rejected successfully with reason: " + reason)
+                );
+            }
+        }
+
+        return ResponseEntity
+                .status(404)
+                .body(new ApiResponse(false, "Scholarship not found with id: " + id));
+    }
+    @GetMapping("/audit/logs")
+    public ResponseEntity<Map<String, Object>> getAuditLogs(
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("timestamp").descending());
+        Page<AuditLog> logs = auditLogService.getAuditLogs(username, action, startDate, endDate, pageable);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("logs", logs.getContent());
+        response.put("currentPage", logs.getNumber());
+        response.put("totalItems", logs.getTotalElements());
+        response.put("totalPages", logs.getTotalPages());
+
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/audit/users/{id}")
+    public ResponseEntity<?> getLogsByUser(
+            @PathVariable("id") Long userId,
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Page<AuditLog> logs = auditLogService.getLogsByUser(userId, action, from, to, page, size);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("totalItems", logs.getTotalElements());
+        response.put("totalPages", logs.getTotalPages());
+        response.put("currentPage", logs.getNumber());
+        response.put("logs", logs.getContent());
+
+        return ResponseEntity.ok(response);
+    }
+
 }
 

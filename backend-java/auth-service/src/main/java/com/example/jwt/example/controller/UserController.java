@@ -15,12 +15,12 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('USER')")
 public class UserController {
 
     private final UserRepository userRepository;
 
     @GetMapping("/user/me")
-    @PreAuthorize("hasRole('USER')")
     public UserSummary getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
@@ -33,32 +33,5 @@ public class UserController {
                 .username(user.getUsername())
                 .name(user.getFirstName() + " " + user.getLastName())
                 .build();
-    }
-
-    @GetMapping("/users/{username}")
-    public ResponseEntity<?> getUserProfile(@PathVariable(value = "username") String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
-
-        UserProfile userProfile = UserProfile.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .email(user.getEmail())
-                .build();
-
-        return ResponseEntity.ok(userProfile);
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/users/{username}")
-    public ResponseEntity<?> deleteUser(@PathVariable(value = "username") String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
-
-        userRepository.delete(user);
-
-        return ResponseEntity.ok(new ApiResponse(true, "User deleted successfully"));
     }
 }

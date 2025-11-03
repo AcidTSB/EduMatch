@@ -11,6 +11,7 @@ import com.example.jwt.example.model.User;
 import com.example.jwt.example.repository.RoleRepository;
 import com.example.jwt.example.repository.UserRepository;
 import com.example.jwt.example.security.JwtTokenProvider;
+import com.example.jwt.example.service.AuditLogService;
 import com.example.jwt.example.service.RefreshTokenService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
     private final RefreshTokenService refreshTokenService;
+    private final AuditLogService auditLogService;
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -55,6 +57,14 @@ public class AuthController {
 
         String jwt = tokenProvider.generateToken(authentication);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+        auditLogService.logAction(
+                user.getId(),
+                user.getUsername(),
+                "LOGIN",
+                "User",
+                "Đăng nhập thành công vào hệ thống"
+        );
 
         return ResponseEntity.ok(
                 new JwtAuthenticationResponse(jwt, refreshToken.getToken())
@@ -93,7 +103,13 @@ public class AuthController {
         URI location = ServletUriComponentsBuilder
                 .fromCurrentContextPath().path("/api/users/{username}")
                 .buildAndExpand(result.getUsername()).toUri();
-
+        auditLogService.logAction(
+                user.getId(),
+                user.getUsername(),
+                "LOGIN",
+                "User",
+                "Đăng nhập thành công vào hệ thống"
+        );
         return ResponseEntity.created(location)
                 .body(new ApiResponse(true, "User registered successfully"));
     }
