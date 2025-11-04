@@ -1,14 +1,18 @@
 package com.example.jwt.example.controller;
 
+import com.example.jwt.example.dto.TokenRefreshRequest;
 import com.example.jwt.example.dto.response.ApiResponse;
 import com.example.jwt.example.dto.response.JwtAuthenticationResponse;
 import com.example.jwt.example.dto.request.LoginRequest;
 import com.example.jwt.example.dto.request.SignUpRequest;
+import com.example.jwt.example.model.RefreshToken;
 import com.example.jwt.example.model.Role;
 import com.example.jwt.example.model.User;
 import com.example.jwt.example.repository.RoleRepository;
 import com.example.jwt.example.repository.UserRepository;
 import com.example.jwt.example.security.JwtTokenProvider;
+import com.example.jwt.example.service.AuditLogService;
+import com.example.jwt.example.service.RefreshTokenService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +40,8 @@ public class AuthController {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final RefreshTokenService refreshTokenService;
+    private final AuditLogService auditLogService;
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -47,9 +53,22 @@ public class AuthController {
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = tokenProvider.generateToken(authentication);
+        User user = (User) authentication.getPrincipal();
 
-        return ResponseEntity.ok(new JwtAuthenticationResponse(jwt));
+        String jwt = tokenProvider.generateToken(authentication);
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+        auditLogService.logAction(
+                user.getId(),
+                user.getUsername(),
+                "LOGIN",
+                "User",
+                "Đăng nhập thành công vào hệ thống"
+        );
+
+        return ResponseEntity.ok(
+                new JwtAuthenticationResponse(jwt, refreshToken.getToken())
+        );
     }
 
     @PostMapping("/signup")
@@ -84,8 +103,27 @@ public class AuthController {
         URI location = ServletUriComponentsBuilder
                 .fromCurrentContextPath().path("/api/users/{username}")
                 .buildAndExpand(result.getUsername()).toUri();
-
+        auditLogService.logAction(
+                user.getId(),
+                user.getUsername(),
+                "LOGIN",
+                "User",
+                "Đăng nhập thành công vào hệ thống"
+        );
         return ResponseEntity.created(location)
                 .body(new ApiResponse(true, "User registered successfully"));
+    }
+    @PostMapping("/refresh")
+    public ResponseEntity<?> refreshToken(@RequestBody TokenRefreshRequest request) {
+        String requestRefreshToken = request.getRefreshToken();
+
+        return refreshTokenService.findByToken(requestRefreshToken)
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshToken::getUser)
+                .map(user -> {
+                    String newToken = tokenProvider.generateTokenFromUsername(user.getUsername());
+                    return ResponseEntity.ok(new JwtAuthenticationResponse(newToken, requestRefreshToken));
+                })
+                .orElseThrow(() -> new RuntimeException("Refresh token is invalid!"));
     }
 }

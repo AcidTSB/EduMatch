@@ -34,10 +34,13 @@ public class InitialDataLoader implements CommandLineRunner {
                     .orElseThrow(() -> new RuntimeException("Error: Admin Role not found."));
             Role userRole = roleRepository.findByName("ROLE_USER")
                     .orElseThrow(() -> new RuntimeException("Error: User Role not found."));
+            Role emloyerRole = roleRepository.findByName("ROLE_EMPLOYER")
+                    .orElseThrow(() -> new RuntimeException("Error: User Role not found."));
 
             Set<Role> roles = new HashSet<>();
             roles.add(adminRole);
             roles.add(userRole);
+            roles.add(emloyerRole);
 
             User adminUser = User.builder()
                     .username("admin")

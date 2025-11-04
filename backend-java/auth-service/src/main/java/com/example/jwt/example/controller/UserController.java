@@ -11,16 +11,19 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import com.example.jwt.example.dto.UserDetailDto;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('USER')")
 public class UserController {
 
     private final UserRepository userRepository;
 
     @GetMapping("/user/me")
-    @PreAuthorize("hasRole('USER')")
     public UserSummary getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
@@ -34,31 +37,24 @@ public class UserController {
                 .name(user.getFirstName() + " " + user.getLastName())
                 .build();
     }
+    /**
+     * API nội bộ, dùng cho các service khác (như Scholarship-Service)
+     * gọi đến để lấy thông tin chi tiết của user.
+     */
+    @GetMapping("/internal/user/{username}")
+    // Cho phép bất kỳ ai đã xác thực (USER, EMPLOYER, ADMIN) gọi
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserDetailDto> getUserDetailsForInternal(@PathVariable String username) {
 
-    @GetMapping("/users/{username}")
-    public ResponseEntity<?> getUserProfile(@PathVariable(value = "username") String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
 
-        UserProfile userProfile = UserProfile.builder()
+        UserDetailDto dto = UserDetailDto.builder()
                 .id(user.getId())
                 .username(user.getUsername())
-                .firstName(user.getFirstName())
-                .lastName(user.getLastName())
-                .email(user.getEmail())
+                .organizationId(user.getOrganizationId()) // Trả về organizationId
                 .build();
 
-        return ResponseEntity.ok(userProfile);
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/users/{username}")
-    public ResponseEntity<?> deleteUser(@PathVariable(value = "username") String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
-
-        userRepository.delete(user);
-
-        return ResponseEntity.ok(new ApiResponse(true, "User deleted successfully"));
+        return ResponseEntity.ok(dto);
     }
 }

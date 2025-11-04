@@ -113,3 +113,4 @@ prisma/migrations/
 # Lock files (optional - you can keep yarn.lock or package-lock.json)
 # package-lock.json
 # yarn.lock
+lib/
