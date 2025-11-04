@@ -26,10 +26,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // Tắt CSRF (vì dùng API)
+                // Tắt CSRF
                 .csrf(AbstractHttpConfigurer::disable)
-
                 // Báo lỗi 401 khi user chưa xác thực
+
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
 
                 // Không lưu session (vì dùng JWT)
@@ -42,6 +42,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/scholarships").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/scholarships/**").permitAll()
 
+                        .requestMatchers(HttpMethod.POST, "/api/opportunities").hasRole("EMPLOYER")
+                        .requestMatchers(HttpMethod.GET, "/api/opportunities/my").hasRole("EMPLOYER")
+                        .requestMatchers(HttpMethod.PUT, "/api/opportunities/**").hasRole("EMPLOYER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/opportunities/**").hasRole("EMPLOYER")
+                        // --- (Sẽ thêm API cho USER và ADMIN sau) ---
                         // --- API Protected (Phải đăng nhập) ---
                         // Yêu cầu xác thực cho tất cả các API còn lại
                         .anyRequest().authenticated()
