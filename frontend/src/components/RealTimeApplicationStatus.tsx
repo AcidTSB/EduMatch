@@ -9,8 +9,10 @@ import { useApplicationStore } from '@/stores/realtimeStore';
 import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function RealTimeApplicationStatus() {
+  const { t } = useLanguage();
   const { applicationStatuses } = useApplicationStore();
   
   // Get real data from AppContext
@@ -50,15 +52,15 @@ export function RealTimeApplicationStatus() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'ACCEPTED':
-        return 'Accepted';
+        return t('applicationStatus.accepted');
       case 'REJECTED':
-        return 'Rejected';
+        return t('applicationStatus.rejected');
       case 'UNDER_REVIEW':
-        return 'Under Review';
+        return t('applicationStatus.underReview');
       case 'SUBMITTED':
-        return 'Submitted';
+        return t('applicationStatus.submitted');
       default:
-        return 'Unknown';
+        return t('applicationStatus.unknown');
     }
   };
 
@@ -80,12 +82,12 @@ export function RealTimeApplicationStatus() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Recent Applications</CardTitle>
+        <CardTitle>{t('dashboard.recentApplications.title')}</CardTitle>
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Real-time updates"></div>
           <Button variant="outline" size="sm" asChild>
             <Link href="/applicant/applications">
-              View All
+              {t('dashboard.recentApplications.viewAll')}
               <ArrowRight className="h-4 w-4 ml-2" />
             </Link>
           </Button>
@@ -105,7 +107,7 @@ export function RealTimeApplicationStatus() {
                 </div>
                 <div className="flex items-center text-sm text-gray-600 mt-1">
                   <Calendar className="h-4 w-4 mr-1" />
-                  Applied: {application.appliedDate ? formatDate(application.appliedDate) : formatDate(application.updatedAt)}
+                  {t('dashboard.recentApplications.applied')}: {application.appliedDate ? formatDate(application.appliedDate) : formatDate(application.updatedAt)}
                 </div>
               </div>
               <div className="flex items-center space-x-3">
@@ -120,9 +122,9 @@ export function RealTimeApplicationStatus() {
           {displayApplications.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No applications yet</p>
+              <p>{t('dashboard.recentApplications.noApplications')}</p>
               <Button asChild className="mt-4">
-                <Link href="/applicant/scholarships">Browse Scholarships</Link>
+                <Link href="/applicant/scholarships">{t('dashboard.recentApplications.browse')}</Link>
               </Button>
             </div>
           )}

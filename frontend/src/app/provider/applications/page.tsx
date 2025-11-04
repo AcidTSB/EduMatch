@@ -34,8 +34,10 @@ import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext'
 import { formatDate } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import { ApplicationStatus } from '@/types';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ProviderApplicationsPage() {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [scholarshipFilter, setScholarshipFilter] = useState<string>('all');
@@ -120,13 +122,13 @@ export default function ProviderApplicationsPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'ACCEPTED':
-        return 'Accepted';
+        return t('providerApplications.statusLabels.accepted');
       case 'REJECTED':
-        return 'Rejected';
+        return t('providerApplications.statusLabels.rejected');
       case 'UNDER_REVIEW':
-        return 'Under Review';
+        return t('providerApplications.statusLabels.underReview');
       case 'SUBMITTED':
-        return 'New Application';
+        return t('providerApplications.statusLabels.new');
       default:
         return status;
     }
@@ -172,7 +174,7 @@ export default function ProviderApplicationsPage() {
         {/* Applicant Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Applicant Information</CardTitle>
+            <CardTitle>{t('providerApplications.modal.applicantInfo')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-4 mb-4">
@@ -187,26 +189,26 @@ export default function ProviderApplicationsPage() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <p className="text-sm text-gray-500">University</p>
+                <p className="text-sm text-gray-500">{t('providerApplications.modal.university')}</p>
                 <p className="font-semibold">{application.applicant?.profile?.university || 'Not specified'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Major</p>
+                <p className="text-sm text-gray-500">{t('providerApplications.modal.major')}</p>
                 <p className="font-semibold">{application.applicant?.profile?.major || 'Not specified'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">GPA</p>
+                <p className="text-sm text-gray-500">{t('providerApplications.modal.gpa')}</p>
                 <p className="font-semibold">{application.applicant?.profile?.gpa || 'Not provided'}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">Graduation Year</p>
+                <p className="text-sm text-gray-500">{t('providerApplications.modal.graduationYear')}</p>
                 <p className="font-semibold">{application.applicant?.profile?.graduationYear || 'Not specified'}</p>
               </div>
             </div>
 
             {application.applicant?.profile?.skills && (
               <div className="mb-4">
-                <p className="text-sm text-gray-500 mb-2">Skills</p>
+                <p className="text-sm text-gray-500 mb-2">{t('providerApplications.modal.skills')}</p>
                 <div className="flex flex-wrap gap-2">
                   {application.applicant.profile.skills.map((skill: string, index: number) => (
                     <Badge key={index} variant="outline">{skill}</Badge>
@@ -216,7 +218,7 @@ export default function ProviderApplicationsPage() {
             )}
 
             <div>
-              <p className="text-sm text-gray-500 mb-2">Application Date</p>
+              <p className="text-sm text-gray-500 mb-2">{t('providerApplications.modal.applicationDate')}</p>
               <p className="font-semibold">{formatDate(application.submittedAt || application.createdAt)}</p>
             </div>
           </CardContent>
@@ -226,7 +228,7 @@ export default function ProviderApplicationsPage() {
         {application.coverLetter && (
           <Card>
             <CardHeader>
-              <CardTitle>Cover Letter</CardTitle>
+              <CardTitle>{t('providerApplications.modal.coverLetter')}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-gray-700 whitespace-pre-wrap">{application.coverLetter}</p>
@@ -238,7 +240,7 @@ export default function ProviderApplicationsPage() {
         {application.motivation && (
           <Card>
             <CardHeader>
-              <CardTitle>Motivation</CardTitle>
+              <CardTitle>{t('providerApplications.modal.motivation')}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-gray-700 whitespace-pre-wrap">{application.motivation}</p>
@@ -250,7 +252,7 @@ export default function ProviderApplicationsPage() {
         {application.additionalInfo && (
           <Card>
             <CardHeader>
-              <CardTitle>Additional Information</CardTitle>
+              <CardTitle>{t('providerApplications.modal.additionalInfo')}</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-gray-700 whitespace-pre-wrap">{application.additionalInfo}</p>
@@ -262,7 +264,7 @@ export default function ProviderApplicationsPage() {
         {(application.portfolioUrl || application.linkedinUrl || application.githubUrl) && (
           <Card>
             <CardHeader>
-              <CardTitle>Portfolio & Links</CardTitle>
+              <CardTitle>{t('providerApplications.modal.portfolioLinks')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -272,7 +274,7 @@ export default function ProviderApplicationsPage() {
                     <Button variant="outline" size="sm" asChild>
                       <a href={application.portfolioUrl} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Visit
+                        {t('providerApplications.actions.visit')}
                       </a>
                     </Button>
                   </div>
@@ -283,7 +285,7 @@ export default function ProviderApplicationsPage() {
                     <Button variant="outline" size="sm" asChild>
                       <a href={application.linkedinUrl} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Visit
+                        {t('providerApplications.actions.visit')}
                       </a>
                     </Button>
                   </div>
@@ -294,7 +296,7 @@ export default function ProviderApplicationsPage() {
                     <Button variant="outline" size="sm" asChild>
                       <a href={application.githubUrl} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Visit
+                        {t('providerApplications.actions.visit')}
                       </a>
                     </Button>
                   </div>
@@ -308,7 +310,7 @@ export default function ProviderApplicationsPage() {
         {application.additionalDocs && application.additionalDocs.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Documents</CardTitle>
+              <CardTitle>{t('providerApplications.modal.documents')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -317,7 +319,7 @@ export default function ProviderApplicationsPage() {
                     <span className="font-medium">{doc}</span>
                     <Button variant="outline" size="sm">
                       <Download className="h-4 w-4 mr-2" />
-                      Download
+                      {t('providerApplications.actions.download')}
                     </Button>
                   </div>
                 ))}
@@ -334,7 +336,7 @@ export default function ProviderApplicationsPage() {
             disabled={loading}
           >
             <CheckCircle className="h-4 w-4 mr-2" />
-            Accept
+            {t('providerApplications.actions.accept')}
           </Button>
           <Button 
             variant="destructive" 
@@ -343,7 +345,7 @@ export default function ProviderApplicationsPage() {
             disabled={loading}
           >
             <XCircle className="h-4 w-4 mr-2" />
-            Reject
+            {t('providerApplications.actions.reject')}
           </Button>
           <Button 
             variant="outline"
@@ -352,25 +354,25 @@ export default function ProviderApplicationsPage() {
             disabled={loading}
           >
             <Clock className="h-4 w-4 mr-2" />
-            Under Review
+            {t('providerApplications.actions.underReview')}
           </Button>
           <Dialog open={isMessageDialogOpen} onOpenChange={setIsMessageDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="flex-1">
                 <MessageSquare className="h-4 w-4 mr-2" />
-                Send Message
+                {t('providerApplications.actions.sendMessage')}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Send Message to {application.applicant?.name}</DialogTitle>
+                <DialogTitle>{t('providerApplications.message.title')} {application.applicant?.name}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="message">Message</Label>
+                  <Label htmlFor="message">{t('providerApplications.message.label')}</Label>
                   <Textarea
                     id="message"
-                    placeholder="Type your message here..."
+                    placeholder={t('providerApplications.message.placeholder')}
                     value={messageText}
                     onChange={(e) => setMessageText(e.target.value)}
                     className="min-h-[120px]"
@@ -381,14 +383,14 @@ export default function ProviderApplicationsPage() {
                     variant="outline" 
                     onClick={() => setIsMessageDialogOpen(false)}
                   >
-                    Cancel
+                    {t('providerApplications.message.cancel')}
                   </Button>
                   <Button 
                     onClick={handleSendMessage}
                     disabled={!messageText.trim() || loading}
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    Send Message
+                    {t('providerApplications.message.send')}
                   </Button>
                 </div>
               </div>
@@ -403,19 +405,19 @@ export default function ProviderApplicationsPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-gradient-to-r from-brand-blue-50 to-brand-cyan-50 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">Applications Management</h1>
+              <h1 className="text-4xl font-bold text-gray-900">{t('providerApplications.title')}</h1>
               <p className="text-gray-600 mt-2">
-                Review and manage scholarship applications
+                {t('providerApplications.subtitle')}
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card>
@@ -425,7 +427,7 @@ export default function ProviderApplicationsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-xs text-muted-foreground">{t('providerApplications.stats.total')}</p>
               </div>
             </CardContent>
           </Card>
@@ -437,7 +439,7 @@ export default function ProviderApplicationsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.submitted}</p>
-                <p className="text-xs text-muted-foreground">New</p>
+                <p className="text-xs text-muted-foreground">{t('providerApplications.stats.new')}</p>
               </div>
             </CardContent>
           </Card>
@@ -449,7 +451,7 @@ export default function ProviderApplicationsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.underReview}</p>
-                <p className="text-xs text-muted-foreground">Under Review</p>
+                <p className="text-xs text-muted-foreground">{t('providerApplications.stats.underReview')}</p>
               </div>
             </CardContent>
           </Card>
@@ -461,7 +463,7 @@ export default function ProviderApplicationsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.accepted}</p>
-                <p className="text-xs text-muted-foreground">Accepted</p>
+                <p className="text-xs text-muted-foreground">{t('providerApplications.stats.accepted')}</p>
               </div>
             </CardContent>
           </Card>
@@ -473,7 +475,7 @@ export default function ProviderApplicationsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{stats.rejected}</p>
-                <p className="text-xs text-muted-foreground">Rejected</p>
+                <p className="text-xs text-muted-foreground">{t('providerApplications.stats.rejected')}</p>
               </div>
             </CardContent>
           </Card>
@@ -487,7 +489,7 @@ export default function ProviderApplicationsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
-                    placeholder="Search applications..."
+                    placeholder={t('providerApplications.search')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -498,23 +500,23 @@ export default function ProviderApplicationsPage() {
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full lg:w-48">
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue placeholder={t('providerApplications.filterStatus')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="SUBMITTED">New Applications</SelectItem>
-                  <SelectItem value="UNDER_REVIEW">Under Review</SelectItem>
-                  <SelectItem value="ACCEPTED">Accepted</SelectItem>
-                  <SelectItem value="REJECTED">Rejected</SelectItem>
+                  <SelectItem value="all">{t('providerApplications.statusOptions.all')}</SelectItem>
+                  <SelectItem value="SUBMITTED">{t('providerApplications.statusOptions.new')}</SelectItem>
+                  <SelectItem value="UNDER_REVIEW">{t('providerApplications.statusOptions.underReview')}</SelectItem>
+                  <SelectItem value="ACCEPTED">{t('providerApplications.statusOptions.accepted')}</SelectItem>
+                  <SelectItem value="REJECTED">{t('providerApplications.statusOptions.rejected')}</SelectItem>
                 </SelectContent>
               </Select>
 
               <Select value={scholarshipFilter} onValueChange={setScholarshipFilter}>
                 <SelectTrigger className="w-full lg:w-64">
-                  <SelectValue placeholder="Filter by scholarship" />
+                  <SelectValue placeholder={t('providerApplications.filterScholarship')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Scholarships</SelectItem>
+                  <SelectItem value="all">{t('providerApplications.scholarshipOptions.all')}</SelectItem>
                   {scholarships.slice(0, 10).map((scholarship: any) => (
                     <SelectItem key={scholarship.id} value={scholarship.id}>
                       {scholarship.title && scholarship.title.length > 30 
@@ -535,25 +537,25 @@ export default function ProviderApplicationsPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-gray-600">Loading applications...</p>
+                <p className="mt-4 text-gray-600">{t('providerApplications.loading')}</p>
               </CardContent>
             </Card>
           ) : loading && applications.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-gray-600">Loading applications...</p>
+                <p className="mt-4 text-gray-600">{t('providerApplications.loading')}</p>
               </CardContent>
             </Card>
           ) : filteredApplications.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <User className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No applications found</h3>
+                <h3 className="text-lg font-semibold mb-2">{t('providerApplications.empty.title')}</h3>
                 <p className="text-muted-foreground text-center">
                   {searchTerm || statusFilter !== 'all' || scholarshipFilter !== 'all'
-                    ? 'Try adjusting your search or filter criteria.'
-                    : 'No applications have been submitted yet.'
+                    ? t('providerApplications.empty.withFilters')
+                    : t('providerApplications.empty.noApps')
                   }
                 </p>
                 {(searchTerm || statusFilter !== 'all' || scholarshipFilter !== 'all') && (
@@ -616,7 +618,7 @@ export default function ProviderApplicationsPage() {
                         </div>
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-1" />
-                          Applied: {formatDate(application.submittedAt || application.createdAt)}
+                          {t('providerApplications.labels.applied')}: {formatDate(application.submittedAt || application.createdAt)}
                         </div>
                       </div>
                     </div>
@@ -630,7 +632,7 @@ export default function ProviderApplicationsPage() {
                             onClick={() => setSelectedApplication(application)}
                           >
                             <Eye className="h-4 w-4 mr-2" />
-                            View Details
+                            {t('providerApplications.actions.viewDetails')}
                           </Button>
                         </DialogTrigger>
                         {selectedApplication && (

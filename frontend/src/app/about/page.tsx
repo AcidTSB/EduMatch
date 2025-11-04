@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { 
   Users, 
   Target, 
@@ -17,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 
 export default function AboutPage() {
+  const { t } = useLanguage();
   const teamMembers = [
     {
       name: 'Dr. Sarah Wilson',
@@ -47,48 +50,48 @@ export default function AboutPage() {
   const stats = [
     {
       number: '50,000+',
-      label: 'Students Helped',
+      label: t('about.stats.studentsHelped'),
       icon: Users
     },
     {
       number: '2,000+',
-      label: 'Scholarships Listed',
+      label: t('about.stats.scholarshipsListed'),
       icon: Award
     },
     {
       number: '$500M+',
-      label: 'Total Awards Matched',
+      label: t('about.stats.totalAwards'),
       icon: TrendingUp
     },
     {
       number: '200+',
-      label: 'Partner Institutions',
+      label: t('about.stats.partnerInstitutions'),
       icon: Globe
     }
   ];
 
   const values = [
     {
-      title: 'Accessibility',
-      description: 'Making education opportunities accessible to all students regardless of background.',
+      title: t('about.values.accessibility.title'),
+      description: t('about.values.accessibility.desc'),
       icon: Heart,
       color: 'text-red-600'
     },
     {
-      title: 'Innovation',
-      description: 'Using cutting-edge AI technology to create smarter matching algorithms.',
+      title: t('about.values.innovation.title'),
+      description: t('about.values.innovation.desc'),
       icon: Lightbulb,
       color: 'text-yellow-600'
     },
     {
-      title: 'Excellence',
-      description: 'Maintaining the highest standards in everything we do for our users.',
+      title: t('about.values.excellence.title'),
+      description: t('about.values.excellence.desc'),
       icon: Target,
       color: 'text-blue-600'
     },
     {
-      title: 'Community',
-      description: 'Building a supportive ecosystem for students, providers, and institutions.',
+      title: t('about.values.community.title'),
+      description: t('about.values.community.desc'),
       icon: Users,
       color: 'text-green-600'
     }
@@ -101,16 +104,15 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold text-gradient-primary mb-6">
-              About EduMatch
+              {t('about.title')}
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-              We're on a mission to democratize access to education by connecting students 
-              with the right scholarships and research opportunities using AI-powered matching.
+              {t('about.hero.subtitle')}
             </p>
             <div className="flex flex-wrap justify-center gap-3">
-              <Badge className="text-sm bg-blue-100 text-blue-700 border-blue-200">Founded in 2022</Badge>
-              <Badge className="text-sm bg-purple-100 text-purple-700 border-purple-200">AI-Powered</Badge>
-              <Badge className="text-sm bg-cyan-100 text-cyan-700 border-cyan-200">Global Reach</Badge>
+              <Badge className="text-sm bg-blue-100 text-blue-700 border-blue-200">{t('about.founded')}</Badge>
+              <Badge className="text-sm bg-purple-100 text-purple-700 border-purple-200">{t('about.aiPowered')}</Badge>
+              <Badge className="text-sm bg-cyan-100 text-cyan-700 border-cyan-200">{t('about.globalReach')}</Badge>
             </div>
           </div>
         </div>
@@ -145,28 +147,12 @@ export default function AboutPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
-              <h2 className="text-3xl font-bold text-gradient-primary mb-6">Our Story</h2>
+              <h2 className="text-3xl font-bold text-gradient-primary mb-6">{t('about.story.title')}</h2>
               <div className="space-y-4 text-gray-600">
-                <p>
-                  EduMatch was born from a simple observation: too many talented students 
-                  miss out on educational opportunities simply because they don't know they exist.
-                </p>
-                <p>
-                  Our founder, Dr. Sarah Wilson, experienced this firsthand during her PhD journey. 
-                  Despite being highly qualified, she spent countless hours manually searching 
-                  through hundreds of scholarship databases, often missing deadlines or 
-                  discovering relevant opportunities too late.
-                </p>
-                <p>
-                  We realized that technology could solve this problem. By leveraging artificial 
-                  intelligence and machine learning, we could create a platform that automatically 
-                  matches students with the most relevant opportunities based on their background, 
-                  interests, and goals.
-                </p>
-                <p>
-                  Today, EduMatch has helped over 50,000 students find and secure educational 
-                  funding, representing more than $500 million in total awards.
-                </p>
+                <p>{t('about.story.p1')}</p>
+                <p>{t('about.story.p2')}</p>
+                <p>{t('about.story.p3')}</p>
+                <p>{t('about.story.p4')}</p>
               </div>
             </div>
             <div className="relative">
@@ -175,10 +161,9 @@ export default function AboutPage() {
                   <div className="bg-icon-blue w-16 h-16 rounded-2xl flex items-center justify-center mb-4 animate-scale-hover">
                     <BookOpen className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Our Mission</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{t('about.mission.title')}</h3>
                   <p className="text-gray-600">
-                    To make quality education accessible to everyone by connecting students 
-                    with the right opportunities at the right time.
+                    {t('about.mission.description')}
                   </p>
                 </CardContent>
               </Card>
@@ -191,9 +176,9 @@ export default function AboutPage() {
       <section className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gradient-primary mb-4">Our Values</h2>
+            <h2 className="text-3xl font-bold text-gradient-primary mb-4">{t('about.values.title')}</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              The principles that guide everything we do at EduMatch.
+              {t('about.values.description')}
             </p>
           </div>
 
@@ -234,9 +219,9 @@ export default function AboutPage() {
       <section className="py-16 section-gradient-light">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gradient-primary mb-4">Meet Our Team</h2>
+            <h2 className="text-3xl font-bold text-gradient-primary mb-4">{t('about.team.title')}</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              The passionate individuals working to make education more accessible.
+              {t('about.team.description')}
             </p>
           </div>
 
@@ -249,11 +234,16 @@ export default function AboutPage() {
                   'card-gradient-blue'} card-hover
               `}>
                 <CardContent className="p-6 text-center">
-                  <img
-                    src={member.image}
-                    alt={member.name}
-                    className="w-20 h-20 rounded-full mx-auto mb-4 bg-gray-200 ring-4 ring-white shadow-lg"
-                  />
+                  <div className="w-20 h-20 rounded-full mx-auto mb-4 bg-gray-200 ring-4 ring-white shadow-lg relative overflow-hidden">
+                    <Image
+                      src={member.image}
+                      alt={member.name}
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                      loading="lazy"
+                    />
+                  </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-1">
                     {member.name}
                   </h3>
@@ -274,20 +264,20 @@ export default function AboutPage() {
       <section className="py-16 bg-pastel-primary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-gradient-primary mb-4">
-            Ready to Find Your Perfect Match?
+            {t('about.cta.title')}
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Join thousands of students who have found their ideal scholarships through EduMatch.
+            {t('about.cta.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 shadow-lg transform hover:scale-105 transition-all duration-300">
               <Link href="/auth/register">
-                Get Started for Free
+                {t('about.cta.getStarted')}
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 shadow-lg">
               <Link href="/applicant/scholarships">
-                Browse Scholarships
+                {t('about.cta.browse')}
               </Link>
             </Button>
           </div>

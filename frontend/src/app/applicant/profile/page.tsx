@@ -23,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Mock user profiles
 const mockUserProfiles = [
@@ -87,6 +88,7 @@ const mockUserProfiles = [
 ];
 
 export default function ProfilePage() {
+  const { t } = useLanguage();
   // Mock current user - replace with actual auth
   const [profile, setProfile] = useState(mockUserProfiles[0]);
   const [isLoading, setIsLoading] = useState(false);
@@ -113,10 +115,10 @@ export default function ProfilePage() {
       setIsEditing(false);
       
       // Show success message (you could add a toast notification here)
-      alert('Profile updated successfully!');
+      alert(t('applicantProfile.successMessage'));
     } catch (error) {
       console.error('Profile update failed:', error);
-      setErrors({ submit: 'Failed to update profile. Please try again.' });
+      setErrors({ submit: t('applicantProfile.errorMessage') });
     } finally {
       setIsLoading(false);
     }
@@ -140,7 +142,7 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading profile...</p>
+          <p className="text-muted-foreground">{t('applicantProfile.loadingProfile')}</p>
         </div>
       </div>
     );
@@ -150,12 +152,12 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-gradient-to-r from-brand-blue-50 to-brand-cyan-50 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">My Profile</h1>
+              <h1 className="text-4xl font-bold text-gray-900">{t('applicantProfile.title')}</h1>
               <p className="text-gray-600 mt-2">
-                Manage your personal information and academic details
+                {t('applicantProfile.subtitle')}
               </p>
             </div>
             <div className="mt-4 sm:mt-0">
@@ -164,7 +166,7 @@ export default function ProfilePage() {
                 variant={isEditing ? 'outline' : 'default'}
               >
                 <Edit3 className="h-4 w-4 mr-2" />
-                {isEditing ? 'Cancel' : 'Edit Profile'}
+                {isEditing ? t('applicantProfile.cancel') : t('applicantProfile.editProfile')}
               </Button>
             </div>
           </div>
@@ -176,7 +178,7 @@ export default function ProfilePage() {
           {/* Profile Photo & Basic Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Basic Information</CardTitle>
+              <CardTitle>{t('applicantProfile.basicInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Profile Photo */}
@@ -193,7 +195,7 @@ export default function ProfilePage() {
                       <Button type="button" variant="outline" size="sm" asChild>
                         <span>
                           <Camera className="h-4 w-4 mr-2" />
-                          Change Photo
+                          {t('applicantProfile.changePhoto')}
                         </span>
                       </Button>
                     </label>
@@ -212,24 +214,24 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    First Name
+                    {t('applicantProfile.firstName')}
                   </label>
                   <Input
                     value={profile.firstName}
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
                     disabled={!isEditing}
-                    placeholder="Enter your first name"
+                    placeholder={t('applicantProfile.firstName')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Last Name
+                    {t('applicantProfile.lastName')}
                   </label>
                   <Input
                     value={profile.lastName}
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     disabled={!isEditing}
-                    placeholder="Enter your last name"
+                    placeholder={t('applicantProfile.lastName')}
                   />
                 </div>
               </div>
@@ -238,7 +240,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
+                    {t('applicantProfile.email')}
                   </label>
                   <Input
                     type="email"
@@ -246,17 +248,17 @@ export default function ProfilePage() {
                     disabled={true}
                     className="bg-gray-50"
                   />
-                  <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+                  <p className="text-xs text-gray-500 mt-1">{t('applicantProfile.emailNote')}</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number
+                    {t('applicantProfile.phone')}
                   </label>
                   <Input
                     value={profile.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                     disabled={!isEditing}
-                    placeholder="Enter your phone number"
+                    placeholder={t('applicantProfile.phone')}
                   />
                 </div>
               </div>
@@ -265,7 +267,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date of Birth
+                    {t('applicantProfile.dateOfBirth')}
                   </label>
                   <Input
                     type="date"
@@ -276,24 +278,24 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nationality
+                    {t('applicantProfile.nationality')}
                   </label>
                   <Input
                     value={profile.nationality}
                     onChange={(e) => handleInputChange('nationality', e.target.value)}
                     disabled={!isEditing}
-                    placeholder="Enter your nationality"
+                    placeholder={t('applicantProfile.nationality')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Current Location
+                    {t('applicantProfile.currentLocation')}
                   </label>
                   <Input
                     value={profile.currentLocation}
                     onChange={(e) => handleInputChange('currentLocation', e.target.value)}
                     disabled={!isEditing}
-                    placeholder="Enter your current location"
+                    placeholder={t('applicantProfile.currentLocation')}
                   />
                 </div>
               </div>
@@ -301,14 +303,14 @@ export default function ProfilePage() {
               {/* Bio */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Bio
+                  {t('applicantProfile.bio')}
                 </label>
                 <Textarea
                   value={profile.bio}
                   onChange={(e) => handleInputChange('bio', e.target.value)}
                   disabled={!isEditing}
                   rows={4}
-                  placeholder="Tell us about yourself..."
+                  placeholder={t('applicantProfile.bioPlaceholder')}
                 />
               </div>
             </CardContent>
@@ -317,30 +319,30 @@ export default function ProfilePage() {
           {/* Academic Information */}
           <Card>
             <CardHeader>
-              <CardTitle>Academic Information</CardTitle>
+              <CardTitle>{t('applicantProfile.academicInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    University
+                    {t('applicantProfile.university')}
                   </label>
                   <Input
                     value={profile.university}
                     onChange={(e) => handleInputChange('university', e.target.value)}
                     disabled={!isEditing}
-                    placeholder="Enter your university"
+                    placeholder={t('applicantProfile.university')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Major
+                    {t('applicantProfile.major')}
                   </label>
                   <Input
                     value={profile.major}
                     onChange={(e) => handleInputChange('major', e.target.value)}
                     disabled={!isEditing}
-                    placeholder="Enter your major"
+                    placeholder={t('applicantProfile.major')}
                   />
                 </div>
               </div>
@@ -348,7 +350,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    GPA
+                    {t('applicantProfile.gpa')}
                   </label>
                   <Input
                     type="number"
@@ -358,30 +360,30 @@ export default function ProfilePage() {
                     value={profile.gpa}
                     onChange={(e) => handleInputChange('gpa', parseFloat(e.target.value))}
                     disabled={!isEditing}
-                    placeholder="Enter your GPA"
+                    placeholder={t('applicantProfile.gpa')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Graduation Year
+                    {t('applicantProfile.graduationYear')}
                   </label>
                   <Input
                     type="number"
                     value={profile.graduationYear}
                     onChange={(e) => handleInputChange('graduationYear', parseInt(e.target.value))}
                     disabled={!isEditing}
-                    placeholder="Enter graduation year"
+                    placeholder={t('applicantProfile.graduationYear')}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Current Level
+                    {t('applicantProfile.currentLevel')}
                   </label>
                   <Input
                     value={profile.currentLevel}
                     onChange={(e) => handleInputChange('currentLevel', e.target.value)}
                     disabled={!isEditing}
-                    placeholder="e.g., Senior, Graduate"
+                    placeholder={t('applicantProfile.currentLevel')}
                   />
                 </div>
               </div>
@@ -391,13 +393,13 @@ export default function ProfilePage() {
           {/* Skills & Interests */}
           <Card>
             <CardHeader>
-              <CardTitle>Skills & Interests</CardTitle>
+              <CardTitle>{t('applicantProfile.skillsInterests')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Skills */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Skills
+                  {t('applicantProfile.skills')}
                 </label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {profile.skills.map((skill, index) => (
@@ -408,7 +410,7 @@ export default function ProfilePage() {
                 </div>
                 {isEditing && (
                   <Input
-                    placeholder="Add skills separated by commas"
+                    placeholder={t('applicantProfile.skillsPlaceholder')}
                     value={profile.skills.join(', ')}
                     onChange={(e) => handleInputChange('skills', e.target.value.split(',').map(s => s.trim()))}
                   />
@@ -418,7 +420,7 @@ export default function ProfilePage() {
               {/* Interests */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Interests
+                  {t('applicantProfile.interests')}
                 </label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {profile.interests.map((interest, index) => (
@@ -429,7 +431,7 @@ export default function ProfilePage() {
                 </div>
                 {isEditing && (
                   <Input
-                    placeholder="Add interests separated by commas"
+                    placeholder={t('applicantProfile.interestsPlaceholder')}
                     value={profile.interests.join(', ')}
                     onChange={(e) => handleInputChange('interests', e.target.value.split(',').map(s => s.trim()))}
                   />
@@ -439,7 +441,7 @@ export default function ProfilePage() {
               {/* Languages */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Languages
+                  {t('applicantProfile.languages')}
                 </label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {profile.languages.map((language, index) => (
@@ -450,7 +452,7 @@ export default function ProfilePage() {
                 </div>
                 {isEditing && (
                   <Input
-                    placeholder="Add languages with proficiency separated by commas"
+                    placeholder={t('applicantProfile.languagesPlaceholder')}
                     value={profile.languages.join(', ')}
                     onChange={(e) => handleInputChange('languages', e.target.value.split(',').map(s => s.trim()))}
                   />
@@ -462,7 +464,7 @@ export default function ProfilePage() {
           {/* Achievements */}
           <Card>
             <CardHeader>
-              <CardTitle>Achievements</CardTitle>
+              <CardTitle>{t('applicantProfile.achievements')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -484,14 +486,14 @@ export default function ProfilePage() {
                 variant="outline"
                 onClick={() => setIsEditing(false)}
               >
-                Cancel
+                {t('applicantProfile.cancel')}
               </Button>
               <Button
                 type="submit"
                 disabled={isLoading}
                 loading={isLoading}
               >
-                {isLoading ? 'Saving...' : 'Save Changes'}
+                {isLoading ? t('applicantProfile.saving') : t('applicantProfile.saveChanges')}
               </Button>
             </div>
           )}
@@ -506,3 +508,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

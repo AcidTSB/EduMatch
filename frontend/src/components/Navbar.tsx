@@ -7,67 +7,10 @@ import { Menu, X, User, LogOut, Settings, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
+import { LanguageSelector } from '@/components/LanguageSelector';
 import { cn } from '@/lib/utils';
-
-// Mock auth hook - replace with actual auth
-const useAuth = () => {
-  const router = useRouter();
-  
-  const getStoredUser = () => {
-    if (typeof window === 'undefined') return null;
-    
-    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-    const role = typeof window !== 'undefined' ? localStorage.getItem('user_role') : null;
-    const userData = typeof window !== 'undefined' ? localStorage.getItem('user_data') : null;
-    
-    if (!token) return null;
-    
-    if (userData) {
-      try {
-        const parsedUser = JSON.parse(userData);
-        if (!parsedUser.subscription) {
-          parsedUser.subscription = {
-            plan: 'free',
-            status: 'active',
-            expiresAt: null
-          };
-        }
-        return parsedUser;
-      } catch (e) {
-        // fallback
-      }
-    }
-    
-    return {
-      id: '1',
-      name: 'John Doe',
-      email: 'john.doe@email.com',
-      role: role || 'applicant' as 'applicant' | 'provider' | 'admin',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-      subscription: {
-        plan: 'free',
-        status: 'active',
-        expiresAt: null
-      }
-    };
-  };
-  
-  const user = getStoredUser();
-  
-  return {
-    user,
-    isAuthenticated: typeof window !== 'undefined' && localStorage.getItem('auth_token') !== null,
-    hasPaidSubscription: user?.subscription?.plan !== 'free',
-    logout: () => {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_role');
-        localStorage.removeItem('user_data');
-      }
-      router.push('/');
-    }
-  };
-};
+import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const publicNavigation = [
   { name: 'Home', href: '/' },
@@ -111,28 +54,54 @@ const providerSpecificNavigation = [
 ];
 
 const adminSpecificNavigation = [
-  { name: 'Dashboard', href: '/admin/dashboard' },
+  { name: 'Dashboard', href: '/admin' },
   { name: 'Users', href: '/admin/users' },
   { name: 'Scholarships', href: '/admin/scholarships' },
-  { name: 'Messages', href: '/messages' },
+  { name: 'Applications', href: '/admin/applications' },
 ];
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
   const pathname = usePathname();
-  const { user, isAuthenticated, hasPaidSubscription, logout } = useAuth();
-
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
+  const { t } = useLanguage();
+  
+  // Calculate hasPaidSubscription from user data
+  const hasPaidSubscription = user?.subscriptionType !== 'FREE';
+  
+  // Show loading state while auth is initializing
+  if (isLoading) {
+    return (
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <div className="flex-shrink-0 flex items-center">
+              <Link href="/" className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">E</span>
+                </div>
+                <span className="text-xl font-bold text-gray-900">EduMatch</span>
+              </Link>
+            </div>
+            
+            {/* Loading placeholder */}
+            <div className="flex items-center space-x-4">
+              <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+              <div className="w-24 h-10 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   const getRoleBadge = (role: string, subscription?: any) => {
     const roleConfig = {
-      applicant: { label: 'Student', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-      provider: { label: 'Provider', color: 'bg-green-100 text-green-700 border-green-200' },
-      admin: { label: 'Admin', color: 'bg-purple-100 text-purple-700 border-purple-200' }
+      applicant: { label: t('role.student'), color: 'bg-blue-100 text-blue-700 border-blue-200' },
+      provider: { label: t('role.provider'), color: 'bg-green-100 text-green-700 border-green-200' },
+      admin: { label: t('role.admin'), color: 'bg-purple-100 text-purple-700 border-purple-200' }
     };
     
     const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.applicant;
@@ -148,16 +117,17 @@ export function Navbar() {
   };
 
   const getRoleDisplayName = (role: string) => {
-    const roleNames = {
-      applicant: 'Student',
-      provider: 'Scholarship Provider', 
-      admin: 'Administrator'
+    const roleKeys = {
+      applicant: 'role.student',
+      provider: 'role.provider', 
+      admin: 'role.admin'
     };
-    return roleNames[role as keyof typeof roleNames] || 'User';
+    return t(roleKeys[role as keyof typeof roleKeys] || 'role.student');
   };
 
   const getRoleSpecificNavigation = () => {
-    if (!isHydrated || !isAuthenticated) return [];
+    // Don't show navigation while loading or if not authenticated
+    if (!isAuthenticated) return [];
     
     switch (user?.role) {
       case 'provider':
@@ -187,9 +157,9 @@ export function Navbar() {
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* LEFT: Logo - Always at the far left */}
           <div className="flex-shrink-0 flex items-center">
             <Link href="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -199,23 +169,23 @@ export function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center flex-1 justify-center">
+          {/* CENTER: Navigation Links - Centered in the middle */}
+          <div className="hidden lg:flex absolute left-1/2 transform -translate-x-1/2">
             <div className="flex items-center space-x-1">
               {/* For authenticated users - show fewer items, prioritize key actions */}
-              {isHydrated && isAuthenticated ? (
+              {isAuthenticated ? (
                 <>
                   {/* Essential navigation only */}
                   <Link
                     href="/"
                     className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                       isActive('/')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
-                    Home
+                    {t('nav.home')}
                   </Link>
                   
                   {/* Role-specific key items */}
@@ -224,35 +194,35 @@ export function Navbar() {
                       <Link
                         href="/applicant/dashboard"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/applicant/dashboard')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Dashboard
+                        {t('nav.dashboard')}
                       </Link>
                       <Link
                         href="/applicant/scholarships"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/applicant/scholarships')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Scholarships
+                        {t('nav.scholarships')}
                       </Link>
                       <Link
                         href="/applicant/applications"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/applicant/applications')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Applications
+                        {t('nav.applications')}
                       </Link>
                     </>
                   )}
@@ -262,46 +232,46 @@ export function Navbar() {
                       <Link
                         href="/provider/dashboard"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/provider/dashboard')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Dashboard
+                        {t('nav.dashboard')}
                       </Link>
                       <Link
                         href="/provider/scholarships"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/provider/scholarships')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        My Scholarships
+                        {t('nav.myScholarships')}
                       </Link>
                       <Link
                         href="/provider/applications"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/provider/applications')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Applications
+                        {t('nav.applications')}
                       </Link>
                       <Link
                         href="/provider/analytics"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/provider/analytics')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Analytics
+                        {t('nav.analytics')}
                       </Link>
                     </>
                   )}
@@ -309,37 +279,48 @@ export function Navbar() {
                   {user?.role === 'admin' && (
                     <>
                       <Link
-                        href="/admin/dashboard"
+                        href="/admin"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                          isActive('/admin/dashboard')
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          pathname === '/admin'
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Dashboard
+                        {t('nav.dashboard')}
                       </Link>
                       <Link
                         href="/admin/users"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/admin/users')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Users
+                        {t('nav.users')}
                       </Link>
                       <Link
                         href="/admin/scholarships"
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                           isActive('/admin/scholarships')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
                       >
-                        Scholarships
+                        {t('nav.scholarships')}
+                      </Link>
+                      <Link
+                        href="/admin/applications"
+                        className={cn(
+                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          isActive('/admin/applications')
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                        )}
+                      >
+                        {t('nav.applications')}
                       </Link>
                     </>
                   )}
@@ -347,40 +328,84 @@ export function Navbar() {
                   <Link
                     href="/messages"
                     className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
                       isActive('/messages')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                     )}
                   >
-                    Messages
+                    {t('nav.messages')}
                   </Link>
                 </>
               ) : (
                 <>
                   {/* Public navigation - show more options */}
-                  {publicNavigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={cn(
-                        "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                        isActive(item.href)
-                          ? "bg-blue-50 text-blue-700"
-                          : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
-                      )}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
+                  <Link
+                    href="/"
+                    className={cn(
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                      isActive('/')
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    {t('nav.home')}
+                  </Link>
+                  <Link
+                    href="/about"
+                    className={cn(
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                      isActive('/about')
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    {t('nav.about')}
+                  </Link>
+                  <Link
+                    href="/applicant/scholarships"
+                    className={cn(
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                      isActive('/applicant/scholarships')
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    {t('nav.scholarships')}
+                  </Link>
+                  <Link
+                    href="/pricing"
+                    className={cn(
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                      isActive('/pricing')
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    {t('nav.pricing')}
+                  </Link>
+                  <Link
+                    href="/contact"
+                    className={cn(
+                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                      isActive('/contact')
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
+                    )}
+                  >
+                    {t('nav.contact')}
+                  </Link>
                 </>
               )}
             </div>
           </div>
 
-          {/* Right side - Actions */}
-          <div className="hidden lg:flex items-center space-x-3">
-            {isHydrated && isAuthenticated ? (
+          {/* RIGHT: User Actions - Always at the far right */}
+          <div className="hidden lg:flex items-center space-x-3 flex-shrink-0">
+            {/* Language Selector */}
+            <LanguageSelector />
+            
+            {isAuthenticated ? (
               <>
                 {/* Notifications */}
                 <NotificationDropdown />
@@ -392,7 +417,7 @@ export function Navbar() {
                     className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user?.avatarUrl} alt={user?.name} />
+                      <AvatarImage src={user?.profile?.avatar || ''} alt={user?.name} />
                       <AvatarFallback className="bg-blue-600 text-white text-xs">
                         {getInitials(user?.name || '')}
                       </AvatarFallback>
@@ -401,9 +426,9 @@ export function Navbar() {
                       <span className="text-sm font-medium text-gray-900">{user?.name}</span>
                       <span className={cn(
                         "px-2 py-0.5 rounded-full text-xs font-medium border",
-                        getRoleBadge(user?.role || 'applicant', user?.subscription).color
+                        getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).color
                       )}>
-                        {getRoleBadge(user?.role || 'applicant', user?.subscription).label}
+                        {getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).label}
                       </span>
                       <ChevronDown className="h-4 w-4 text-gray-500" />
                     </div>
@@ -431,7 +456,7 @@ export function Navbar() {
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           <User className="h-4 w-4 mr-3 text-gray-400" />
-                          Profile
+                          {t('user.profile')}
                         </Link>
                         
                         <Link
@@ -440,7 +465,7 @@ export function Navbar() {
                           onClick={() => setIsUserMenuOpen(false)}
                         >
                           <Settings className="h-4 w-4 mr-3 text-gray-400" />
-                          Settings
+                          {t('user.settings')}
                         </Link>
                         
                         <div className="border-t border-gray-200 my-1" />
@@ -453,7 +478,7 @@ export function Navbar() {
                           className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
                         >
                           <LogOut className="h-4 w-4 mr-3" />
-                          Sign Out
+                          {t('user.logout')}
                         </button>
                       </div>
                     </>
@@ -463,17 +488,18 @@ export function Navbar() {
             ) : (
               <div className="flex items-center space-x-3">
                 <Button asChild variant="ghost" size="sm" className="text-gray-700">
-                  <Link href="/auth/login">Sign In</Link>
+                  <Link href="/auth/login">{t('auth.signIn')}</Link>
                 </Button>
                 <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700">
-                  <Link href="/auth/register">Get Started</Link>
+                  <Link href="/auth/register">{t('auth.getStarted')}</Link>
                 </Button>
               </div>
             )}
           </div>
 
           {/* Mobile menu button */}
-          <div className="lg:hidden">
+          <div className="lg:hidden flex items-center space-x-2">
+            <LanguageSelector />
             <Button
               variant="ghost"
               size="icon"
@@ -505,7 +531,7 @@ export function Navbar() {
                   )}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {item.name}
+                  {t('nav.home')}
                 </Link>
               ))}
               
@@ -521,11 +547,11 @@ export function Navbar() {
                   )}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  {item.name}
+                  {t('nav.pricing')}
                 </Link>
               ))}
               
-              {(!isHydrated || !isAuthenticated) && (
+              {!isAuthenticated && (
                 <Link
                   href="/scholarships"
                   className={cn(
@@ -536,12 +562,12 @@ export function Navbar() {
                   )}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  Scholarships
+                  {t('nav.scholarships')}
                 </Link>
               )}
               
               {/* Role-specific navigation */}
-              {isHydrated && isAuthenticated && getRoleSpecificNavigation().length > 0 && (
+              {isAuthenticated && getRoleSpecificNavigation().length > 0 && (
                 <>
                   <div className="border-t border-gray-200 my-2" />
                   <div className="px-3 py-2">
@@ -561,7 +587,7 @@ export function Navbar() {
                       )}
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
-                      {item.name}
+                      {t(`nav.${item.href.split('/').pop()}`)}
                     </Link>
                   ))}
                 </>
@@ -572,12 +598,12 @@ export function Navbar() {
                 <div className="pt-4 border-t border-gray-200 space-y-2">
                   <Button asChild variant="ghost" className="w-full justify-start">
                     <Link href="/auth/login" onClick={() => setIsMobileMenuOpen(false)}>
-                      Sign In
+                      {t('auth.signIn')}
                     </Link>
                   </Button>
                   <Button asChild className="w-full justify-start bg-blue-600 hover:bg-blue-700">
                     <Link href="/auth/register" onClick={() => setIsMobileMenuOpen(false)}>
-                      Get Started
+                      {t('auth.getStarted')}
                     </Link>
                   </Button>
                 </div>
@@ -588,7 +614,7 @@ export function Navbar() {
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex items-center px-3 py-2 mb-2">
                     <Avatar className="h-10 w-10 mr-3">
-                      <AvatarImage src={user?.avatarUrl} alt={user?.name} />
+                      <AvatarImage src={user?.profile?.avatar || ''} alt={user?.name} />
                       <AvatarFallback className="bg-blue-600 text-white">
                         {getInitials(user?.name || '')}
                       </AvatarFallback>
@@ -598,9 +624,9 @@ export function Navbar() {
                         <p className="text-sm font-medium text-gray-900">{user?.name}</p>
                         <span className={cn(
                           "px-2 py-0.5 rounded-full text-xs font-medium border",
-                          getRoleBadge(user?.role || 'applicant', user?.subscription).color
+                          getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).color
                         )}>
-                          {getRoleBadge(user?.role || 'applicant', user?.subscription).label}
+                          {getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).label}
                         </span>
                       </div>
                       <p className="text-xs text-gray-500">{user?.email}</p>
@@ -613,7 +639,7 @@ export function Navbar() {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <User className="h-4 w-4 mr-3 text-gray-400" />
-                    Profile
+                    {t('user.profile')}
                   </Link>
                   
                   <Link
@@ -622,7 +648,7 @@ export function Navbar() {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <Settings className="h-4 w-4 mr-3 text-gray-400" />
-                    Settings
+                    {t('user.settings')}
                   </Link>
                   
                   <button
@@ -633,7 +659,7 @@ export function Navbar() {
                     className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md mt-2"
                   >
                     <LogOut className="h-4 w-4 mr-3" />
-                    Sign Out
+                    {t('user.logout')}
                   </button>
                 </div>
               )}

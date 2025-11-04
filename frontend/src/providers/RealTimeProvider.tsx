@@ -1,72 +1,51 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, ReactNode, useState } from 'react';
 import { useSocket } from '@/hooks/useSocket';
-import { 
-  useNotificationStore,
-  useMessageStore,
-  useApplicationStore,
-  useDashboardStore,
-  useMatchStore
-} from '@/stores/realtimeStore';
-
-// Simple auth hook - same as Navbar and Messages
-const useAuth = () => {
-  const getStoredUser = () => {
-    if (typeof window === 'undefined') return null;
-    
-    const token = localStorage.getItem('auth_token');
-    const role = localStorage.getItem('user_role');
-    const userData = localStorage.getItem('user_data');
-    
-    if (!token) return null;
-    
-    if (userData) {
-      try {
-        return JSON.parse(userData);
-      } catch (e) {
-        // fallback to basic user data
-      }
-    }
-    
-    return {
-      id: '1',
-      name: 'John Doe',
-      email: 'john.doe@email.com',
-      role: role || 'applicant' as 'applicant' | 'provider' | 'admin',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John'
-    };
-  };
-  
-  return {
-    user: getStoredUser(),
-    isAuthenticated: typeof window !== 'undefined' && localStorage.getItem('auth_token') !== null,
-  };
-};
-import { 
-  Notification as NotificationModel,
-  Message,
-  ApplicationStatus,
-  DashboardStats,
-  MatchSuggestion 
-} from '@/types/realtime';
+import { useAuth } from '@/lib/auth';
+import { useMessageStore, useNotificationStore } from '@/stores/realtimeStore';
+import type { Message, Notification as NotificationModel } from '@/types/realtime';
+import { toast } from 'react-hot-toast';
 
 interface RealTimeContextType {
-  socket: ReturnType<typeof useSocket>;
-  sendMessage: (receiverId: string, content: string) => void;
+  // Socket
+  socket: ReturnType<typeof useSocket>['socket'];
+  isConnected: boolean;
+  onlineUsers: string[];
+  onlineUsersMap: Map<string, { name: string; role: string }>;
+  
+  // Messages
+  messages: Record<string, Message[]>;
+  chatRooms: Record<string, any>;
+  activeRoom: string | null;
+  sendMessage: (roomId: string, content: string, attachments?: string[]) => void;
+  markMessagesAsRead: (roomId: string, messageIds: string[]) => void;
+  sendTypingIndicator: (roomId: string, isTyping: boolean) => void;
   joinChatRoom: (roomId: string) => void;
   leaveChatRoom: (roomId: string) => void;
+  
+  // Notifications
+  notifications: NotificationModel[];
+  notificationUnreadCount: number;
+  markNotificationsAsRead: (notificationIds: string[]) => void;
+  markAllNotificationsAsRead: () => void;
+  
+  // Utilities
   canChatWith: (otherUserRole: string) => boolean;
+  isRealTimeEnabled: boolean;
 }
 
 const RealTimeContext = createContext<RealTimeContextType | null>(null);
 
 interface RealTimeProviderProps {
   children: ReactNode;
+  enabled?: boolean;
 }
 
-export function RealTimeProvider({ children }: RealTimeProviderProps) {
+export function RealTimeProvider({ children, enabled = true }: RealTimeProviderProps) {
   const { user, isAuthenticated } = useAuth();
+  
+  // Initialize Socket.IO
   const socket = useSocket(
     isAuthenticated ? user?.id : undefined,
     isAuthenticated ? user?.role : undefined,
@@ -74,12 +53,23 @@ export function RealTimeProvider({ children }: RealTimeProviderProps) {
   );
   
   // Store actions
-  const addNotification = useNotificationStore(state => state.addNotification);
-  const addMessage = useMessageStore(state => state.addMessage);
-  const updateApplicationStatus = useApplicationStore(state => state.updateApplicationStatus);
-  const updateStats = useDashboardStore(state => state.updateStats);
-  const addMatch = useMatchStore(state => state.addMatch);
-  const setTyping = useMessageStore(state => state.setTyping);
+  const { 
+    messages, 
+    chatRooms, 
+    activeRoom, 
+    addMessage, 
+    updateChatRoom, 
+    setTyping,
+    markMessagesAsRead: storeMarkMessagesAsRead 
+  } = useMessageStore();
+  
+  const { 
+    notifications, 
+    unreadCount, 
+    addNotification, 
+    markAsRead: storeMarkNotificationsAsRead,
+    markAllAsRead: storeMarkAllAsRead 
+  } = useNotificationStore();
 
   // Role-based chat rules
   const canChatWith = (otherUserRole: string): boolean => {
@@ -113,66 +103,103 @@ export function RealTimeProvider({ children }: RealTimeProviderProps) {
     }
   }, []);
 
-  useEffect(() => {
-    if (!socket.isConnected || !isAuthenticated) return;
+  const [onlineUsersMap, setOnlineUsersMap] = React.useState<Map<string, { name: string; role: string }>>(new Map());
 
-    // Notification events
-    socket.on('notification', (notification: NotificationModel) => {
-      addNotification(notification);
-      
-      // Show browser notification if permission granted
-      if (Notification.permission === 'granted') {
-        new Notification(notification.title, {
-          body: notification.message,
-          icon: '/favicon.ico',
-        });
-      }
+  // Setup Socket.IO event listeners
+  useEffect(() => {
+    if (!socket.isConnected || !isAuthenticated || !enabled) return;
+
+    console.log('Setting up Socket.IO event listeners...');
+
+    // User online/offline events
+    (socket as any).on('user_online', (userData: { userId: string; role: string; name: string }) => {
+      console.log('User came online:', userData);
+      setOnlineUsersMap(prev => {
+        const newMap = new Map(prev);
+        newMap.set(userData.userId, { name: userData.name, role: userData.role });
+        return newMap;
+      });
+    });
+
+    (socket as any).on('user_offline', (userData: { userId: string; role: string; name: string }) => {
+      console.log('User went offline:', userData);
+      setOnlineUsersMap(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(userData.userId);
+        return newMap;
+      });
+    });
+
+    (socket as any).on('online_users', (users: Array<{ userId: string; role: string; name: string }>) => {
+      console.log('Received online users list:', users);
+      const newMap = new Map();
+      users.forEach(u => newMap.set(u.userId, { name: u.name, role: u.role }));
+      setOnlineUsersMap(newMap);
     });
 
     // Message events
     socket.on('message', (message: Message) => {
+      console.log('📨 Received message:', message);
       const roomId = [message.senderId, message.receiverId].sort().join('-');
-      addMessage(roomId, message);
-    });
-
-    // Application status events
-    socket.on('application_status_update', (status: ApplicationStatus) => {
-      updateApplicationStatus(status);
+      console.log('📍 Calculated room ID:', roomId, '| Current user:', user?.id);
       
-      // Create notification for status change
-      const notification: NotificationModel = {
-        id: `status-${status.id}-${Date.now()}`,
-        type: 'status',
-        title: 'Application Status Updated',
-        message: `Your application status changed to ${status.status}`,
-        createdAt: new Date().toISOString(),
-        read: false,
-        metadata: { applicationId: status.id }
-      };
-      addNotification(notification);
-    });
-
-    // Dashboard stats events
-    socket.on('dashboard_stats_update', (stats: DashboardStats) => {
-      updateStats(stats);
-    });
-
-    // Match suggestion events (only for applicants)
-    socket.on('match_suggestion', (match: MatchSuggestion) => {
-      if (user?.role === 'applicant') {
-        addMatch(match);
+      // Only add if it's not from current user (to avoid duplicate)
+      // Because we already added it locally when sending
+      if (message.senderId !== user?.id) {
+        console.log('✅ Adding message to room:', roomId);
         
-        // Create notification for new match
-        const notification: NotificationModel = {
-          id: `match-${match.id}`,
-          type: 'new_scholarship',
-          title: 'New Scholarship Match!',
-          message: `Found a scholarship with ${match.score}% match`,
-          createdAt: new Date().toISOString(),
-          read: false,
-          metadata: { matchId: match.id, scholarshipId: match.scholarshipId }
-        };
-        addNotification(notification);
+        // If currently in this room, mark as read immediately
+        if (activeRoom === roomId) {
+          addMessage(roomId, { ...message, status: 'read' as const });
+          // Also emit to server that we've read it
+          (socket as any).emit('mark_messages_read', { roomId, messageIds: [message.id] });
+        } else {
+          // Not in this room, add as delivered and show toast
+          addMessage(roomId, message);
+          toast.success(`New message from ${(message as any).senderName || 'user'}`, {
+            duration: 4000,
+            icon: '💬',
+          });
+        }
+      } else {
+        console.log('⏭️ Skipping message (from current user)');
+      }
+    });
+
+    // Notification events
+    socket.on('notification', (notification: NotificationModel) => {
+      console.log('Received notification:', notification);
+      addNotification(notification);
+      
+      // Show toast
+      const notifType = (notification as any).type;
+      const message = notification.message || 'New notification';
+      
+      switch (notifType) {
+        case 'APPLICATION_ACCEPTED':
+        case 'APPLICATION_APPROVED':
+          toast.success(message, { duration: 5000, icon: '🎉' });
+          break;
+        case 'APPLICATION_REJECTED':
+          toast.error(message, { duration: 5000 });
+          break;
+        case 'NEW_MESSAGE':
+          toast(message, { duration: 4000, icon: '💬' });
+          break;
+        case 'NEW_SCHOLARSHIP':
+        case 'SCHOLARSHIP_MATCH':
+          toast.success(message, { duration: 4000, icon: '🎓' });
+          break;
+        default:
+          toast(message, { duration: 4000 });
+      }
+      
+      // Browser notification
+      if (Notification.permission === 'granted') {
+        new Notification(notification.title || 'EduMatch', {
+          body: message,
+          icon: '/favicon.ico',
+        });
       }
     });
 
@@ -185,51 +212,131 @@ export function RealTimeProvider({ children }: RealTimeProviderProps) {
 
     // Cleanup
     return () => {
-      socket.off('notification');
+      (socket as any).off('user_online');
+      (socket as any).off('user_offline');
+      (socket as any).off('online_users');
       socket.off('message');
-      socket.off('application_status_update');
-      socket.off('dashboard_stats_update');
-      socket.off('match_suggestion');
+      socket.off('notification');
       socket.off('typing');
     };
-  }, [socket.isConnected, isAuthenticated, user?.id, user?.role, addNotification, addMessage, updateApplicationStatus, updateStats, addMatch, setTyping]);
+  }, [socket.isConnected, isAuthenticated, enabled, user?.id, activeRoom, addMessage, addNotification, setTyping]);
 
   // Helper functions
-  const sendMessage = (receiverId: string, content: string) => {
-    if (!user?.id || !isAuthenticated) {
-      console.warn('User must be authenticated to send messages');
+  const sendMessage = (roomId: string, content: string, attachments?: string[]) => {
+    console.log('🚀 sendMessage called with roomId:', roomId, '| user.id:', user?.id);
+    
+    if (!user?.id || !isAuthenticated || !socket.isConnected) {
+      toast.error('Cannot send message. Please check your connection.');
       return;
     }
     
-    const message = {
+    // Extract receiver ID from room ID
+    // Room ID is already calculated as [userId1, userId2].sort().join('-')
+    // So we need to remove current user ID from the room ID
+    // Handle case where user IDs contain hyphens (e.g., "provider-1", "student-1")
+    let receiverId: string;
+    
+    if (roomId.startsWith(user.id + '-')) {
+      // Current user is first: "provider-1-student-1" → receiver is "student-1"
+      receiverId = roomId.substring(user.id.length + 1);
+    } else if (roomId.endsWith('-' + user.id)) {
+      // Current user is last: "provider-1-student-1" → receiver is "provider-1"
+      receiverId = roomId.substring(0, roomId.length - user.id.length - 1);
+    } else {
+      console.error('❌ Could not determine receiver from room ID:', roomId, '| user.id:', user.id);
+      toast.error('Invalid chat room');
+      return;
+    }
+    
+    console.log('🎯 Receiver ID:', receiverId);
+    
+    const messageData = {
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       senderId: user.id,
       receiverId,
       content,
+      attachments,
       status: 'sent' as const,
-      type: 'text' as const
+      type: 'text' as const,
+      createdAt: new Date().toISOString(),
+      senderName: user.name || user.email || 'User'
     };
     
-    // Just emit to server, don't add locally to avoid duplicates
-    // Server will emit back to room and we'll receive it via socket.on('message')
-    socket.emit('send_message', message);
+    console.log('💬 Sending message:', messageData, '| Room:', roomId);
+    
+    // Add to local store immediately for instant feedback
+    addMessage(roomId, messageData as any);
+    
+    // Emit to server
+    (socket as any).emit('send_message', messageData);
+    console.log('✉️ Message emitted to server');
+  };
+
+  const markMessagesAsRead = (roomId: string, messageIds: string[]) => {
+    if (!socket.isConnected) return;
+    
+    // Just emit to server, don't use the event name in type checking
+    (socket as any).emit('mark_messages_read', { roomId, messageIds });
+    storeMarkMessagesAsRead(roomId, messageIds);
+  };
+
+  const sendTypingIndicator = (roomId: string, isTyping: boolean) => {
+    if (!socket.isConnected || !user?.id) return;
+    
+    socket.emit('typing', { roomId, userId: user.id, isTyping });
   };
 
   const joinChatRoom = (roomId: string) => {
-    if (!isAuthenticated) return;
+    if (!socket.isConnected) return;
     socket.joinRoom(roomId);
   };
 
   const leaveChatRoom = (roomId: string) => {
-    if (!isAuthenticated) return;
+    if (!socket.isConnected) return;
     socket.leaveRoom(roomId);
   };
 
+  const markNotificationsAsRead = (notificationIds: string[]) => {
+    if (!socket.isConnected) return;
+    
+    (socket as any).emit('mark_notifications_read', notificationIds);
+    storeMarkNotificationsAsRead(notificationIds);
+  };
+
+  const markAllNotificationsAsRead = () => {
+    if (!socket.isConnected) return;
+    
+    const allIds = notifications.map(n => n.id);
+    (socket as any).emit('mark_notifications_read', allIds);
+    storeMarkAllAsRead();
+  };
+
   const contextValue: RealTimeContextType = {
-    socket,
+    // Socket
+    socket: socket.socket,
+    isConnected: socket.isConnected && enabled && isAuthenticated,
+    onlineUsers: socket.onlineUsers,
+    onlineUsersMap,
+    
+    // Messages
+    messages,
+    chatRooms,
+    activeRoom,
     sendMessage,
+    markMessagesAsRead,
+    sendTypingIndicator,
     joinChatRoom,
     leaveChatRoom,
+    
+    // Notifications
+    notifications,
+    notificationUnreadCount: unreadCount,
+    markNotificationsAsRead,
+    markAllNotificationsAsRead,
+    
+    // Utilities
     canChatWith,
+    isRealTimeEnabled: enabled && isAuthenticated && socket.isConnected,
   };
 
   return (
@@ -245,6 +352,23 @@ export function useRealTime() {
     throw new Error('useRealTime must be used within a RealTimeProvider');
   }
   return context;
+}
+
+// Hook to check real-time status
+export function useRealTimeStatus() {
+  const context = useContext(RealTimeContext);
+  if (!context) {
+    throw new Error('useRealTimeStatus must be used within a RealTimeProvider');
+  }
+  return {
+    isEnabled: context.isRealTimeEnabled,
+    isConnected: context.isConnected,
+    onlineUsersCount: context.onlineUsers.length,
+    messageUnreadCount: Object.values(context.messages).flat().filter((msg: any) => 
+      msg.receiverId === (context as any).user?.id && msg.status !== 'read'
+    ).length,
+    notificationUnreadCount: context.notificationUnreadCount,
+  };
 }
 
 // Hook to request notification permission

@@ -2,22 +2,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // TEMPORARY: Disable middleware for debugging
-  return NextResponse.next();
-  
   const { pathname } = request.nextUrl;
   
   // Get auth token from cookies
   const token = request.cookies.get('auth_token')?.value;
   const isAuthenticated = !!token;
-  
-  // Debug logging
-  console.log('Middleware debug:', { 
-    pathname, 
-    hasToken: !!token,
-    tokenLength: token?.length || 0,
-    allCookies: request.cookies.getAll().map(c => c.name)
-  });
   
   // Get user role from cookies
   let userRole = null;
@@ -25,13 +14,11 @@ export function middleware(request: NextRequest) {
     try {
       const userData = request.cookies.get('auth_user')?.value;
       if (userData) {
-        const user = JSON.parse(decodeURIComponent(userData!));
+        const user = JSON.parse(decodeURIComponent(userData));
         userRole = user.role;
-        console.log('User role from cookie:', userRole);
       }
     } catch (error) {
       console.log('Error parsing user data:', error);
-      // Invalid user data
     }
   }
 
@@ -51,6 +38,12 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
     if (userRole !== 'provider') {
+      // Redirect wrong role to their own dashboard
+      if (userRole === 'admin') {
+        return NextResponse.redirect(new URL('/admin', request.url));
+      } else if (userRole === 'applicant') {
+        return NextResponse.redirect(new URL('/applicant/dashboard', request.url));
+      }
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
@@ -61,6 +54,12 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
     if (userRole !== 'applicant') {
+      // Redirect wrong role to their own dashboard
+      if (userRole === 'admin') {
+        return NextResponse.redirect(new URL('/admin', request.url));
+      } else if (userRole === 'provider') {
+        return NextResponse.redirect(new URL('/provider/dashboard', request.url));
+      }
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
@@ -71,6 +70,12 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
     if (userRole !== 'admin') {
+      // Redirect wrong role to their own dashboard
+      if (userRole === 'provider') {
+        return NextResponse.redirect(new URL('/provider/dashboard', request.url));
+      } else if (userRole === 'applicant') {
+        return NextResponse.redirect(new URL('/applicant/dashboard', request.url));
+      }
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
@@ -80,6 +85,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/',  // Add home page to matcher for role-based redirect
     '/provider/:path*',
     '/applicant/:path*', 
     '/admin/:path*'

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 const ORGANIZATION_TYPES = [
   'University',
@@ -76,6 +77,7 @@ const mockProvider = {
 };
 
 export default function ProviderProfilePage() {
+  const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [profileData, setProfileData] = useState(mockProvider);
@@ -87,9 +89,9 @@ export default function ProviderProfilePage() {
       await new Promise(resolve => setTimeout(resolve, 1500));
       console.log('Saving profile:', profileData);
       setIsEditing(false);
-      alert('Profile updated successfully!');
+      alert(t('providerProfile.successMessage'));
     } catch (error) {
-      alert('Failed to update profile');
+      alert(t('providerProfile.errorMessage'));
       console.error('Error updating profile:', error);
     } finally {
       setLoading(false);
@@ -121,12 +123,12 @@ export default function ProviderProfilePage() {
             className="absolute top-4 right-4"
           >
             <Camera className="h-4 w-4 mr-2" />
-            Change Cover
+            {t('providerProfile.changeCover')}
           </Button>
         )}
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         {/* Profile Header */}
         <div className="relative -mt-16 pb-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-end space-y-4 sm:space-y-0 sm:space-x-6">
@@ -167,17 +169,17 @@ export default function ProviderProfilePage() {
                   {!isEditing ? (
                     <Button onClick={() => setIsEditing(true)}>
                       <Edit3 className="h-4 w-4 mr-2" />
-                      Edit Profile
+                      {t('providerProfile.editProfile')}
                     </Button>
                   ) : (
                     <>
                       <Button variant="outline" onClick={handleCancel}>
                         <X className="h-4 w-4 mr-2" />
-                        Cancel
+                        {t('providerProfile.cancel')}
                       </Button>
                       <Button onClick={handleSave} disabled={loading}>
                         <Save className="h-4 w-4 mr-2" />
-                        {loading ? 'Saving...' : 'Save Changes'}
+                        {loading ? t('providerProfile.saving') : t('providerProfile.saveChanges')}
                       </Button>
                     </>
                   )}
@@ -196,7 +198,7 @@ export default function ProviderProfilePage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{profileData.stats.totalScholarships}</p>
-                <p className="text-xs text-muted-foreground">Total Scholarships</p>
+                <p className="text-xs text-muted-foreground">{t('providerProfile.stats.totalScholarships')}</p>
               </div>
             </CardContent>
           </Card>
@@ -208,7 +210,7 @@ export default function ProviderProfilePage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{profileData.stats.activeScholarships}</p>
-                <p className="text-xs text-muted-foreground">Active Scholarships</p>
+                <p className="text-xs text-muted-foreground">{t('providerProfile.stats.activeScholarships')}</p>
               </div>
             </CardContent>
           </Card>
@@ -220,7 +222,7 @@ export default function ProviderProfilePage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{profileData.stats.totalRecipients}</p>
-                <p className="text-xs text-muted-foreground">Students Supported</p>
+                <p className="text-xs text-muted-foreground">{t('providerProfile.stats.studentsSupported')}</p>
               </div>
             </CardContent>
           </Card>
@@ -232,7 +234,7 @@ export default function ProviderProfilePage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{profileData.stats.totalFunding}</p>
-                <p className="text-xs text-muted-foreground">Total Funding</p>
+                <p className="text-xs text-muted-foreground">{t('providerProfile.stats.totalFunding')}</p>
               </div>
             </CardContent>
           </Card>
@@ -241,17 +243,17 @@ export default function ProviderProfilePage() {
         {/* Profile Content */}
         <Tabs defaultValue="overview" className="space-y-8">
           <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="contact">Contact Information</TabsTrigger>
-            <TabsTrigger value="achievements">Achievements</TabsTrigger>
+            <TabsTrigger value="overview">{t('providerProfile.tabs.overview')}</TabsTrigger>
+            <TabsTrigger value="contact">{t('providerProfile.tabs.contact')}</TabsTrigger>
+            <TabsTrigger value="achievements">{t('providerProfile.tabs.achievements')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-8">
-            <ProfileSection title="About Our Organization">
+            <ProfileSection title={t('providerProfile.aboutOrg')}>
               {isEditing ? (
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="name">Organization Name</Label>
+                    <Label htmlFor="name">{t('providerProfile.orgName')}</Label>
                     <Input
                       id="name"
                       value={profileData.name}
@@ -261,7 +263,7 @@ export default function ProviderProfilePage() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="type">Organization Type</Label>
+                    <Label htmlFor="type">{t('providerProfile.orgType')}</Label>
                     <Select 
                       value={profileData.type} 
                       onValueChange={(value) => setProfileData(prev => ({ ...prev, type: value }))}
@@ -280,7 +282,7 @@ export default function ProviderProfilePage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="description">Description</Label>
+                    <Label htmlFor="description">{t('providerProfile.description')}</Label>
                     <Textarea
                       id="description"
                       rows={6}
@@ -292,7 +294,7 @@ export default function ProviderProfilePage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="country">Country</Label>
+                      <Label htmlFor="country">{t('providerProfile.country')}</Label>
                       <Select 
                         value={profileData.country} 
                         onValueChange={(value) => setProfileData(prev => ({ ...prev, country: value }))}
@@ -311,7 +313,7 @@ export default function ProviderProfilePage() {
                     </div>
 
                     <div>
-                      <Label htmlFor="city">City</Label>
+                      <Label htmlFor="city">{t('providerProfile.city')}</Label>
                       <Input
                         id="city"
                         value={profileData.city}
@@ -322,7 +324,7 @@ export default function ProviderProfilePage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="founded">Founded Year</Label>
+                    <Label htmlFor="founded">{t('providerProfile.founded')}</Label>
                     <Input
                       id="founded"
                       value={profileData.founded}
@@ -339,11 +341,11 @@ export default function ProviderProfilePage() {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <h4 className="font-semibold text-sm mb-2">Organization Type</h4>
+                      <h4 className="font-semibold text-sm mb-2">{t('providerProfile.orgType')}</h4>
                       <p className="text-sm text-muted-foreground">{profileData.type}</p>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-sm mb-2">Founded</h4>
+                      <h4 className="font-semibold text-sm mb-2">{t('providerProfile.foundedLabel')}</h4>
                       <p className="text-sm text-muted-foreground">{profileData.founded}</p>
                     </div>
                   </div>
@@ -353,11 +355,11 @@ export default function ProviderProfilePage() {
           </TabsContent>
 
           <TabsContent value="contact" className="space-y-8">
-            <ProfileSection title="Contact Information">
+            <ProfileSection title={t('providerProfile.contactInfo')}>
               {isEditing ? (
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="address">Address</Label>
+                    <Label htmlFor="address">{t('providerProfile.address')}</Label>
                     <Input
                       id="address"
                       value={profileData.address}
@@ -368,7 +370,7 @@ export default function ProviderProfilePage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email">{t('providerProfile.email')}</Label>
                       <Input
                         id="email"
                         type="email"
@@ -378,7 +380,7 @@ export default function ProviderProfilePage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="phone">Phone</Label>
+                      <Label htmlFor="phone">{t('providerProfile.phone')}</Label>
                       <Input
                         id="phone"
                         value={profileData.phone}
@@ -389,7 +391,7 @@ export default function ProviderProfilePage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="website">Website</Label>
+                    <Label htmlFor="website">{t('providerProfile.website')}</Label>
                     <Input
                       id="website"
                       type="url"
@@ -400,10 +402,10 @@ export default function ProviderProfilePage() {
                   </div>
 
                   <div className="space-y-4">
-                    <h4 className="font-semibold">Social Media</h4>
+                    <h4 className="font-semibold">{t('providerProfile.socialMedia')}</h4>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="linkedin">LinkedIn</Label>
+                        <Label htmlFor="linkedin">{t('providerProfile.linkedin')}</Label>
                         <Input
                           id="linkedin"
                           value={profileData.socialMedia.linkedin}
@@ -415,7 +417,7 @@ export default function ProviderProfilePage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="twitter">Twitter</Label>
+                        <Label htmlFor="twitter">{t('providerProfile.twitter')}</Label>
                         <Input
                           id="twitter"
                           value={profileData.socialMedia.twitter}
@@ -427,7 +429,7 @@ export default function ProviderProfilePage() {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="facebook">Facebook</Label>
+                        <Label htmlFor="facebook">{t('providerProfile.facebook')}</Label>
                         <Input
                           id="facebook"
                           value={profileData.socialMedia.facebook}
@@ -447,7 +449,7 @@ export default function ProviderProfilePage() {
                     <div className="flex items-start space-x-3">
                       <MapPin className="h-5 w-5 text-muted-foreground mt-1" />
                       <div>
-                        <h4 className="font-semibold text-sm mb-1">Address</h4>
+                        <h4 className="font-semibold text-sm mb-1">{t('providerProfile.address')}</h4>
                         <p className="text-sm text-muted-foreground">{profileData.address}</p>
                       </div>
                     </div>
@@ -455,7 +457,7 @@ export default function ProviderProfilePage() {
                     <div className="flex items-start space-x-3">
                       <Mail className="h-5 w-5 text-muted-foreground mt-1" />
                       <div>
-                        <h4 className="font-semibold text-sm mb-1">Email</h4>
+                        <h4 className="font-semibold text-sm mb-1">{t('providerProfile.email')}</h4>
                         <a href={`mailto:${profileData.email}`} className="text-sm text-brand-blue-600 hover:underline">
                           {profileData.email}
                         </a>
@@ -465,7 +467,7 @@ export default function ProviderProfilePage() {
                     <div className="flex items-start space-x-3">
                       <Phone className="h-5 w-5 text-muted-foreground mt-1" />
                       <div>
-                        <h4 className="font-semibold text-sm mb-1">Phone</h4>
+                        <h4 className="font-semibold text-sm mb-1">{t('providerProfile.phone')}</h4>
                         <a href={`tel:${profileData.phone}`} className="text-sm text-brand-blue-600 hover:underline">
                           {profileData.phone}
                         </a>
@@ -475,7 +477,7 @@ export default function ProviderProfilePage() {
                     <div className="flex items-start space-x-3">
                       <Globe className="h-5 w-5 text-muted-foreground mt-1" />
                       <div>
-                        <h4 className="font-semibold text-sm mb-1">Website</h4>
+                        <h4 className="font-semibold text-sm mb-1">{t('providerProfile.website')}</h4>
                         <a href={profileData.website} target="_blank" rel="noopener noreferrer" className="text-sm text-brand-blue-600 hover:underline">
                           {profileData.website}
                         </a>
@@ -484,7 +486,7 @@ export default function ProviderProfilePage() {
                   </div>
 
                   <div>
-                    <h4 className="font-semibold text-sm mb-3">Social Media</h4>
+                    <h4 className="font-semibold text-sm mb-3">{t('providerProfile.socialMedia')}</h4>
                     <div className="flex space-x-4">
                       {profileData.socialMedia.linkedin && (
                         <a href={profileData.socialMedia.linkedin} target="_blank" rel="noopener noreferrer" className="text-brand-blue-600 hover:underline text-sm">
@@ -509,7 +511,7 @@ export default function ProviderProfilePage() {
           </TabsContent>
 
           <TabsContent value="achievements" className="space-y-8">
-            <ProfileSection title="Our Achievements">
+            <ProfileSection title={t('providerProfile.ourAchievements')}>
               <div className="space-y-4">
                 {profileData.achievements.map((achievement, index) => (
                   <div key={index} className="flex items-start space-x-3">
@@ -520,30 +522,30 @@ export default function ProviderProfilePage() {
               </div>
             </ProfileSection>
 
-            <ProfileSection title="Impact Statistics">
+            <ProfileSection title={t('providerProfile.impactStats')}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="text-center p-6 bg-brand-blue-50 rounded-lg">
                   <div className="text-3xl font-bold text-brand-blue-600 mb-2">
                     {profileData.stats.totalFunding}
                   </div>
-                  <div className="text-sm text-muted-foreground">Total Funding Provided</div>
+                  <div className="text-sm text-muted-foreground">{t('providerProfile.totalFundingProvided')}</div>
                 </div>
 
                 <div className="text-center p-6 bg-green-50 rounded-lg">
                   <div className="text-3xl font-bold text-green-600 mb-2">
                     {profileData.stats.totalRecipients}+
                   </div>
-                  <div className="text-sm text-muted-foreground">Students Supported</div>
+                  <div className="text-sm text-muted-foreground">{t('providerProfile.stats.studentsSupported')}</div>
                 </div>
 
                 <div className="text-center p-6 bg-purple-50 rounded-lg">
                   <div className="text-3xl font-bold text-purple-600 mb-2">50+</div>
-                  <div className="text-sm text-muted-foreground">Partner Universities</div>
+                  <div className="text-sm text-muted-foreground">{t('providerProfile.partnerUniversities')}</div>
                 </div>
 
                 <div className="text-center p-6 bg-orange-50 rounded-lg">
                   <div className="text-3xl font-bold text-orange-600 mb-2">25+</div>
-                  <div className="text-sm text-muted-foreground">Countries Reached</div>
+                  <div className="text-sm text-muted-foreground">{t('providerProfile.countriesReached')}</div>
                 </div>
               </div>
             </ProfileSection>

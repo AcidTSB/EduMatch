@@ -17,6 +17,9 @@ interface MessageItemProps {
   isRead: boolean;
   senderAvatar?: string;
   onClick?: () => void;
+  unreadCount?: number;
+  isOnline?: boolean;
+  isFromCurrentUser?: boolean;
 }
 
 export function MessageItem({
@@ -26,29 +29,37 @@ export function MessageItem({
   timestamp,
   isRead,
   senderAvatar,
-  onClick
+  onClick,
+  unreadCount = 0,
+  isOnline = false,
+  isFromCurrentUser = false
 }: MessageItemProps) {
   return (
     <div
       onClick={onClick}
       className={`flex items-start space-x-3 p-4 rounded-lg cursor-pointer transition-colors hover:bg-gray-50 ${
-        !isRead ? 'bg-blue-50 border-l-4 border-brand-blue-500' : ''
+        unreadCount > 0 ? 'bg-blue-50 border-l-4 border-brand-blue-500' : ''
       }`}
     >
-      <Avatar className="h-10 w-10 flex-shrink-0">
-        <AvatarImage
-          src={senderAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${senderName}`}
-          alt={senderName}
-        />
-        <AvatarFallback>
-          {senderName.substring(0, 2).toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
+      <div className="relative">
+        <Avatar className="h-10 w-10 flex-shrink-0">
+          <AvatarImage
+            src={senderAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${senderName}`}
+            alt={senderName}
+          />
+          <AvatarFallback>
+            {senderName.substring(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        {isOnline && (
+          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+        )}
+      </div>
       
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center space-x-2">
-            <p className={`font-medium text-sm ${!isRead ? 'text-gray-900' : 'text-gray-700'}`}>
+            <p className={`font-medium text-sm ${unreadCount > 0 ? 'text-gray-900' : 'text-gray-700'}`}>
               {senderName}
             </p>
             <Badge variant="outline" className="text-xs capitalize">
@@ -59,13 +70,16 @@ export function MessageItem({
             <span className="text-xs text-gray-500">
               {formatDate(timestamp)}
             </span>
-            {!isRead && (
-              <div className="w-2 h-2 bg-brand-blue-500 rounded-full"></div>
+            {unreadCount > 0 && (
+              <Badge variant="destructive" className="text-xs">
+                {unreadCount}
+              </Badge>
             )}
           </div>
         </div>
         
-        <p className={`text-sm line-clamp-2 ${!isRead ? 'text-gray-900' : 'text-gray-600'}`}>
+        <p className={`text-sm line-clamp-2 ${unreadCount > 0 ? 'text-gray-900 font-medium' : 'text-gray-600'}`}>
+          {isFromCurrentUser && <span className="text-gray-500">You: </span>}
           {content}
         </p>
       </div>

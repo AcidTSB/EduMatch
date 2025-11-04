@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Mock settings data
 const initialSettings = {
@@ -58,6 +59,7 @@ const initialSettings = {
 };
 
 export default function SettingsPage() {
+  const { t } = useLanguage();
   const { logout } = useAuth();
   const [settings, setSettings] = useState(initialSettings);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -112,11 +114,11 @@ export default function SettingsPage() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      setMessage({ type: 'error', text: 'New passwords do not match' });
+      setMessage({ type: 'error', text: t('settings.passwordMismatch') });
       return;
     }
     if (newPassword.length < 8) {
-      setMessage({ type: 'error', text: 'Password must be at least 8 characters long' });
+      setMessage({ type: 'error', text: t('settings.passwordLength') });
       return;
     }
 
@@ -124,12 +126,12 @@ export default function SettingsPage() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
-      setMessage({ type: 'success', text: 'Password updated successfully' });
+      setMessage({ type: 'success', text: t('settings.passwordSuccess') });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update password' });
+      setMessage({ type: 'error', text: t('settings.passwordError') });
     } finally {
       setIsLoading(false);
     }
@@ -140,24 +142,24 @@ export default function SettingsPage() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      setMessage({ type: 'success', text: 'Settings saved successfully' });
+      setMessage({ type: 'success', text: t('settings.success') });
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to save settings' });
+      setMessage({ type: 'error', text: t('settings.error') });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDeleteAccount = async () => {
-    if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+    if (window.confirm(t('settings.data.deleteConfirm'))) {
       setIsLoading(true);
       try {
         // Simulate API call
         await new Promise(resolve => setTimeout(resolve, 2000));
-        alert('Account deleted successfully. You will be redirected to the home page.');
+        alert(t('settings.data.deleteSuccess'));
         logout();
       } catch (error) {
-        setMessage({ type: 'error', text: 'Failed to delete account' });
+        setMessage({ type: 'error', text: t('settings.error') });
       } finally {
         setIsLoading(false);
       }
@@ -185,12 +187,12 @@ export default function SettingsPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-gradient-to-r from-brand-blue-50 to-brand-cyan-50 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">Settings</h1>
+              <h1 className="text-4xl font-bold text-gray-900">{t('settings.title')}</h1>
               <p className="text-gray-600 mt-2">
-                Manage your account settings and preferences
+                {t('settings.subtitle')}
               </p>
             </div>
           </div>
@@ -220,14 +222,14 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Bell className="h-5 w-5" />
-                <span>Notification Settings</span>
+                <span>{t('settings.notifications.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Email Notifications</p>
-                  <p className="text-sm text-gray-600">Receive notifications via email</p>
+                  <p className="font-medium">{t('settings.notifications.email')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.notifications.emailDesc')}</p>
                 </div>
                 <Checkbox
                   checked={settings.notifications.emailNotifications}
@@ -237,8 +239,8 @@ export default function SettingsPage() {
               
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Push Notifications</p>
-                  <p className="text-sm text-gray-600">Receive push notifications</p>
+                  <p className="font-medium">{t('settings.notifications.push')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.notifications.pushDesc')}</p>
                 </div>
                 <Checkbox
                   checked={settings.notifications.pushNotifications}
@@ -248,8 +250,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Application Updates</p>
-                  <p className="text-sm text-gray-600">Get notified about application status changes</p>
+                  <p className="font-medium">{t('settings.notifications.appUpdates')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.notifications.appUpdatesDesc')}</p>
                 </div>
                 <Checkbox
                   checked={settings.notifications.applicationUpdates}
@@ -259,8 +261,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Deadline Reminders</p>
-                  <p className="text-sm text-gray-600">Receive reminders about upcoming deadlines</p>
+                  <p className="font-medium">{t('settings.notifications.deadlines')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.notifications.deadlinesDesc')}</p>
                 </div>
                 <Checkbox
                   checked={settings.notifications.deadlineReminders}
@@ -270,8 +272,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">New Scholarship Matches</p>
-                  <p className="text-sm text-gray-600">Get notified about new scholarship opportunities</p>
+                  <p className="font-medium">{t('settings.notifications.newMatches')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.notifications.newMatchesDesc')}</p>
                 </div>
                 <Checkbox
                   checked={settings.notifications.newMatches}
@@ -281,8 +283,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Marketing Emails</p>
-                  <p className="text-sm text-gray-600">Receive promotional emails and updates</p>
+                  <p className="font-medium">{t('settings.notifications.marketing')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.notifications.marketingDesc')}</p>
                 </div>
                 <Checkbox
                   checked={settings.notifications.marketingEmails}
@@ -292,8 +294,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Weekly Digest</p>
-                  <p className="text-sm text-gray-600">Receive weekly summary emails</p>
+                  <p className="font-medium">{t('settings.notifications.digest')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.notifications.digestDesc')}</p>
                 </div>
                 <Checkbox
                   checked={settings.notifications.weeklyDigest}
@@ -308,30 +310,30 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Shield className="h-5 w-5" />
-                <span>Privacy Settings</span>
+                <span>{t('settings.privacy.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Profile Visibility</p>
-                  <p className="text-sm text-gray-600">Control who can see your profile</p>
+                  <p className="font-medium">{t('settings.privacy.visibility')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.privacy.visibilityDesc')}</p>
                 </div>
                 <select 
                   value={settings.privacy.profileVisibility}
                   onChange={(e) => updatePrivacySetting('profileVisibility', e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue-500"
                 >
-                  <option value="public">Public</option>
-                  <option value="private">Private</option>
-                  <option value="providers_only">Providers Only</option>
+                  <option value="public">{t('settings.privacy.visibilityPublic')}</option>
+                  <option value="private">{t('settings.privacy.visibilityPrivate')}</option>
+                  <option value="providers_only">{t('settings.privacy.visibilityProviders')}</option>
                 </select>
               </div>
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Show Email Address</p>
-                  <p className="text-sm text-gray-600">Allow others to see your email</p>
+                  <p className="font-medium">{t('settings.privacy.showEmail')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.privacy.showEmailDesc')}</p>
                 </div>
                 <Checkbox
                   checked={settings.privacy.showEmail}
@@ -341,8 +343,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Show Phone Number</p>
-                  <p className="text-sm text-gray-600">Allow others to see your phone number</p>
+                  <p className="font-medium">{t('settings.privacy.showPhone')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.privacy.showPhoneDesc')}</p>
                 </div>
                 <Checkbox
                   checked={settings.privacy.showPhone}
@@ -352,8 +354,8 @@ export default function SettingsPage() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Allow Direct Messages</p>
-                  <p className="text-sm text-gray-600">Let providers contact you directly</p>
+                  <p className="font-medium">{t('settings.privacy.directMessages')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.privacy.directMessagesDesc')}</p>
                 </div>
                 <Checkbox
                   checked={settings.privacy.allowDirectMessages}
@@ -368,24 +370,24 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Lock className="h-5 w-5" />
-                <span>Security Settings</span>
+                <span>{t('settings.security.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Change Password */}
               <div>
-                <h4 className="font-medium mb-4">Change Password</h4>
+                <h4 className="font-medium mb-4">{t('settings.security.changePassword')}</h4>
                 <form onSubmit={handlePasswordChange} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Current Password
+                      {t('settings.security.currentPassword')}
                     </label>
                     <div className="relative">
                       <Input
                         type={showCurrentPassword ? 'text' : 'password'}
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder="Enter current password"
+                        placeholder={t('settings.security.currentPasswordPlaceholder')}
                         required
                       />
                       <Button
@@ -402,14 +404,14 @@ export default function SettingsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      New Password
+                      {t('settings.security.newPassword')}
                     </label>
                     <div className="relative">
                       <Input
                         type={showNewPassword ? 'text' : 'password'}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Enter new password"
+                        placeholder={t('settings.security.newPasswordPlaceholder')}
                         required
                         minLength={8}
                       />
@@ -427,14 +429,14 @@ export default function SettingsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Confirm New Password
+                      {t('settings.security.confirmPassword')}
                     </label>
                     <div className="relative">
                       <Input
                         type={showConfirmPassword ? 'text' : 'password'}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Confirm new password"
+                        placeholder={t('settings.security.confirmPasswordPlaceholder')}
                         required
                       />
                       <Button
@@ -450,7 +452,7 @@ export default function SettingsPage() {
                   </div>
 
                   <Button type="submit" disabled={isLoading}>
-                    {isLoading ? 'Updating...' : 'Update Password'}
+                    {isLoading ? t('settings.security.updating') : t('settings.security.updatePassword')}
                   </Button>
                 </form>
               </div>
@@ -459,19 +461,19 @@ export default function SettingsPage() {
               <div className="border-t pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Two-Factor Authentication</p>
-                    <p className="text-sm text-gray-600">Add an extra layer of security</p>
+                    <p className="font-medium">{t('settings.security.twoFactor')}</p>
+                    <p className="text-sm text-gray-600">{t('settings.security.twoFactorDesc')}</p>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant={settings.account.twoFactorEnabled ? 'success' : 'secondary'}>
-                      {settings.account.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                      {settings.account.twoFactorEnabled ? t('settings.security.enabled') : t('settings.security.disabled')}
                     </Badge>
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => updateAccountSetting('twoFactorEnabled', !settings.account.twoFactorEnabled)}
                     >
-                      {settings.account.twoFactorEnabled ? 'Disable' : 'Enable'}
+                      {settings.account.twoFactorEnabled ? t('settings.security.disable') : t('settings.security.enable')}
                     </Button>
                   </div>
                 </div>
@@ -480,8 +482,8 @@ export default function SettingsPage() {
               {/* Login Alerts */}
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Login Alerts</p>
-                  <p className="text-sm text-gray-600">Get notified of new login attempts</p>
+                  <p className="font-medium">{t('settings.security.loginAlerts')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.security.loginAlertsDesc')}</p>
                 </div>
                 <Checkbox
                   checked={settings.account.loginAlerts}
@@ -496,14 +498,14 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Globe className="h-5 w-5" />
-                <span>Preferences</span>
+                <span>{t('settings.preferences.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Language
+                    {t('settings.preferences.language')}
                   </label>
                   <select 
                     value={settings.preferences.language}
@@ -519,7 +521,7 @@ export default function SettingsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Timezone
+                    {t('settings.preferences.timezone')}
                   </label>
                   <select 
                     value={settings.preferences.timezone}
@@ -535,7 +537,7 @@ export default function SettingsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date Format
+                    {t('settings.preferences.dateFormat')}
                   </label>
                   <select 
                     value={settings.preferences.dateFormat}
@@ -550,7 +552,7 @@ export default function SettingsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Currency
+                    {t('settings.preferences.currency')}
                   </label>
                   <select 
                     value={settings.preferences.currency}
@@ -572,26 +574,26 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Upload className="h-5 w-5" />
-                <span>Data Management</span>
+                <span>{t('settings.data.title')}</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Export Your Data</p>
-                  <p className="text-sm text-gray-600">Download a copy of your data</p>
+                  <p className="font-medium">{t('settings.data.export')}</p>
+                  <p className="text-sm text-gray-600">{t('settings.data.exportDesc')}</p>
                 </div>
                 <Button variant="outline" onClick={handleExportData}>
                   <Download className="h-4 w-4 mr-2" />
-                  Export Data
+                  {t('settings.data.exportButton')}
                 </Button>
               </div>
 
               <div className="border-t pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-red-600">Delete Account</p>
-                    <p className="text-sm text-gray-600">Permanently delete your account and all data</p>
+                    <p className="font-medium text-red-600">{t('settings.data.delete')}</p>
+                    <p className="text-sm text-gray-600">{t('settings.data.deleteDesc')}</p>
                   </div>
                   <Button 
                     variant="destructive" 
@@ -599,7 +601,7 @@ export default function SettingsPage() {
                     disabled={isLoading}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Account
+                    {t('settings.data.deleteButton')}
                   </Button>
                 </div>
               </div>
@@ -610,7 +612,7 @@ export default function SettingsPage() {
           <div className="flex justify-end">
             <Button onClick={handleSaveSettings} disabled={isLoading} size="lg">
               <Save className="h-4 w-4 mr-2" />
-              {isLoading ? 'Saving...' : 'Save All Settings'}
+              {isLoading ? t('settings.saving') : t('settings.save')}
             </Button>
           </div>
         </div>
@@ -618,3 +620,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

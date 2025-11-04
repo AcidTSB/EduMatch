@@ -1,29 +1,81 @@
 import { useState, useEffect, useCallback } from 'react';
+import { mockApi } from '@/lib/mock-api';
 
-// Simple hooks to resolve TypeScript errors temporarily
+// Real API hooks using mockApi
 
 export function useApplications() {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchApplications = useCallback(async (params?: any) => {
-    setLoading(false);
+  const fetchApplications = useCallback(async (userId?: string) => {
+    setLoading(true);
     setError(null);
-    setApplications([]);
+    try {
+      // Get current user from mockApi or localStorage
+      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      const currentUserId = userId || userData?.id || '1';
+      
+      const response = await mockApi.applications.getByUser(currentUserId);
+      if (response.success) {
+        setApplications(response.data || []);
+      }
+    } catch (err) {
+      setError('Failed to fetch applications');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const submitApplication = useCallback(async (data: any) => {
-    setLoading(false);
-    return { success: true };
-  }, []);
+    setLoading(true);
+    setError(null);
+    try {
+      // Get current user ID
+      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      const applicantId = userData?.id || '1';
+      
+      const response = await mockApi.applications.submit({
+        ...data,
+        applicantId
+      });
+      
+      if (response.success) {
+        // Refresh applications list
+        await fetchApplications(applicantId);
+        return response;
+      } else {
+        throw new Error(response.error || 'Failed to submit application');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit application');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchApplications]);
 
   const withdrawApplication = useCallback(async (id: string) => {
+    // TODO: Implement withdraw functionality
     return true;
   }, []);
 
   const checkApplicationStatus = useCallback(async (scholarshipId: string) => {
-    return { success: true, data: null };
+    try {
+      // Get current user ID
+      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      const userId = userData?.id || '1';
+      
+      const response = await mockApi.applications.checkApplicationStatus(scholarshipId, userId);
+      return response.data?.application || null;
+    } catch (err) {
+      console.error('Error checking application status:', err);
+      return null;
+    }
   }, []);
 
   return {
@@ -66,36 +118,64 @@ export function useSavedScholarships() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchSavedScholarships = useCallback(async () => {
-    setLoading(false);
-    setSavedScholarships([]);
+    setLoading(true);
+    try {
+      // Get current user ID
+      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      const userId = userData?.id || '1';
+      
+      const response = await mockApi.savedScholarships.getByUser(userId);
+      if (response.success) {
+        setSavedScholarships(response.data || []);
+      }
+    } catch (err) {
+      setError('Failed to fetch saved scholarships');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const saveScholarship = useCallback(async (scholarshipId: string) => {
-    return true;
-  }, []);
+    try {
+      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      const userId = userData?.id || '1';
+      
+      const response = await mockApi.savedScholarships.toggle(userId, scholarshipId);
+      if (response.success) {
+        await fetchSavedScholarships();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error(err);
+      return false;
+    }
+  }, [fetchSavedScholarships]);
 
   const unsaveScholarship = useCallback(async (scholarshipId: string) => {
-    return true;
-  }, []);
+    return await saveScholarship(scholarshipId); // Toggle works for both
+  }, [saveScholarship]);
 
   const isScholarshipSaved = useCallback((scholarshipId: string) => {
-    return false;
-  }, []);
+    return savedScholarships.includes(scholarshipId);
+  }, [savedScholarships]);
 
   const toggleSaved = useCallback(async (scholarshipId: string) => {
-    const isSaved = isScholarshipSaved(scholarshipId);
-    if (isSaved) {
-      return await unsaveScholarship(scholarshipId);
-    } else {
-      return await saveScholarship(scholarshipId);
-    }
-  }, [isScholarshipSaved, unsaveScholarship, saveScholarship]);
+    return await saveScholarship(scholarshipId);
+  }, [saveScholarship]);
+
+  useEffect(() => {
+    fetchSavedScholarships();
+  }, [fetchSavedScholarships]);
 
   return {
     savedScholarships,
     loading,
     error,
-    isSaved: false, // Default value for compatibility
+    isSaved: false,
     fetchSavedScholarships,
     saveScholarship,
     unsaveScholarship,

@@ -30,6 +30,7 @@ import {
   DollarSign,
   Briefcase
 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -107,6 +108,7 @@ const initialSettings = {
 };
 
 export default function ProviderSettingsPage() {
+  const { t } = useLanguage();
   const { logout } = useAuth();
   const [settings, setSettings] = useState(initialSettings);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -259,25 +261,25 @@ export default function ProviderSettingsPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="bg-gradient-to-r from-brand-blue-50 to-brand-cyan-50 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">Provider Settings</h1>
+              <h1 className="text-4xl font-bold text-gray-900">{t('providerSettings.title')}</h1>
               <p className="text-gray-600 mt-2">
-                Manage your organization profile, scholarship settings, and preferences
+                {t('providerSettings.subtitle')}
               </p>
             </div>
             <div className="flex items-center space-x-2 mt-4 sm:mt-0">
               <Badge variant={settings.organization.verificationStatus === 'verified' ? 'success' : 'secondary'}>
                 <CheckCircle className="h-3 w-3 mr-1" />
-                {settings.organization.verificationStatus === 'verified' ? 'Verified Organization' : 'Pending Verification'}
+                {settings.organization.verificationStatus === 'verified' ? t('providerSettings.verified') : t('providerSettings.pending')}
               </Badge>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Success/Error Messages */}
         {message && (
           <div className={`mb-6 p-4 rounded-lg flex items-center space-x-2 ${
@@ -299,27 +301,27 @@ export default function ProviderSettingsPage() {
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
             <TabsTrigger value="organization" className="flex items-center space-x-2">
               <Building2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Organization</span>
+              <span className="hidden sm:inline">{t('providerSettings.tabs.organization')}</span>
             </TabsTrigger>
             <TabsTrigger value="scholarships" className="flex items-center space-x-2">
               <Award className="h-4 w-4" />
-              <span className="hidden sm:inline">Scholarships</span>
+              <span className="hidden sm:inline">{t('providerSettings.tabs.scholarships')}</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center space-x-2">
               <Bell className="h-4 w-4" />
-              <span className="hidden sm:inline">Notifications</span>
+              <span className="hidden sm:inline">{t('providerSettings.tabs.notifications')}</span>
             </TabsTrigger>
             <TabsTrigger value="privacy" className="flex items-center space-x-2">
               <Shield className="h-4 w-4" />
-              <span className="hidden sm:inline">Privacy</span>
+              <span className="hidden sm:inline">{t('providerSettings.tabs.privacy')}</span>
             </TabsTrigger>
             <TabsTrigger value="security" className="flex items-center space-x-2">
               <Lock className="h-4 w-4" />
-              <span className="hidden sm:inline">Security</span>
+              <span className="hidden sm:inline">{t('providerSettings.tabs.security')}</span>
             </TabsTrigger>
             <TabsTrigger value="billing" className="flex items-center space-x-2">
               <CreditCard className="h-4 w-4" />
-              <span className="hidden sm:inline">Billing</span>
+              <span className="hidden sm:inline">{t('providerSettings.tabs.billing')}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -329,43 +331,43 @@ export default function ProviderSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Building2 className="h-5 w-5" />
-                  <span>Organization Information</span>
+                  <span>{t('providerSettings.org.title')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Organization Name *
+                      {t('providerSettings.org.name')} *
                     </label>
                     <Input
                       value={settings.organization.name}
                       onChange={(e) => updateOrganizationSetting('name', e.target.value)}
-                      placeholder="Enter organization name"
+                      placeholder={t('providerSettings.org.namePlaceholder')}
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Organization Type
+                      {t('providerSettings.org.type')}
                     </label>
                     <select 
                       value={settings.organization.type}
                       onChange={(e) => updateOrganizationSetting('type', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue-500"
                     >
-                      <option value="university">University</option>
-                      <option value="research_institute">Research Institute</option>
-                      <option value="foundation">Foundation</option>
-                      <option value="corporation">Corporation</option>
-                      <option value="government">Government Agency</option>
-                      <option value="nonprofit">Non-Profit</option>
+                      <option value="university">{t('providerSettings.org.typeUniversity')}</option>
+                      <option value="research_institute">{t('providerSettings.org.typeResearch')}</option>
+                      <option value="foundation">{t('providerSettings.org.typeFoundation')}</option>
+                      <option value="corporation">{t('providerSettings.org.typeCorporation')}</option>
+                      <option value="government">{t('providerSettings.org.typeGovernment')}</option>
+                      <option value="nonprofit">{t('providerSettings.org.typeNonprofit')}</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Website
+                      {t('providerSettings.org.website')}
                     </label>
                     <Input
                       type="url"
@@ -377,18 +379,18 @@ export default function ProviderSettingsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Tax ID / EIN
+                      {t('providerSettings.org.taxId')}
                     </label>
                     <Input
                       value={settings.organization.taxId}
                       onChange={(e) => updateOrganizationSetting('taxId', e.target.value)}
-                      placeholder="Enter tax identification number"
+                      placeholder={t('providerSettings.org.taxIdPlaceholder')}
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Contact Email
+                      {t('providerSettings.org.contactEmail')}
                     </label>
                     <Input
                       type="email"
@@ -400,7 +402,7 @@ export default function ProviderSettingsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Contact Phone
+                      {t('providerSettings.org.contactPhone')}
                     </label>
                     <Input
                       type="tel"
@@ -413,24 +415,24 @@ export default function ProviderSettingsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Organization Description
+                    {t('providerSettings.org.description')}
                   </label>
                   <textarea
                     value={settings.organization.description}
                     onChange={(e) => updateOrganizationSetting('description', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue-500"
                     rows={4}
-                    placeholder="Describe your organization and its mission..."
+                    placeholder={t('providerSettings.org.descriptionPlaceholder')}
                   />
                 </div>
 
                 {/* Address */}
                 <div>
-                  <h4 className="font-medium mb-4">Organization Address</h4>
+                  <h4 className="font-medium mb-4">{t('providerSettings.org.addressTitle')}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Street Address
+                        {t('providerSettings.org.street')}
                       </label>
                       <Input
                         value={settings.organization.address.street}
@@ -441,7 +443,7 @@ export default function ProviderSettingsPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        City
+                        {t('providerSettings.org.city')}
                       </label>
                       <Input
                         value={settings.organization.address.city}
@@ -452,7 +454,7 @@ export default function ProviderSettingsPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        State/Province
+                        {t('providerSettings.org.state')}
                       </label>
                       <Input
                         value={settings.organization.address.state}
@@ -463,7 +465,7 @@ export default function ProviderSettingsPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        ZIP/Postal Code
+                        {t('providerSettings.org.zipCode')}
                       </label>
                       <Input
                         value={settings.organization.address.zipCode}
@@ -474,7 +476,7 @@ export default function ProviderSettingsPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Country
+                        {t('providerSettings.org.country')}
                       </label>
                       <select 
                         value={settings.organization.address.country}
@@ -502,14 +504,14 @@ export default function ProviderSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Award className="h-5 w-5" />
-                  <span>Scholarship Defaults</span>
+                  <span>{t('providerSettings.scholarships.title')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Default Scholarship Duration
+                      {t('providerSettings.scholarships.defaultDuration')}
                     </label>
                     <select 
                       value={settings.preferences.defaultScholarshipDuration}
@@ -527,7 +529,7 @@ export default function ProviderSettingsPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Default Minimum GPA
+                      {t('providerSettings.scholarships.defaultGPA')}
                     </label>
                     <Input
                       type="number"
@@ -544,8 +546,8 @@ export default function ProviderSettingsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Auto-publish Scholarships</p>
-                      <p className="text-sm text-gray-600">Automatically publish new scholarships when created</p>
+                      <p className="font-medium">{t('providerSettings.scholarships.autoPublish')}</p>
+                      <p className="text-sm text-gray-600">{t('providerSettings.scholarships.autoPublishDesc')}</p>
                     </div>
                     <Checkbox
                       checked={settings.preferences.autoPublishScholarships}
@@ -555,8 +557,8 @@ export default function ProviderSettingsPage() {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Require GPA Minimum</p>
-                      <p className="text-sm text-gray-600">Require minimum GPA for all scholarships by default</p>
+                      <p className="font-medium">{t('providerSettings.scholarships.requireGPA')}</p>
+                      <p className="text-sm text-gray-600">{t('providerSettings.scholarships.requireGPADesc')}</p>
                     </div>
                     <Checkbox
                       checked={settings.preferences.requireGPAMinimum}
@@ -571,14 +573,14 @@ export default function ProviderSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <BarChart3 className="h-5 w-5" />
-                  <span>Application Management</span>
+                  <span>{t('providerSettings.scholarships.applicationManagement')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Require Application Review</p>
-                    <p className="text-sm text-gray-600">All applications must be manually reviewed before acceptance</p>
+                    <p className="font-medium">{t('providerSettings.scholarships.requireReview')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.scholarships.requireReviewDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.privacy.requireApplicationReview}
@@ -588,8 +590,8 @@ export default function ProviderSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Enable Auto-responders</p>
-                    <p className="text-sm text-gray-600">Send automatic confirmation emails to applicants</p>
+                    <p className="font-medium">{t('providerSettings.scholarships.autoResponders')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.scholarships.autoRespondersDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.privacy.autoResponders}
@@ -599,8 +601,8 @@ export default function ProviderSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Show Response Time</p>
-                    <p className="text-sm text-gray-600">Display average response time on your profile</p>
+                    <p className="font-medium">{t('providerSettings.scholarships.showResponseTime')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.scholarships.showResponseTimeDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.privacy.showResponseTime}
@@ -610,8 +612,8 @@ export default function ProviderSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Display Success Rate</p>
-                    <p className="text-sm text-gray-600">Show scholarship acceptance rate publicly</p>
+                    <p className="font-medium">{t('providerSettings.scholarships.displaySuccessRate')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.scholarships.displaySuccessRateDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.privacy.displaySuccessRate}
@@ -628,14 +630,14 @@ export default function ProviderSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Bell className="h-5 w-5" />
-                  <span>Notification Preferences</span>
+                  <span>{t('providerSettings.notif.title')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Email Notifications</p>
-                    <p className="text-sm text-gray-600">Receive general notifications via email</p>
+                    <p className="font-medium">{t('providerSettings.notif.emailNotifications')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.notif.emailNotificationsDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.notifications.emailNotifications}
@@ -645,8 +647,8 @@ export default function ProviderSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">New Application Alerts</p>
-                    <p className="text-sm text-gray-600">Get notified when students apply to your scholarships</p>
+                    <p className="font-medium">{t('providerSettings.notif.newApplications')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.notif.newApplicationsDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.notifications.applicationAlerts}
@@ -656,8 +658,8 @@ export default function ProviderSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Deadline Reminders</p>
-                    <p className="text-sm text-gray-600">Receive reminders about upcoming scholarship deadlines</p>
+                    <p className="font-medium">{t('providerSettings.notif.deadlineReminders')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.notif.deadlineRemindersDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.notifications.deadlineReminders}
@@ -667,8 +669,8 @@ export default function ProviderSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">New Student Matches</p>
-                    <p className="text-sm text-gray-600">Get notified about students that match your scholarships</p>
+                    <p className="font-medium">{t('providerSettings.notif.newMatches')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.notif.newMatchesDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.notifications.newStudentMatches}
@@ -678,8 +680,8 @@ export default function ProviderSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Applicant Messages</p>
-                    <p className="text-sm text-gray-600">Receive notifications for direct messages from applicants</p>
+                    <p className="font-medium">{t('providerSettings.notif.applicantMessages')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.notif.applicantMessagesDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.notifications.applicantMessages}
@@ -689,8 +691,8 @@ export default function ProviderSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Weekly Reports</p>
-                    <p className="text-sm text-gray-600">Receive weekly summary reports of your scholarship performance</p>
+                    <p className="font-medium">{t('providerSettings.notif.weeklyReports')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.notif.weeklyReportsDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.notifications.weeklyReports}
@@ -700,8 +702,8 @@ export default function ProviderSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">System Updates</p>
-                    <p className="text-sm text-gray-600">Get notified about platform updates and new features</p>
+                    <p className="font-medium">{t('providerSettings.notif.systemUpdates')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.notif.systemUpdatesDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.notifications.systemUpdates}
@@ -711,8 +713,8 @@ export default function ProviderSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Marketing Emails</p>
-                    <p className="text-sm text-gray-600">Receive promotional emails and platform updates</p>
+                    <p className="font-medium">{t('providerSettings.notif.marketingEmails')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.notif.marketingEmailsDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.notifications.marketingEmails}
@@ -729,30 +731,30 @@ export default function ProviderSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Shield className="h-5 w-5" />
-                  <span>Privacy & Visibility</span>
+                  <span>{t('providerSettings.privacy.title')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Organization Visibility</p>
-                    <p className="text-sm text-gray-600">Control who can see your organization profile</p>
+                    <p className="font-medium">{t('providerSettings.privacy.orgVisibility')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.privacy.orgVisibilityDesc')}</p>
                   </div>
                   <select 
                     value={settings.privacy.organizationVisibility}
                     onChange={(e) => updatePrivacySetting('organizationVisibility', e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-brand-blue-500"
                   >
-                    <option value="public">Public</option>
-                    <option value="verified_students">Verified Students Only</option>
-                    <option value="private">Private</option>
+                    <option value="public">{t('providerSettings.privacy.visibilityPublic')}</option>
+                    <option value="verified_students">{t('providerSettings.privacy.visibilityVerified')}</option>
+                    <option value="private">{t('providerSettings.privacy.visibilityPrivate')}</option>
                   </select>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Show Contact Information</p>
-                    <p className="text-sm text-gray-600">Display contact details on your public profile</p>
+                    <p className="font-medium">{t('providerSettings.privacy.showContact')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.privacy.showContactDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.privacy.showContactInfo}
@@ -762,8 +764,8 @@ export default function ProviderSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Allow Direct Applications</p>
-                    <p className="text-sm text-gray-600">Students can apply directly without pre-screening</p>
+                    <p className="font-medium">{t('providerSettings.privacy.allowDirect')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.privacy.allowDirectDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.privacy.allowDirectApplications}
@@ -780,24 +782,24 @@ export default function ProviderSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Lock className="h-5 w-5" />
-                  <span>Security Settings</span>
+                  <span>{t('providerSettings.security.title')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Change Password */}
                 <div>
-                  <h4 className="font-medium mb-4">Change Password</h4>
+                  <h4 className="font-medium mb-4">{t('providerSettings.security.changePassword')}</h4>
                   <form onSubmit={handlePasswordChange} className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Current Password
+                        {t('providerSettings.security.currentPassword')}
                       </label>
                       <div className="relative">
                         <Input
                           type={showCurrentPassword ? 'text' : 'password'}
                           value={currentPassword}
                           onChange={(e) => setCurrentPassword(e.target.value)}
-                          placeholder="Enter current password"
+                          placeholder={t('providerSettings.security.currentPasswordPlaceholder')}
                           required
                         />
                         <Button
@@ -814,14 +816,14 @@ export default function ProviderSettingsPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        New Password
+                        {t('providerSettings.security.newPassword')}
                       </label>
                       <div className="relative">
                         <Input
                           type={showNewPassword ? 'text' : 'password'}
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="Enter new password"
+                          placeholder={t('providerSettings.security.newPasswordPlaceholder')}
                           required
                           minLength={8}
                         />
@@ -839,14 +841,14 @@ export default function ProviderSettingsPage() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Confirm New Password
+                        {t('providerSettings.security.confirmPassword')}
                       </label>
                       <div className="relative">
                         <Input
                           type={showConfirmPassword ? 'text' : 'password'}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="Confirm new password"
+                          placeholder={t('providerSettings.security.confirmPasswordPlaceholder')}
                           required
                         />
                         <Button
@@ -862,7 +864,7 @@ export default function ProviderSettingsPage() {
                     </div>
 
                     <Button type="submit" disabled={isLoading}>
-                      {isLoading ? 'Updating...' : 'Update Password'}
+                      {isLoading ? t('providerSettings.security.updating') : t('providerSettings.security.updatePassword')}
                     </Button>
                   </form>
                 </div>
@@ -871,19 +873,19 @@ export default function ProviderSettingsPage() {
                 <div className="border-t pt-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">Two-Factor Authentication</p>
-                      <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
+                      <p className="font-medium">{t('providerSettings.security.twoFactor')}</p>
+                      <p className="text-sm text-gray-600">{t('providerSettings.security.twoFactorDesc')}</p>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Badge variant={settings.account.twoFactorEnabled ? 'success' : 'secondary'}>
-                        {settings.account.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+                        {settings.account.twoFactorEnabled ? t('providerSettings.security.enabled') : t('providerSettings.security.disabled')}
                       </Badge>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => updateAccountSetting('twoFactorEnabled', !settings.account.twoFactorEnabled)}
                       >
-                        {settings.account.twoFactorEnabled ? 'Disable' : 'Enable'}
+                        {settings.account.twoFactorEnabled ? t('providerSettings.security.disable') : t('providerSettings.security.enable')}
                       </Button>
                     </div>
                   </div>
@@ -892,8 +894,8 @@ export default function ProviderSettingsPage() {
                 {/* Login Alerts */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Login Alerts</p>
-                    <p className="text-sm text-gray-600">Get notified of new login attempts</p>
+                    <p className="font-medium">{t('providerSettings.security.loginAlerts')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.security.loginAlertsDesc')}</p>
                   </div>
                   <Checkbox
                     checked={settings.account.loginAlerts}
@@ -904,8 +906,8 @@ export default function ProviderSettingsPage() {
                 {/* Session Timeout */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Session Timeout</p>
-                    <p className="text-sm text-gray-600">Auto-logout after inactivity (minutes)</p>
+                    <p className="font-medium">{t('providerSettings.security.sessionTimeout')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.security.sessionTimeoutDesc')}</p>
                   </div>
                   <Input
                     type="number"
@@ -926,7 +928,7 @@ export default function ProviderSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <CreditCard className="h-5 w-5" />
-                  <span>Subscription & Billing</span>
+                  <span>{t('providerSettings.billing.title')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -936,9 +938,9 @@ export default function ProviderSettingsPage() {
                     <div>
                       <h3 className="text-xl font-semibold flex items-center space-x-2">
                         <Star className="h-5 w-5 text-yellow-500" />
-                        <span>{settings.subscription.plan} Plan</span>
+                        <span>{settings.subscription.plan} {t('providerSettings.billing.plan')}</span>
                       </h3>
-                      <p className="text-gray-600">Full access to all features</p>
+                      <p className="text-gray-600">{t('providerSettings.billing.fullAccess')}</p>
                     </div>
                     <Badge variant="success">
                       {settings.subscription.status.charAt(0).toUpperCase() + settings.subscription.status.slice(1)}
@@ -948,28 +950,28 @@ export default function ProviderSettingsPage() {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="text-center">
                       <p className="text-2xl font-bold text-brand-blue-600">{settings.subscription.scholarshipsLimit}</p>
-                      <p className="text-sm text-gray-600">Scholarships</p>
+                      <p className="text-sm text-gray-600">{t('providerSettings.billing.scholarships')}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-2xl font-bold text-brand-blue-600">{settings.subscription.applicationsLimit}</p>
-                      <p className="text-sm text-gray-600">Applications</p>
+                      <p className="text-sm text-gray-600">{t('providerSettings.billing.applications')}</p>
                     </div>
                     <div className="text-center">
                       <p className="text-2xl font-bold text-brand-blue-600">✓</p>
-                      <p className="text-sm text-gray-600">Priority Support</p>
+                      <p className="text-sm text-gray-600">{t('providerSettings.billing.prioritySupport')}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">
-                      Next billing: {settings.subscription.nextBillingDate}
+                      {t('providerSettings.billing.nextBilling')}: {settings.subscription.nextBillingDate}
                     </span>
                     <div className="space-x-2">
                       <Button variant="outline" size="sm">
-                        Change Plan
+                        {t('providerSettings.billing.changePlan')}
                       </Button>
                       <Button variant="outline" size="sm">
-                        View Invoices
+                        {t('providerSettings.billing.viewInvoices')}
                       </Button>
                     </div>
                   </div>
@@ -977,31 +979,31 @@ export default function ProviderSettingsPage() {
 
                 {/* Features */}
                 <div>
-                  <h4 className="font-medium mb-4">Plan Features</h4>
+                  <h4 className="font-medium mb-4">{t('providerSettings.billing.planFeatures')}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex items-center space-x-3">
                       <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span>Unlimited scholarships</span>
+                      <span>{t('providerSettings.billing.unlimitedScholarships')}</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span>Unlimited applications</span>
+                      <span>{t('providerSettings.billing.unlimitedApplications')}</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span>Advanced analytics</span>
+                      <span>{t('providerSettings.billing.advancedAnalytics')}</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span>Priority support</span>
+                      <span>{t('providerSettings.billing.prioritySupport')}</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span>Custom branding</span>
+                      <span>{t('providerSettings.billing.customBranding')}</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span>API access</span>
+                      <span>{t('providerSettings.billing.apiAccess')}</span>
                     </div>
                   </div>
                 </div>
@@ -1013,26 +1015,26 @@ export default function ProviderSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <FileText className="h-5 w-5" />
-                  <span>Data Management</span>
+                  <span>{t('providerSettings.data.title')}</span>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">Export Organization Data</p>
-                    <p className="text-sm text-gray-600">Download all your organization's data and settings</p>
+                    <p className="font-medium">{t('providerSettings.data.exportData')}</p>
+                    <p className="text-sm text-gray-600">{t('providerSettings.data.exportDesc')}</p>
                   </div>
                   <Button variant="outline" onClick={handleExportData}>
                     <Download className="h-4 w-4 mr-2" />
-                    Export Data
+                    {t('providerSettings.data.exportBtn')}
                   </Button>
                 </div>
 
                 <div className="border-t pt-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-red-600">Delete Organization Account</p>
-                      <p className="text-sm text-gray-600">Permanently delete your organization account and all associated data</p>
+                      <p className="font-medium text-red-600">{t('providerSettings.data.deleteAccount')}</p>
+                      <p className="text-sm text-gray-600">{t('providerSettings.data.deleteDesc')}</p>
                     </div>
                     <Button 
                       variant="destructive" 
@@ -1040,7 +1042,7 @@ export default function ProviderSettingsPage() {
                       disabled={isLoading}
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Account
+                      {t('providerSettings.data.deleteBtn')}
                     </Button>
                   </div>
                 </div>
@@ -1053,10 +1055,11 @@ export default function ProviderSettingsPage() {
         <div className="flex justify-end">
           <Button onClick={handleSaveSettings} disabled={isLoading} size="lg">
             <Save className="h-4 w-4 mr-2" />
-            {isLoading ? 'Saving...' : 'Save All Settings'}
+            {isLoading ? t('providerSettings.saving') : t('providerSettings.saveAll')}
           </Button>
         </div>
       </div>
     </div>
   );
 }
+

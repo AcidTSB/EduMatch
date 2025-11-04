@@ -20,175 +20,156 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { MessageList, QuickContacts } from '@/components/messaging/MessageComponents';
 import { ChatWindow } from '@/components/ChatWindow';
-import { useMessageStore, useNotificationStore } from '@/stores/realtimeStore';
 import { useRealTime } from '@/providers/RealTimeProvider';
-
-// Simple auth hook - same as Navbar
-const useAuth = () => {
-  const getStoredUser = () => {
-    if (typeof window === 'undefined') return null;
-    
-    const token = localStorage.getItem('auth_token');
-    const role = localStorage.getItem('user_role');
-    const userData = localStorage.getItem('user_data');
-    
-    if (!token) return null;
-    
-    if (userData) {
-      try {
-        return JSON.parse(userData);
-      } catch (e) {
-        // fallback to basic user data
-      }
-    }
-    
-    return {
-      id: '1',
-      name: 'John Doe',
-      email: 'john.doe@email.com',
-      role: role || 'applicant' as 'applicant' | 'provider' | 'admin',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John'
-    };
-  };
-  
-  return {
-    user: getStoredUser(),
-    isAuthenticated: typeof window !== 'undefined' && localStorage.getItem('auth_token') !== null,
-  };
-};
-
-// Mock data - replace with real API calls
-const mockMessages = [
-  {
-    id: '1',
-    senderName: 'MIT Research Institute',
-    senderRole: 'provider' as const,
-    content: 'Thank you for your application. We would like to schedule an interview to discuss your research interests further.',
-    timestamp: '2024-09-30T10:30:00Z',
-    isRead: false,
-    senderAvatar: ''
-  },
-  {
-    id: '2',
-    senderName: 'Stanford University',
-    senderRole: 'provider' as const,
-    content: 'Your application has been received and is currently under review. We will contact you within 2 weeks.',
-    timestamp: '2024-09-29T15:45:00Z',
-    isRead: true,
-    senderAvatar: ''
-  },
-  {
-    id: '3',
-    senderName: 'John Doe',
-    senderRole: 'applicant' as const,
-    content: 'Hi, I have a question about the research fellowship requirements. Could you please clarify the minimum GPA requirement?',
-    timestamp: '2024-09-29T09:15:00Z',
-    isRead: false,
-    senderAvatar: ''
-  }
-];
-
-const mockContacts = [
-  {
-    id: 'provider1',
-    name: 'MIT Research Institute',
-    role: 'provider',
-    avatar: '',
-    isOnline: true,
-    unreadCount: 2,
-    lastSeen: '2024-09-30T10:00:00Z'
-  },
-  {
-    id: 'provider2',
-    name: 'Stanford University', 
-    role: 'provider',
-    avatar: '',
-    isOnline: false,
-    unreadCount: 0,
-    lastSeen: '2024-09-29T15:30:00Z'
-  },
-  {
-    id: 'student1',
-    name: 'John Doe',
-    role: 'applicant',
-    avatar: '',
-    isOnline: true,
-    unreadCount: 1,
-    lastSeen: '2024-09-30T11:30:00Z'
-  }
-];
+import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/contexts/LanguageContext';
+import Link from 'next/link';
 
 export default function MessagesPage() {
+  const { t } = useLanguage();
   const { user } = useAuth();
-  const { socket, sendMessage } = useRealTime();
-  const { messages, chatRooms } = useMessageStore();
-  const { notifications } = useNotificationStore();
+  const { 
+    messages, 
+    chatRooms, 
+    onlineUsers,
+    onlineUsersMap,
+    isConnected,
+    sendMessage,
+    markMessagesAsRead,
+    isRealTimeEnabled 
+  } = useRealTime();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedContactId, setSelectedContactId] = useState<string>();
   const [isMessagePanelOpen, setIsMessagePanelOpen] = useState(false);
   const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
 
-  // Get real-time messages and contacts from stores
-  const realTimeMessages = React.useMemo(() => {
-    const allMessages: any[] = [];
+  // Get recent conversations (grouped by user, not individual messages)
+  const recentConversations = React.useMemo(() => {
+    if (!user) return [];
+    
+    const conversationsMap = new Map<string, any>();
+    
+    // Go through all messages and group by other user
     Object.entries(messages).forEach(([roomId, roomMessages]) => {
-      (roomMessages as any[]).forEach(msg => {
-        if (msg.receiverId === user?.id) {
-          allMessages.push({
-            id: msg.id,
-            senderName: msg.senderId, // In real app, you'd lookup user name
-            senderRole: 'provider', // In real app, you'd lookup user role
-            content: msg.content,
-            timestamp: msg.createdAt,
-            isRead: msg.status === 'read',
-            senderAvatar: '',
-            senderId: msg.senderId
-          });
-        }
+      if (!roomMessages || roomMessages.length === 0) return;
+      
+      // Get the other participant ID from room ID
+      const otherUserId = roomId.startsWith(user.id + '-') 
+        ? roomId.substring(user.id.length + 1)
+        : roomId.endsWith('-' + user.id)
+        ? roomId.substring(0, roomId.length - user.id.length - 1)
+        : null;
+      
+      if (!otherUserId) return;
+      
+      // Get the last message in this room
+      const sortedMessages = [...(roomMessages as any[])].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      const lastMessage = sortedMessages[0];
+      
+      // Count unread messages from other user
+      const unreadCount = (roomMessages as any[]).filter(
+        msg => msg.senderId === otherUserId && msg.status !== 'read'
+      ).length;
+      
+      // Get user info
+      const userInfo = onlineUsersMap.get(otherUserId);
+      
+      conversationsMap.set(otherUserId, {
+        id: lastMessage.id,
+        userId: otherUserId,
+        senderName: userInfo?.name || otherUserId,
+        senderRole: userInfo?.role || 'applicant',
+        content: lastMessage.content,
+        timestamp: lastMessage.createdAt,
+        isRead: lastMessage.status === 'read',
+        senderAvatar: '',
+        senderId: lastMessage.senderId,
+        isFromCurrentUser: lastMessage.senderId === user.id,
+        unreadCount,
+        isOnline: onlineUsers.includes(otherUserId)
       });
     });
-    return allMessages.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }, [messages, user?.id]);
-
-  // Get online users as contacts
-  const onlineContacts = React.useMemo(() => {
-    if (!socket?.onlineUsers || !user) return [];
     
-    return socket.onlineUsers
-      .filter((userId: string) => userId !== user.id)
-      .map((userId: string) => ({
-        id: userId,
-        name: userId, // In real app, you'd lookup user name
-        role: 'applicant', // In real app, you'd lookup user role
-        avatar: '',
-        isOnline: true,
-        unreadCount: 0, // Calculate from messages
-        lastSeen: new Date().toISOString()
-      }));
-  }, [socket?.onlineUsers, user?.id]);
+    // Convert to array and sort by timestamp
+    return Array.from(conversationsMap.values()).sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  }, [messages, user?.id, onlineUsersMap, onlineUsers]);
 
-  // Filter messages and contacts based on search query
-  const filteredMessages = realTimeMessages.filter(message =>
-    message.senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    message.content.toLowerCase().includes(searchQuery.toLowerCase())
+  // Convert chat rooms to contacts
+  const onlineContacts = React.useMemo(() => {
+    if (!user) return [];
+    
+    // Get contacts from chat rooms
+    const roomContacts = Object.entries(chatRooms)
+      .map(([roomId, room]: [string, any]) => {
+        const otherParticipantId = room.participants?.find((p: string) => p !== user.id);
+        if (!otherParticipantId) return null;
+        
+        const userInfo = onlineUsersMap.get(otherParticipantId);
+        
+        return {
+          id: otherParticipantId,
+          name: userInfo?.name || otherParticipantId,
+          role: userInfo?.role || 'applicant',
+          avatar: '',
+          isOnline: onlineUsers.includes(otherParticipantId),
+          unreadCount: room.unreadCount || 0,
+          lastSeen: room.updatedAt || new Date().toISOString()
+        };
+      })
+      .filter(Boolean) as any[];
+    
+    // Add online users who don't have chat rooms yet
+    const onlineContactsOnly = onlineUsers
+      .filter(userId => userId !== user.id)
+      .filter(userId => !roomContacts.find(c => c.id === userId))
+      .map(userId => {
+        const userInfo = onlineUsersMap.get(userId);
+        return {
+          id: userId,
+          name: userInfo?.name || userId,
+          role: userInfo?.role || 'applicant',
+          avatar: '',
+          isOnline: true,
+          unreadCount: 0,
+          lastSeen: new Date().toISOString()
+        };
+      });
+    
+    return [...roomContacts, ...onlineContactsOnly];
+  }, [chatRooms, onlineUsers, onlineUsersMap, user?.id]);
+
+  // Filter conversations and contacts based on search query
+  const filteredConversations = recentConversations.filter(conv =>
+    conv.senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    conv.content.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredContacts = onlineContacts.filter(contact => {
-    if (!user) return false;
-    
-    const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    // Filter by user role (in real app, you'd have proper role checking)
-    return matchesSearch;
+    return contact.name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const unreadCount = filteredMessages.filter(msg => !msg.isRead).length;
+  // Calculate unread count from messages
+  const unreadCount = React.useMemo(() => {
+    let count = 0;
+    Object.entries(messages).forEach(([roomId, roomMessages]) => {
+      (roomMessages as any[]).forEach((msg: any) => {
+        if (msg.receiverId === user?.id && msg.status !== 'read') {
+          count++;
+        }
+      });
+    });
+    return count;
+  }, [messages, user?.id]);
 
-  const handleMessageClick = (messageId: string) => {
-    // Find corresponding contact and open chat
-    const message = realTimeMessages.find(m => m.id === messageId);
-    if (message) {
-      setSelectedContactId(message.senderId);
+  const handleMessageClick = (conversationId: string) => {
+    // Find the conversation and open chat with that user
+    const conversation = recentConversations.find(c => c.id === conversationId);
+    if (conversation) {
+      setSelectedContactId(conversation.userId);
       setIsMessagePanelOpen(true);
     }
   };
@@ -203,48 +184,12 @@ export default function MessagesPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-          <p className="text-gray-500">Please log in to access messages</p>
-          <div className="space-y-2">
-            <Button 
-              onClick={() => {
-                // Quick login for demo
-                localStorage.setItem('auth_token', 'mock-jwt-token');
-                localStorage.setItem('user_role', 'applicant');
-                localStorage.setItem('user_data', JSON.stringify({
-                  id: 'student-1',
-                  name: 'John Doe',
-                  email: 'john.doe@email.com',
-                  role: 'applicant',
-                  avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John'
-                }));
-                window.location.reload();
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              Quick Login as Student
+          <p className="text-gray-500 text-lg">{t('messages.loginRequired')}</p>
+          <Link href="/auth/login">
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              {t('messages.goToLogin')}
             </Button>
-            <Button 
-              onClick={() => {
-                // Quick login for demo
-                localStorage.setItem('auth_token', 'mock-jwt-token');
-                localStorage.setItem('user_role', 'provider');
-                localStorage.setItem('user_data', JSON.stringify({
-                  id: 'provider-1',
-                  name: 'Dr. Sarah Wilson',
-                  email: 'sarah.wilson@university.edu',
-                  role: 'provider',
-                  avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah'
-                }));
-                window.location.reload();
-              }}
-              variant="outline"
-            >
-              Quick Login as Provider
-            </Button>
-            <p className="text-xs text-gray-400 mt-2">
-              Or use <a href="/auth/login" className="text-blue-600 hover:underline">Login Page</a>
-            </p>
-          </div>
+          </Link>
         </div>
       </div>
     );
@@ -259,27 +204,27 @@ export default function MessagesPage() {
             <div>
               <h1 className="text-4xl font-bold text-gray-900 flex items-center space-x-3">
                 <MessageSquare className="h-10 w-10 text-brand-blue-600" />
-                <span>Messages</span>
+                <span>{t('messages.title')}</span>
               </h1>
               <p className="text-gray-600 mt-2">
-                Communicate with {user.role === 'applicant' ? 'scholarship providers' : 'students'} and manage your conversations
+                {t('messages.subtitle').replace('{role}', user.role === 'applicant' ? t('messages.subtitleProvider') : t('messages.subtitleStudent'))}
               </p>
             </div>
             <div className="mt-4 sm:mt-0 flex items-center space-x-4">
               {/* Real-time Connection Status */}
               <div className="flex items-center gap-2">
-                {socket?.isConnected ? (
+                {isConnected ? (
                   <>
                     <Wifi className="h-4 w-4 text-green-600" />
                     <Badge variant="outline" className="text-green-700 border-green-300">
-                      Connected
+                      {t('messages.connected')}
                     </Badge>
                   </>
                 ) : (
                   <>
                     <WifiOff className="h-4 w-4 text-red-600" />
                     <Badge variant="outline" className="text-red-700 border-red-300">
-                      Disconnected
+                      {t('messages.disconnected')}
                     </Badge>
                   </>
                 )}
@@ -287,32 +232,32 @@ export default function MessagesPage() {
               
               {unreadCount > 0 && (
                 <Badge variant="destructive" className="text-sm">
-                  {unreadCount} unread
+                  {t('messages.unread').replace('{count}', unreadCount.toString())}
                 </Badge>
               )}
               <Button variant="outline">
                 <Filter className="h-4 w-4 mr-2" />
-                Filter
+                {t('messages.filter')}
               </Button>
               <Dialog open={isNewChatModalOpen} onOpenChange={setIsNewChatModalOpen}>
                 <DialogTrigger asChild>
                   <Button className="bg-brand-blue-600 hover:bg-brand-blue-700">
                     <Plus className="h-4 w-4 mr-2" />
-                    New Chat
+                    {t('messages.newChat')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Start New Chat</DialogTitle>
+                    <DialogTitle>{t('messages.startNewChat')}</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <p className="text-sm text-gray-600">
-                      Select an online user to start chatting:
+                      {t('messages.selectUser')}
                     </p>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {onlineContacts.length === 0 ? (
                         <p className="text-center text-gray-500 py-4">
-                          No online users available
+                          {t('messages.noUsersAvailable')}
                         </p>
                       ) : (
                         onlineContacts.map((contact) => (
@@ -357,7 +302,7 @@ export default function MessagesPage() {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search messages and contacts..."
+              placeholder={t('messages.searchPlaceholder')}
               className="pl-10"
             />
           </div>
@@ -371,8 +316,8 @@ export default function MessagesPage() {
                 <MessageSquare className="h-6 w-6 text-brand-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{realTimeMessages.length}</p>
-                <p className="text-xs text-muted-foreground">Total Messages</p>
+                <p className="text-2xl font-bold">{recentConversations.length}</p>
+                <p className="text-xs text-muted-foreground">{t('messages.stats.total')}</p>
               </div>
             </CardContent>
           </Card>
@@ -384,7 +329,7 @@ export default function MessagesPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{unreadCount}</p>
-                <p className="text-xs text-muted-foreground">Unread Messages</p>
+                <p className="text-xs text-muted-foreground">{t('messages.stats.unread')}</p>
               </div>
             </CardContent>
           </Card>
@@ -396,7 +341,7 @@ export default function MessagesPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{onlineContacts.length}</p>
-                <p className="text-xs text-muted-foreground">Online Users</p>
+                <p className="text-xs text-muted-foreground">{t('messages.stats.onlineUsers')}</p>
               </div>
             </CardContent>
           </Card>
@@ -404,7 +349,7 @@ export default function MessagesPage() {
           <Card>
             <CardContent className="flex items-center p-6">
               <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mr-4">
-                {socket?.isConnected ? (
+                {isConnected ? (
                   <Wifi className="h-6 w-6 text-purple-600" />
                 ) : (
                   <WifiOff className="h-6 w-6 text-purple-600" />
@@ -412,9 +357,9 @@ export default function MessagesPage() {
               </div>
               <div>
                 <p className="text-lg font-bold">
-                  {socket?.isConnected ? 'Connected' : 'Offline'}
+                  {isConnected ? t('messages.connected') : t('messages.offline')}
                 </p>
-                <p className="text-xs text-muted-foreground">Real-time Status</p>
+                <p className="text-xs text-muted-foreground">{t('messages.stats.status')}</p>
               </div>
             </CardContent>
           </Card>
@@ -428,7 +373,7 @@ export default function MessagesPage() {
               <TabsList>
                 <TabsTrigger value="messages" className="flex items-center space-x-2">
                   <MessageSquare className="h-4 w-4" />
-                  <span>Messages</span>
+                  <span>{t('messages.tabs.messages')}</span>
                   {unreadCount > 0 && (
                     <Badge variant="destructive" className="ml-2">
                       {unreadCount}
@@ -437,20 +382,20 @@ export default function MessagesPage() {
                 </TabsTrigger>
                 <TabsTrigger value="contacts" className="flex items-center space-x-2">
                   <Users className="h-4 w-4" />
-                  <span>Contacts</span>
+                  <span>{t('messages.tabs.contacts')}</span>
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="messages">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Recent Messages</CardTitle>
+                    <CardTitle>{t('messages.recent')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <MessageList
-                      messages={filteredMessages}
+                      messages={filteredConversations}
                       onMessageClick={handleMessageClick}
-                      emptyStateText={searchQuery ? "No messages match your search" : "No messages yet"}
+                      emptyStateText={searchQuery ? t('messages.noMatches') : t('messages.noMessages')}
                     />
                   </CardContent>
                 </Card>
@@ -459,7 +404,7 @@ export default function MessagesPage() {
               <TabsContent value="contacts">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Your Contacts</CardTitle>
+                    <CardTitle>{t('messages.yourContacts')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
@@ -468,15 +413,15 @@ export default function MessagesPage() {
                           <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                           <p className="text-gray-500">
                             {searchQuery 
-                              ? "No contacts match your search" 
-                              : socket?.isConnected 
-                                ? "No online users available. Try refreshing or wait for users to come online."
-                                : "Connect to real-time server to see online users"
+                              ? t('messages.noContacts')
+                              : isConnected 
+                                ? t('messages.noOnlineUsers')
+                                : t('messages.connectRequired')
                             }
                           </p>
-                          {!socket?.isConnected && (
+                          {!isConnected && (
                             <p className="text-xs text-red-500 mt-2">
-                              Real-time connection required
+                              {t('messages.connectionRequired')}
                             </p>
                           )}
                         </div>
@@ -510,7 +455,7 @@ export default function MessagesPage() {
                                 </Badge>
                               )}
                               <Button variant="outline" size="sm">
-                                Message
+                                {t('messages.messageButton')}
                               </Button>
                             </div>
                           </div>

@@ -1,8 +1,7 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/about/page": "app/about/page.js",
-  "/page": "app/page.js",
-  "/contact/page": "app/contact/page.js",
-  "/pricing/page": "app/pricing/page.js",
-  "/applicant/scholarships/page": "app/applicant/scholarships/page.js"
+  "/provider/dashboard/page": "app/provider/dashboard/page.js",
+  "/admin/scholarships/page": "app/admin/scholarships/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/admin/applications/page": "app/admin/applications/page.js",
+  "/provider/scholarships/page": "app/provider/scholarships/page.js"
 }

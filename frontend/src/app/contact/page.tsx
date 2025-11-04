@@ -17,8 +17,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function ContactPage() {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -32,75 +34,75 @@ export default function ContactPage() {
   const contactMethods = [
     {
       icon: Mail,
-      title: 'Email Support',
-      description: 'Get help via email',
-      contact: 'support@edumatch.com',
-      time: 'Response within 24 hours',
+      title: t('contact.method.email.title'),
+      description: t('contact.method.email.description'),
+      contact: t('contact.method.email.contact'),
+      time: t('contact.method.email.time'),
       color: 'text-blue-600'
     },
     {
       icon: Phone,
-      title: 'Phone Support',
-      description: 'Speak with our team',
-      contact: '+1 (555) 123-4567',
-      time: 'Mon-Fri 9AM-6PM PST',
+      title: t('contact.method.phone.title'),
+      description: t('contact.method.phone.description'),
+      contact: t('contact.method.phone.contact'),
+      time: t('contact.method.phone.time'),
       color: 'text-green-600'
     },
     {
       icon: MessageSquare,
-      title: 'Live Chat',
-      description: 'Chat with us in real-time',
-      contact: 'Available on website',
-      time: 'Mon-Fri 9AM-9PM PST',
+      title: t('contact.method.chat.title'),
+      description: t('contact.method.chat.description'),
+      contact: t('contact.method.chat.contact'),
+      time: t('contact.method.chat.time'),
       color: 'text-purple-600'
     }
   ];
 
   const offices = [
     {
-      city: 'San Francisco',
-      address: '123 Innovation Drive, Suite 100',
-      zipCode: 'San Francisco, CA 94105',
-      phone: '+1 (555) 123-4567',
-      type: 'Headquarters'
+      city: t('contact.office.sf.city'),
+      address: t('contact.office.sf.address'),
+      zipCode: t('contact.office.sf.zipCode'),
+      phone: t('contact.office.sf.phone'),
+      type: t('contact.office.sf.type')
     },
     {
-      city: 'New York',
-      address: '456 Education Avenue',
-      zipCode: 'New York, NY 10001',
-      phone: '+1 (555) 987-6543',
-      type: 'East Coast Office'
+      city: t('contact.office.ny.city'),
+      address: t('contact.office.ny.address'),
+      zipCode: t('contact.office.ny.zipCode'),
+      phone: t('contact.office.ny.phone'),
+      type: t('contact.office.ny.type')
     },
     {
-      city: 'Austin',
-      address: '789 Tech Boulevard',
-      zipCode: 'Austin, TX 78701',
-      phone: '+1 (555) 456-7890',
-      type: 'Operations Center'
+      city: t('contact.office.austin.city'),
+      address: t('contact.office.austin.address'),
+      zipCode: t('contact.office.austin.zipCode'),
+      phone: t('contact.office.austin.phone'),
+      type: t('contact.office.austin.type')
     }
   ];
 
   const categories = [
-    { value: 'general', label: 'General Inquiry' },
-    { value: 'technical', label: 'Technical Support' },
-    { value: 'billing', label: 'Billing & Pricing' },
-    { value: 'partnership', label: 'Partnership' },
-    { value: 'feature', label: 'Feature Request' },
-    { value: 'bug', label: 'Bug Report' }
+    { value: 'general', label: t('contact.category.general') },
+    { value: 'technical', label: t('contact.category.technical') },
+    { value: 'billing', label: t('contact.category.billing') },
+    { value: 'partnership', label: t('contact.category.partnership') },
+    { value: 'feature', label: t('contact.category.feature') },
+    { value: 'bug', label: t('contact.category.bug') }
   ];
 
   const faqs = [
     {
-      question: 'How quickly can I expect a response?',
-      answer: 'We typically respond to inquiries within 24 hours during business days. Premium users receive priority support with faster response times.'
+      question: t('contact.faq.q1.question'),
+      answer: t('contact.faq.q1.answer')
     },
     {
-      question: 'Do you offer phone support?',
-      answer: 'Yes, phone support is available Monday through Friday, 9AM-6PM PST. You can also schedule a callback through our support portal.'
+      question: t('contact.faq.q2.question'),
+      answer: t('contact.faq.q2.answer')
     },
     {
-      question: 'Can I schedule a demo?',
-      answer: 'Absolutely! We offer personalized demos for institutions and organizations. Use the contact form or call us directly to schedule.'
+      question: t('contact.faq.q3.question'),
+      answer: t('contact.faq.q3.answer')
     }
   ];
 
@@ -141,24 +143,23 @@ export default function ContactPage() {
       <section className="bg-pastel-hero py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-5xl font-bold text-gradient-primary mb-6">
-            Get in Touch
+            {t('contact.hero.title')}
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            Have questions, feedback, or need support? We're here to help! 
-            Our team is dedicated to ensuring you have the best experience with EduMatch.
+            {t('contact.hero.subtitle')}
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Badge className="text-sm bg-blue-100 text-blue-700 border-blue-200">
               <Clock className="w-4 h-4 mr-2" />
-              24/7 Online Support
+              {t('contact.hero.badge1')}
             </Badge>
             <Badge className="text-sm bg-green-100 text-green-700 border-green-200">
               <Users className="w-4 h-4 mr-2" />
-              Dedicated Team
+              {t('contact.hero.badge2')}
             </Badge>
             <Badge className="text-sm bg-purple-100 text-purple-700 border-purple-200">
               <HelpCircle className="w-4 h-4 mr-2" />
-              Comprehensive Help
+              {t('contact.hero.badge3')}
             </Badge>
           </div>
         </div>
@@ -168,8 +169,8 @@ export default function ContactPage() {
       <section className="py-16 section-gradient-light">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gradient-primary mb-4">How Can We Help?</h2>
-            <p className="text-gray-600">Choose the best way to reach us</p>
+            <h2 className="text-3xl font-bold text-gradient-primary mb-4">{t('contact.methods.title')}</h2>
+            <p className="text-gray-600">{t('contact.methods.subtitle')}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
@@ -206,7 +207,7 @@ export default function ContactPage() {
               <CardHeader>
                 <CardTitle className="flex items-center text-gradient-blue">
                   <Send className="w-5 h-5 mr-2" />
-                  Send us a Message
+                  {t('contact.form.title')}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -216,10 +217,10 @@ export default function ContactPage() {
                       <Send className="w-8 h-8 text-green-600" />
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      Message Sent Successfully!
+                      {t('contact.form.successTitle')}
                     </h3>
                     <p className="text-gray-600">
-                      Thank you for reaching out. We'll get back to you within 24 hours.
+                      {t('contact.form.successMessage')}
                     </p>
                   </div>
                 ) : (
@@ -227,7 +228,7 @@ export default function ContactPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                          Name *
+                          {t('contact.form.name')} {t('contact.form.required')}
                         </label>
                         <Input
                           id="name"
@@ -236,12 +237,12 @@ export default function ContactPage() {
                           required
                           value={formData.name}
                           onChange={handleInputChange}
-                          placeholder="Your full name"
+                          placeholder={t('contact.form.namePlaceholder')}
                         />
                       </div>
                       <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                          Email *
+                          {t('contact.form.email')} {t('contact.form.required')}
                         </label>
                         <Input
                           id="email"
@@ -250,14 +251,14 @@ export default function ContactPage() {
                           required
                           value={formData.email}
                           onChange={handleInputChange}
-                          placeholder="your@email.com"
+                          placeholder={t('contact.form.emailPlaceholder')}
                         />
                       </div>
                     </div>
 
                     <div>
                       <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                        Category
+                        {t('contact.form.category')}
                       </label>
                       <select
                         id="category"
@@ -276,7 +277,7 @@ export default function ContactPage() {
 
                     <div>
                       <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">
-                        Subject *
+                        {t('contact.form.subject')} {t('contact.form.required')}
                       </label>
                       <Input
                         id="subject"
@@ -285,13 +286,13 @@ export default function ContactPage() {
                         required
                         value={formData.subject}
                         onChange={handleInputChange}
-                        placeholder="Brief description of your inquiry"
+                        placeholder={t('contact.form.subjectPlaceholder')}
                       />
                     </div>
 
                     <div>
                       <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">
-                        Message *
+                        {t('contact.form.message')} {t('contact.form.required')}
                       </label>
                       <Textarea
                         id="message"
@@ -300,7 +301,7 @@ export default function ContactPage() {
                         rows={5}
                         value={formData.message}
                         onChange={handleInputChange}
-                        placeholder="Please provide details about your inquiry..."
+                        placeholder={t('contact.form.messagePlaceholder')}
                       />
                     </div>
 
@@ -312,12 +313,12 @@ export default function ContactPage() {
                       {isSubmitting ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                          Sending...
+                          {t('contact.form.submitting')}
                         </>
                       ) : (
                         <>
                           <Send className="w-4 h-4 mr-2" />
-                          Send Message
+                          {t('contact.form.submit')}
                         </>
                       )}
                     </Button>
@@ -328,7 +329,7 @@ export default function ContactPage() {
 
             {/* FAQ */}
             <div className="space-y-6">
-              <h3 className="text-xl font-bold text-gray-900">Frequently Asked Questions</h3>
+              <h3 className="text-xl font-bold text-gray-900">{t('contact.faq.title')}</h3>
               
               {faqs.map((faq, index) => (
                 <Card key={index}>
@@ -346,13 +347,13 @@ export default function ContactPage() {
               <Card className="bg-brand-blue-50 border-brand-blue-200">
                 <CardContent className="p-6">
                   <h4 className="font-semibold text-brand-blue-900 mb-2">
-                    Need Immediate Help?
+                    {t('contact.help.title')}
                   </h4>
                   <p className="text-brand-blue-700 text-sm mb-4">
-                    Check out our comprehensive help center with articles, tutorials, and guides.
+                    {t('contact.help.description')}
                   </p>
                   <Button variant="outline" size="sm" className="border-brand-blue-300 text-brand-blue-700 hover:bg-brand-blue-100">
-                    Visit Help Center
+                    {t('contact.help.button')}
                   </Button>
                 </CardContent>
               </Card>
@@ -365,8 +366,8 @@ export default function ContactPage() {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Offices</h2>
-            <p className="text-gray-600">Visit us at one of our locations</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('contact.offices.title')}</h2>
+            <p className="text-gray-600">{t('contact.offices.subtitle')}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

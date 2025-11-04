@@ -2,12 +2,17 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Calendar, MapPin, Clock, GraduationCap, DollarSign } from 'lucide-react';
 import { Scholarship } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ApplyButton } from '@/components/ApplyButton';
 import { formatDate, getDaysUntilDeadline, truncateText, getMatchScoreColor } from '@/lib/utils';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useApplications } from '@/hooks/api';
+import { scholarshipCardVariants } from '@/lib/animations';
 
 interface ScholarshipCardProps {
   scholarship: Scholarship;
@@ -16,16 +21,36 @@ interface ScholarshipCardProps {
 }
 
 export function ScholarshipCard({ scholarship, showMatchScore = false, className }: ScholarshipCardProps) {
+  const { t } = useLanguage();
+  const { checkApplicationStatus } = useApplications();
+  const [hasApplied, setHasApplied] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  
+  React.useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const status = await checkApplicationStatus(scholarship.id);
+        setHasApplied(!!status);
+      } catch (error) {
+        console.error('Error checking application status:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkStatus();
+  }, [scholarship.id, checkApplicationStatus]);
+  
   const daysUntilDeadline = getDaysUntilDeadline(scholarship.deadline || scholarship.applicationDeadline);
   const isDeadlineSoon = daysUntilDeadline <= 7 && daysUntilDeadline >= 0;
   const isExpired = daysUntilDeadline < 0;
 
   const getDeadlineStatus = () => {
     if (isExpired) {
-      return { text: 'Expired', variant: 'destructive' as const, color: 'text-danger-500' };
+      return { text: t('scholarshipCard.expired'), variant: 'destructive' as const, color: 'text-danger-500' };
     }
     if (isDeadlineSoon) {
-      return { text: `${daysUntilDeadline} days left`, variant: 'warning' as const, color: 'text-warning-600' };
+      return { text: t('scholarshipCard.daysLeft').replace('{days}', daysUntilDeadline.toString()), variant: 'warning' as const, color: 'text-warning-600' };
     }
     return { text: formatDate(scholarship.deadline || scholarship.applicationDeadline), variant: 'outline' as const, color: 'text-muted-foreground' };
   };
@@ -33,19 +58,26 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
   const deadlineStatus = getDeadlineStatus();
 
   return (
-    <Card className={`flex flex-col h-full hover:shadow-elevated transition-shadow duration-200 ${className}`}>
-      {/* Header */}
-      <CardHeader className="pb-3">
+    <motion.div
+      variants={scholarshipCardVariants}
+      initial="initial"
+      animate="animate"
+      whileHover="hover"
+      whileTap={{ scale: 0.98 }}
+    >
+      <Card className={`flex flex-col h-full ${className}`}>
+        {/* Header */}
+        <CardHeader className="pb-3">
         <div className="flex justify-between items-start gap-3">
           <CardTitle className="text-lg font-semibold line-clamp-2 text-balance">
             {scholarship.title}
           </CardTitle>
           {showMatchScore && scholarship.matchScore && (
-            <div className="flex flex-col items-center min-w-0">
+            <div className="flex flex-col items-center flex-shrink-0 min-w-[50px]">
               <div className={`text-lg font-bold ${getMatchScoreColor(scholarship.matchScore)}`}>
                 {scholarship.matchScore}%
               </div>
-              <span className="text-xs text-muted-foreground">match</span>
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('scholarshipCard.match')}</span>
             </div>
           )}
         </div>
@@ -74,7 +106,7 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
           ))}
           {scholarship.field && scholarship.field.length > 3 && (
             <Badge variant="outline" className="text-xs">
-              +{scholarship.field.length - 3} more
+              {t('scholarshipCard.more').replace('{count}', (scholarship.field.length - 3).toString())}
             </Badge>
           )}
           {!scholarship.field && scholarship.tags && scholarship.tags.slice(0, 3).map((tag, index) => (
@@ -92,7 +124,7 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
           
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <span>{scholarship.studyMode || (scholarship.isRemote ? 'Remote' : 'On-site')}</span>
+            <span>{scholarship.studyMode || (scholarship.isRemote ? t('scholarshipCard.remote') : t('scholarshipCard.onsite'))}</span>
           </div>
           
           {(scholarship.stipend || scholarship.amount) && (
@@ -109,13 +141,13 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <span className={`text-sm font-medium ${deadlineStatus.color}`}>
-              Deadline: {deadlineStatus.text}
+              {t('scholarshipCard.deadline')}: {deadlineStatus.text}
             </span>
           </div>
           
           {isDeadlineSoon && (
             <Badge variant={deadlineStatus.variant} className="text-xs">
-              Urgent
+              {t('scholarshipCard.urgent')}
             </Badge>
           )}
         </div>
@@ -125,22 +157,18 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
       <CardFooter className="pt-0 flex gap-2">
         <Button asChild variant="outline" className="flex-1">
           <Link href={`/applicant/scholarships/${scholarship.id}`}>
-            View Details
+            {t('scholarshipCard.viewDetails')}
           </Link>
         </Button>
-        
-        {isExpired ? (
-          <Button disabled className="flex-1">
-            Closed
-          </Button>
-        ) : (
-          <Button asChild className="flex-1">
-            <Link href={`/applicant/scholarships/${scholarship.id}?apply=true`}>
-              Apply Now
-            </Link>
-          </Button>
-        )}
+        <ApplyButton
+          scholarship={scholarship}
+          hasApplied={hasApplied}
+          disabled={loading || isExpired}
+          className="flex-1"
+          showDialog={true}
+        />
       </CardFooter>
     </Card>
+    </motion.div>
   );
 }
