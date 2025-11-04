@@ -31,6 +31,11 @@ import com.edumatch.scholarship.repository.ApplicationRepository;
 import com.edumatch.scholarship.repository.ApplicationDocumentRepository;
 import com.edumatch.scholarship.repository.BookmarkRepository;
 import com.edumatch.scholarship.model.Application;
+import com.edumatch.scholarship.dto.client.ScoreRequest; 
+import com.edumatch.scholarship.dto.client.ScoreResponse; 
+import com.edumatch.scholarship.dto.OpportunityDetailDto; 
+import org.springframework.data.domain.Page; 
+import org.springframework.data.domain.Pageable; 
 import java.util.Map;
 
 import java.util.HashSet;
@@ -52,6 +57,9 @@ public class ScholarshipService {
     private final BookmarkRepository bookmarkRepository;
     private final RestTemplate restTemplate;
     private final RabbitTemplate rabbitTemplate;
+
+    @Value("${app.services.matching-service.url}")
+    private String matchingServiceUrl;
 
     @Value("${app.services.auth-service.url}")
     private String authServiceUrl;
@@ -244,4 +252,72 @@ public class ScholarshipService {
         );
         log.info("Đã gửi sự kiện 'scholarship.deleted' cho ID: {}", id);
     }
+
+//    /*
+//     * Tìm kiếm/Lọc cơ hội (phân trang)
+//     */
+//    public Page<OpportunityDto> searchOpportunities(Pageable pageable) {
+//        // TODO: Xử lý logic lọc (ví dụ: ?q=, ?gpa=)
+//
+//        // (Tạm thời trả về tất cả để test)
+//        return opportunityRepository.findAll(pageable)
+//                .map(OpportunityDto::fromEntity);
+//    }
+//
+//    /*
+//     * Lấy chi tiết 1 cơ hội
+//     */
+//    public OpportunityDetailDto getOpportunityDetails(Long opportunityId, UserDetails userDetails) {
+//        // 1. Lấy cơ hội
+//        Opportunity opp = opportunityRepository.findById(opportunityId)
+//                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy cơ hội với ID: " + opportunityId));
+//
+//        OpportunityDto oppDto = OpportunityDto.fromEntity(opp);
+//        OpportunityDetailDto detailDto = new OpportunityDetailDto(oppDto);
+//
+//        // 2. Nếu user đã đăng nhập -> Gọi MatchingService
+//        if (userDetails != null) {
+//            log.info("User đã đăng nhập, gọi MatchingService để lấy điểm...");
+//            try {
+//                // Lấy thông tin user (dùng lại hàm helper)
+//                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//                String token = (String) authentication.getCredentials();
+//                UserDetailDto user = getUserDetailsFromAuthService(userDetails.getUsername(), token);
+//
+//                // Gọi MatchingService
+//                Float score = getMatchingScore(user.getId(), opportunityId);
+//                detailDto.setMatchScore(score);
+//
+//            } catch (Exception e) {
+//                log.warn("Không thể lấy match score cho user {}: {}", userDetails.getUsername(), e.getMessage());
+//                detailDto.setMatchScore(null); // Không sao, vẫn trả về thông tin
+//            }
+//        }
+//
+//        return detailDto;
+//    }
+//
+//    /*
+//     * Gọi Matching-Service để lấy điểm
+//     */
+//    private Float getMatchingScore(Long applicantId, Long opportunityId) {
+//        // (MatchingService dùng String ID)
+//        ScoreRequest request = new ScoreRequest(
+//                applicantId.toString(),
+//                opportunityId.toString()
+//        );
+//
+//        String url = matchingServiceUrl + "/api/v1/match/score";
+//
+//        try {
+//            ScoreResponse response = restTemplate.postForObject(url, request, ScoreResponse.class);
+//            if (response != null) {
+//                return response.getOverallScore();
+//            }
+//        } catch (Exception e) {
+//            log.error("Lỗi khi gọi MatchingService (match/score): {}", e.getMessage());
+//            // (Nếu MatchingService sập, không làm sập ScholarshipService)
+//        }
+//        return null;
+//    }
 }

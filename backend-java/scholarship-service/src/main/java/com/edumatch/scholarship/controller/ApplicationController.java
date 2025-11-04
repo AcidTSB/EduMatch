@@ -14,6 +14,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.edumatch.scholarship.dto.UpdateApplicationStatusRequest;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/applications") // Đường dẫn gốc cho các API Application
@@ -34,5 +39,45 @@ public class ApplicationController {
     ) {
         ApplicationDto createdDto = applicationService.createApplication(request, userDetails);
         return new ResponseEntity<>(createdDto, HttpStatus.CREATED);
+    }
+    /**
+     * API để Provider xem danh sách ứng viên của 1 cơ hội
+     * Endpoint: GET /api/applications/opportunity/{opportunityId}
+     */
+    @GetMapping("/opportunity/{opportunityId}")
+    @PreAuthorize("hasRole('EMPLOYER')")
+    public ResponseEntity<List<ApplicationDto>> getApplicationsForOpportunity(
+            @PathVariable Long opportunityId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        List<ApplicationDto> dtos = applicationService.getApplicationsForOpportunity(opportunityId, userDetails);
+        return ResponseEntity.ok(dtos);
+    }
+    /**
+     * API để Provider cập nhật trạng thái đơn (Approved, Rejected...)
+     * Endpoint: PUT /api/applications/{applicationId}/status
+     */
+    @PutMapping("/{applicationId}/status")
+    @PreAuthorize("hasRole('EMPLOYER')")
+    public ResponseEntity<ApplicationDto> updateApplicationStatus(
+            @PathVariable Long applicationId,
+            @Valid @RequestBody UpdateApplicationStatusRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        ApplicationDto dto = applicationService.updateApplicationStatus(applicationId, request.getStatus(), userDetails);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * API để Applicant (Sinh viên) xem các đơn họ đã nộp
+     * Endpoint: GET /api/applications/my
+     */
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('USER')") // Chỉ ROLE_USER mới được xem
+    public ResponseEntity<List<ApplicationDto>> getMyApplications(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        List<ApplicationDto> dtos = applicationService.getMyApplications(userDetails);
+        return ResponseEntity.ok(dtos);
     }
 }
