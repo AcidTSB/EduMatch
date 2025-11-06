@@ -11,6 +11,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import com.edumatch.scholarship.dto.ModerateRequestDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -73,5 +76,28 @@ public class OpportunityController {
         return ResponseEntity.noContent().build(); // Trả về 204 No Content
     }
 
+    /**
+     * API (nội bộ) để Admin lấy TẤT CẢ cơ hội
+     * Endpoint: GET /api/opportunities/all
+     */
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ROLE_ADMIN')") // Chỉ ADMIN
+    public ResponseEntity<Page<OpportunityDto>> getAllOpportunities(Pageable pageable) {
+        Page<OpportunityDto> page = scholarshipService.getAllOpportunitiesForAdmin(pageable);
+        return ResponseEntity.ok(page);
+    }
 
+    /**
+     * API (nội bộ) để Admin DUYỆT hoặc TỪ CHỐI
+     * Endpoint: PUT /api/opportunities/{id}/moderate
+     */
+    @PutMapping("/{id}/moderate")
+    @PreAuthorize("hasRole('ROLE_ADMIN')") // Chỉ ADMIN
+    public ResponseEntity<OpportunityDto> moderateOpportunity(
+            @PathVariable Long id,
+            @Valid @RequestBody ModerateRequestDto request) {
+
+        OpportunityDto dto = scholarshipService.moderateOpportunity(id, request.getStatus());
+        return ResponseEntity.ok(dto);
+    }
 }

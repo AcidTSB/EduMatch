@@ -37,7 +37,9 @@ import com.edumatch.scholarship.dto.OpportunityDetailDto;
 import org.springframework.data.domain.Page; 
 import org.springframework.data.domain.Pageable; 
 import java.util.Map;
-
+import com.edumatch.scholarship.repository.specification.OpportunitySpecification;
+import org.springframework.data.jpa.domain.Specification;
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -253,71 +255,114 @@ public class ScholarshipService {
         log.info("Đã gửi sự kiện 'scholarship.deleted' cho ID: {}", id);
     }
 
-//    /*
-//     * Tìm kiếm/Lọc cơ hội (phân trang)
-//     */
-//    public Page<OpportunityDto> searchOpportunities(Pageable pageable) {
-//        // TODO: Xử lý logic lọc (ví dụ: ?q=, ?gpa=)
-//
-//        // (Tạm thời trả về tất cả để test)
-//        return opportunityRepository.findAll(pageable)
-//                .map(OpportunityDto::fromEntity);
-//    }
-//
-//    /*
-//     * Lấy chi tiết 1 cơ hội
-//     */
-//    public OpportunityDetailDto getOpportunityDetails(Long opportunityId, UserDetails userDetails) {
-//        // 1. Lấy cơ hội
-//        Opportunity opp = opportunityRepository.findById(opportunityId)
-//                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy cơ hội với ID: " + opportunityId));
-//
-//        OpportunityDto oppDto = OpportunityDto.fromEntity(opp);
-//        OpportunityDetailDto detailDto = new OpportunityDetailDto(oppDto);
-//
-//        // 2. Nếu user đã đăng nhập -> Gọi MatchingService
-//        if (userDetails != null) {
-//            log.info("User đã đăng nhập, gọi MatchingService để lấy điểm...");
-//            try {
-//                // Lấy thông tin user (dùng lại hàm helper)
-//                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//                String token = (String) authentication.getCredentials();
-//                UserDetailDto user = getUserDetailsFromAuthService(userDetails.getUsername(), token);
-//
-//                // Gọi MatchingService
-//                Float score = getMatchingScore(user.getId(), opportunityId);
-//                detailDto.setMatchScore(score);
-//
-//            } catch (Exception e) {
-//                log.warn("Không thể lấy match score cho user {}: {}", userDetails.getUsername(), e.getMessage());
-//                detailDto.setMatchScore(null); // Không sao, vẫn trả về thông tin
-//            }
-//        }
-//
-//        return detailDto;
-//    }
-//
-//    /*
-//     * Gọi Matching-Service để lấy điểm
-//     */
-//    private Float getMatchingScore(Long applicantId, Long opportunityId) {
-//        // (MatchingService dùng String ID)
-//        ScoreRequest request = new ScoreRequest(
-//                applicantId.toString(),
-//                opportunityId.toString()
-//        );
-//
-//        String url = matchingServiceUrl + "/api/v1/match/score";
-//
-//        try {
-//            ScoreResponse response = restTemplate.postForObject(url, request, ScoreResponse.class);
-//            if (response != null) {
-//                return response.getOverallScore();
-//            }
-//        } catch (Exception e) {
-//            log.error("Lỗi khi gọi MatchingService (match/score): {}", e.getMessage());
-//            // (Nếu MatchingService sập, không làm sập ScholarshipService)
-//        }
-//        return null;
-//    }
+    /**
+     * Tìm kiếm/Lọc cơ hội (phân trang)
+     * (Đã cập nhật để dùng Specification)
+     */
+    public Page<OpportunityDto> searchOpportunities(
+            // THÊM CÁC THAM SỐ NÀY VÀO
+            String keyword, BigDecimal gpa, Pageable pageable
+    ) {
+        // 1. Tạo Specification từ các tham số
+        Specification<Opportunity> spec = OpportunitySpecification.filterBy(keyword, gpa);
+
+        // 2. Thực thi Specification (Đúng rồi)
+        Page<Opportunity> page = opportunityRepository.findAll(spec, pageable);
+
+        // 3. Chuyển đổi và trả về
+        return page.map(OpportunityDto::fromEntity);
+    }
+
+    /**
+     * Lấy chi tiết 1 cơ hội
+     * (Đã cập nhật - Kiểm tra trạng thái duyệt)
+     */
+    public OpportunityDetailDto getOpportunityDetails(Long opportunityId, UserDetails userDetails) {
+        Opportunity opp = opportunityRepository.findById(opportunityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy cơ hội với ID: " + opportunityId));
+
+        // KIỂM TRA BẢO MẬT: Chỉ cho phép xem nếu đã được duyệt
+        // (Hoặc sau này: nếu user là chủ bài đăng)
+        if (!"APPROVED".equals(opp.getModerationStatus())) {
+            // (Tạm thời chúng ta log, nhưng sau này nên ném lỗi 403)
+            log.warn("Đang truy cập cơ hội (ID: {}) chưa được duyệt.", opportunityId);
+            // throw new AccessDeniedException("Cơ hội này chưa được duyệt hoặc không tồn tại.");
+        }
+
+        OpportunityDto oppDto = OpportunityDto.fromEntity(opp);
+        OpportunityDetailDto detailDto = new OpportunityDetailDto(oppDto);
+
+        if (userDetails != null) {
+            log.info("User đã đăng nhập, gọi MatchingService để lấy điểm...");
+            try {
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                String token = (String) authentication.getCredentials();
+                UserDetailDto user = getUserDetailsFromAuthService(userDetails.getUsername(), token);
+
+                Float score = getMatchingScore(user.getId(), opportunityId);
+                detailDto.setMatchScore(score);
+            } catch (Exception e) {
+                log.warn("Không thể lấy match score cho user {}: {}", userDetails.getUsername(), e.getMessage());
+                detailDto.setMatchScore(null);
+            }
+        }
+        return detailDto;
+    }
+
+    /*
+     * Gọi Matching-Service để lấy điểm
+     */
+    private Float getMatchingScore(Long applicantId, Long opportunityId) {
+        // (MatchingService dùng String ID)
+        ScoreRequest request = new ScoreRequest(
+                applicantId.toString(),
+                opportunityId.toString()
+        );
+
+        String url = matchingServiceUrl + "/api/v1/match/score";
+
+        try {
+            ScoreResponse response = restTemplate.postForObject(url, request, ScoreResponse.class);
+            if (response != null) {
+                return response.getOverallScore();
+            }
+        } catch (Exception e) {
+            log.error("Lỗi khi gọi MatchingService (match/score): {}", e.getMessage());
+            // (Nếu MatchingService sập, không làm sập ScholarshipService)
+        }
+        return null;
+    }
+    /**
+     * Lấy TẤT CẢ cơ hội (bao gồm cả PENDING) cho Admin
+     */
+    public Page<OpportunityDto> getAllOpportunitiesForAdmin(Pageable pageable) {
+        // Không lọc, lấy tất cả
+        return opportunityRepository.findAll(pageable)
+                .map(OpportunityDto::fromEntity);
+    }
+
+    /**
+     * Admin cập nhật trạng thái kiểm duyệt (Duyệt/Từ chối)
+     */
+    @Transactional
+    public OpportunityDto moderateOpportunity(Long opportunityId, String newStatus) {
+        // 1. Tìm cơ hội
+        Opportunity opp = opportunityRepository.findById(opportunityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy cơ hội với ID: " + opportunityId));
+
+        // 2. Cập nhật trạng thái
+        opp.setModerationStatus(newStatus); // Ví dụ: "APPROVED" hoặc "REJECTED"
+        Opportunity savedOpp = opportunityRepository.save(opp);
+
+        // 3. (QUAN TRỌNG) Gửi sự kiện 'updated'
+        // Khi Admin duyệt bài (APPROVED), chúng ta phải báo cho MatchingService
+        // biết rằng bài này "sẵn sàng" để được xử lý và hiển thị.
+        if ("APPROVED".equals(newStatus)) {
+            OpportunityDto dto = OpportunityDto.fromEntity(savedOpp);
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "scholarship.updated", dto);
+            log.info("Đã gửi sự kiện 'scholarship.updated' (Admin Approved) cho ID: {}", savedOpp.getId());
+        }
+
+        return OpportunityDto.fromEntity(savedOpp);
+    }
 }

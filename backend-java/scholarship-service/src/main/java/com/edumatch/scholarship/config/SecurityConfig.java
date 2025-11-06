@@ -53,6 +53,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/bookmarks/my").hasRole("USER")
                         .requestMatchers(HttpMethod.POST, "/api/applications").hasRole("USER")
                         .requestMatchers(HttpMethod.GET, "/api/applications/my").hasRole("USER")
+                        // --- API CHO ADMIN ---
+                        .requestMatchers(HttpMethod.GET, "/api/opportunities/all").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/opportunities/**/moderate").hasRole("ADMIN")
                         // Yêu cầu xác thực cho tất cả các API còn lại
                         .anyRequest().authenticated()
                 );

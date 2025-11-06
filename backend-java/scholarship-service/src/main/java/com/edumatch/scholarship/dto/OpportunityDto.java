@@ -25,6 +25,7 @@ public class OpportunityDto {
     private List<String> requiredSkills;
     private String minExperienceLevel;
     private String position;
+    private String moderationStatus;
     private Integer viewsCnt;
 
     // Hàm helper để chuyển từ Entity (Database) -> DTO (API)
@@ -47,6 +48,7 @@ public class OpportunityDto {
                         .collect(Collectors.toList()))
                 .minExperienceLevel(opp.getMinExperienceLevel())
                 .position(opp.getPosition())
+                .moderationStatus(opp.getModerationStatus())
                 .viewsCnt(opp.getViewsCnt())
                 .build();
     }
