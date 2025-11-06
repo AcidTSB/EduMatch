@@ -26,10 +26,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // Tắt CSRF (vì dùng API)
+                // Tắt CSRF
                 .csrf(AbstractHttpConfigurer::disable)
-
                 // Báo lỗi 401 khi user chưa xác thực
+
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
 
                 // Không lưu session (vì dùng JWT)
@@ -41,8 +41,18 @@ public class SecurityConfig {
                         // Cho phép xem (GET) danh sách và chi tiết học bổng
                         .requestMatchers(HttpMethod.GET, "/api/scholarships").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/scholarships/**").permitAll()
-
-                        // --- API Protected (Phải đăng nhập) ---
+                        // --- API CHO PROVIDER (ROLE_EMPLOYER) ---
+                        .requestMatchers(HttpMethod.POST, "/api/opportunities").hasRole("EMPLOYER")
+                        .requestMatchers(HttpMethod.GET, "/api/opportunities/my").hasRole("EMPLOYER")
+                        .requestMatchers(HttpMethod.PUT, "/api/opportunities/**").hasRole("EMPLOYER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/opportunities/**").hasRole("EMPLOYER")
+                        .requestMatchers(HttpMethod.GET, "/api/applications/opportunity/**").hasRole("EMPLOYER")
+                        .requestMatchers(HttpMethod.PUT, "/api/applications/*/status").hasRole("EMPLOYER")
+                        // --- API CHO APPLICANT (ROLE_USER) ---
+                        .requestMatchers(HttpMethod.POST, "/api/bookmarks/**").hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/bookmarks/my").hasRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/applications").hasRole("USER")
+                        .requestMatchers(HttpMethod.GET, "/api/applications/my").hasRole("USER")
                         // Yêu cầu xác thực cho tất cả các API còn lại
                         .anyRequest().authenticated()
                 );
