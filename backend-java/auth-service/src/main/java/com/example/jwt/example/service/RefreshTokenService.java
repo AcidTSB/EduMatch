@@ -23,29 +23,36 @@ public class RefreshTokenService {
     @Value("${app.jwtRefreshExpirationMs}")
     private Long refreshTokenDurationMs;
 
+    /**
+     * Tạo hoặc cập nhật Refresh Token cho user
+     */
     @Transactional
     public RefreshToken createRefreshToken(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Xóa token cũ (nếu có)
-        refreshTokenRepository.findByUser(user)
-                .ifPresent(refreshTokenRepository::delete);
+        // Tìm token cũ nếu có, không cần xóa
+        RefreshToken refreshToken = refreshTokenRepository.findByUser(user)
+                .orElse(RefreshToken.builder().user(user).build());
 
-        // Tạo token mới
-        RefreshToken refreshToken = RefreshToken.builder()
-                .user(user)
-                .token(UUID.randomUUID().toString())
-                .expiryDate(Instant.now().plusMillis(refreshTokenDurationMs))
-                .build();
+        // Cập nhật giá trị mới
+        refreshToken.setToken(UUID.randomUUID().toString());
+        refreshToken.setExpiryDate(Instant.now().plusMillis(refreshTokenDurationMs));
 
+        // Hibernate sẽ tự INSERT hoặc UPDATE tùy tình huống
         return refreshTokenRepository.save(refreshToken);
     }
 
+    /**
+     * Tìm token theo chuỗi token
+     */
     public Optional<RefreshToken> findByToken(String token) {
         return refreshTokenRepository.findByToken(token);
     }
 
+    /**
+     * Kiểm tra token còn hạn hay không
+     */
     public RefreshToken verifyExpiration(RefreshToken token) {
         if (token.getExpiryDate().isBefore(Instant.now())) {
             refreshTokenRepository.delete(token);
@@ -54,8 +61,13 @@ public class RefreshTokenService {
         return token;
     }
 
+    /**
+     * Xóa token theo userId
+     */
+    @Transactional
     public int deleteByUserId(Long userId) {
-        User user = userRepository.findById(userId).get();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
         return refreshTokenRepository.deleteByUser(user);
     }
 }

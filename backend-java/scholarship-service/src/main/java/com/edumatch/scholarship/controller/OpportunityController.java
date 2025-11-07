@@ -10,10 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import com.edumatch.scholarship.dto.ModerateRequestDto;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/opportunities") // Đường dẫn gốc cho các API Opportunity
@@ -38,10 +40,64 @@ public class OpportunityController {
     ) {
         // 1. Gọi service layer để xử lý logic
         OpportunityDto createdOpportunity = scholarshipService.createOpportunity(request, userDetails);
-
         // 2. Trả về DTO với status 201 CREATED
         return new ResponseEntity<>(createdOpportunity, HttpStatus.CREATED);
     }
+    //API để Provider lấy danh sách các cơ hội HỌ ĐÃ TẠO.
+    @GetMapping("/my")
+    @PreAuthorize("hasRole('ROLE_EMPLOYER')")
+    public ResponseEntity<List<OpportunityDto>> getMyOpportunities(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        List<OpportunityDto> myOpps = scholarshipService.getMyOpportunities(userDetails);
+        return ResponseEntity.ok(myOpps);
+    }
 
-    // Sẽ thêm các API khác như GET, PUT, DELETE vào sau
+    //API để Provider cập nhật
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_EMPLOYER')")
+    public ResponseEntity<OpportunityDto> updateOpportunity(
+            @PathVariable Long id,
+            @Valid @RequestBody CreateOpportunityRequest request, // Dùng lại DTO tạo
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        OpportunityDto updatedOpp = scholarshipService.updateOpportunity(id, request, userDetails);
+        return ResponseEntity.ok(updatedOpp);
+    }
+
+    //API để Provider xóa
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_EMPLOYER')")
+    public ResponseEntity<Void> deleteOpportunity(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        scholarshipService.deleteOpportunity(id, userDetails);
+        return ResponseEntity.noContent().build(); // Trả về 204 No Content
+    }
+
+    /**
+     * API (nội bộ) để Admin lấy TẤT CẢ cơ hội
+     * Endpoint: GET /api/opportunities/all
+     */
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ROLE_ADMIN')") // Chỉ ADMIN
+    public ResponseEntity<Page<OpportunityDto>> getAllOpportunities(Pageable pageable) {
+        Page<OpportunityDto> page = scholarshipService.getAllOpportunitiesForAdmin(pageable);
+        return ResponseEntity.ok(page);
+    }
+
+    /**
+     * API (nội bộ) để Admin DUYỆT hoặc TỪ CHỐI
+     * Endpoint: PUT /api/opportunities/{id}/moderate
+     */
+    @PutMapping("/{id}/moderate")
+    @PreAuthorize("hasRole('ROLE_ADMIN')") // Chỉ ADMIN
+    public ResponseEntity<OpportunityDto> moderateOpportunity(
+            @PathVariable Long id,
+            @Valid @RequestBody ModerateRequestDto request) {
+
+        OpportunityDto dto = scholarshipService.moderateOpportunity(id, request.getStatus());
+        return ResponseEntity.ok(dto);
+    }
 }

@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,69 +27,124 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-
-
+import com.edumatch.scholarship.repository.ApplicationRepository;
+import com.edumatch.scholarship.repository.ApplicationDocumentRepository;
+import com.edumatch.scholarship.repository.BookmarkRepository;
+import com.edumatch.scholarship.model.Application;
+import com.edumatch.scholarship.dto.client.ScoreRequest; 
+import com.edumatch.scholarship.dto.client.ScoreResponse; 
+import com.edumatch.scholarship.dto.OpportunityDetailDto; 
+import org.springframework.data.domain.Page; 
+import org.springframework.data.domain.Pageable; 
+import java.util.Map;
+import com.edumatch.scholarship.repository.specification.OpportunitySpecification;
+import org.springframework.data.jpa.domain.Specification;
+import java.math.BigDecimal;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor // Tự động inject các repository
+@RequiredArgsConstructor
 @Slf4j
 public class ScholarshipService {
 
-    // Inject các Repositories
+    // (Injects đã có)
     private final OpportunityRepository opportunityRepository;
     private final TagRepository tagRepository;
     private final SkillRepository skillRepository;
-
-    // Inject các Bean giao tiếp
+    private final ApplicationRepository applicationRepository;
+    private final ApplicationDocumentRepository applicationDocumentRepository;
+    private final BookmarkRepository bookmarkRepository;
     private final RestTemplate restTemplate;
     private final RabbitTemplate rabbitTemplate;
 
-    // Lấy URL của Auth-Service từ application.properties
+    @Value("${app.services.matching-service.url}")
+    private String matchingServiceUrl;
+
     @Value("${app.services.auth-service.url}")
     private String authServiceUrl;
 
+    /**
+     * Hàm helper CÔNG KHAI (public) gọi sang Auth-Service.
+     * Chỉ kiểm tra ID, dùng cho BẤT KỲ user nào (Applicant, Provider).
+     * ApplicationService sẽ gọi hàm này.
+     */
+    public UserDetailDto getUserDetailsFromAuthService(String username, String token) {
+        String url = authServiceUrl + "/api/internal/user/" + username;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<UserDetailDto> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    UserDetailDto.class
+            );
+            UserDetailDto user = response.getBody();
+
+            //Chỉ kiểm tra ID, không kiểm tra organizationId
+            if (user == null || user.getId() == null) {
+                throw new ResourceNotFoundException("Không thể lấy thông tin (ID) user từ Auth-Service.");
+            }
+            return user;
+
+        } catch (HttpClientErrorException.NotFound ex) {
+            throw new ResourceNotFoundException("Không tìm thấy User với username: " + username + " bên Auth-Service.");
+        } catch (HttpClientErrorException.Unauthorized ex) {
+            log.error("Token bị từ chối bởi Auth-Service: {}", ex.getMessage());
+            throw new IllegalStateException("Token không hợp lệ khi gọi Auth-Service.");
+        } catch (Exception ex) {
+            log.error("Lỗi khi gọi Auth-Service: {}", ex.getMessage());
+            throw new IllegalStateException("Không thể kết nối tới Auth-Service.");
+        }
+    }
+
+    /**
+     * Hàm helper RIÊNG TƯ (private) cho các nghiệp vụ của Provider.
+     * Đảm bảo user lấy về PHẢI CÓ organizationId.
+     */
+    private UserDetailDto getProviderDetails(String username, String token) {
+        // 1. Gọi hàm helper chung (đã sửa ở trên)
+        UserDetailDto user = getUserDetailsFromAuthService(username, token);
+
+        // 2. Thêm kiểm tra
+        if (user.getOrganizationId() == null) {
+            log.error("Provider {} không có organizationId.", username);
+            throw new AccessDeniedException("Tài khoản Provider phải thuộc về một tổ chức.");
+        }
+        return user;
+    }
     /**
      * Chức năng tạo mới một cơ hội (học bổng)
      */
     @Transactional
     public OpportunityDto createOpportunity(CreateOpportunityRequest request, UserDetails userDetails) {
-
-        // 1. GỌI AUTH-SERVICE (SYNC)
-
-        // --- LẤY TOKEN TỪ SECURITY CONTEXT ---
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String token = (String) authentication.getCredentials();
-        // --- ------------------------------- ---
-
-        log.info("Gọi Auth-Service để lấy thông tin cho user: {}", userDetails.getUsername());
         String username = userDetails.getUsername();
 
-        // --- TRUYỀN TOKEN VÀO HÀM HELPER ---
-        UserDetailDto user = getUserDetailsFromAuthService(username, token);
-        // --- --------------------------------- ---
+        UserDetailDto user = getProviderDetails(username, token);
 
-        // 2. XỬ LÝ TAGS VÀ SKILLS
         log.info("Xử lý Tags và Skills...");
         Set<Tag> tags = new HashSet<>(request.getTags()).stream()
-                // ... (code còn lại giữ nguyên)
                 .map(name -> tagRepository.findByName(name)
                         .orElseGet(() -> tagRepository.save(new Tag(null, name, null))))
                 .collect(Collectors.toSet());
-
         Set<Skill> skills = new HashSet<>(request.getRequiredSkills()).stream()
                 .map(name -> skillRepository.findByName(name)
                         .orElseGet(() -> skillRepository.save(new Skill(null, name, null))))
                 .collect(Collectors.toSet());
 
-        // 3. TẠO VÀ LƯU OPPORTUNITY (DATABASE)
         Opportunity opportunity = Opportunity.builder()
                 .title(request.getTitle())
                 .fullDescription(request.getFullDescription())
-                .creatorUserId(user.getId()) // Gán ID user từ Auth-Service
-                .organizationId(user.getOrganizationId()) // Gán ID tổ chức
+                .creatorUserId(user.getId())
+                .organizationId(user.getOrganizationId()) // Đã được đảm bảo không null
                 .applicationDeadline(request.getApplicationDeadline())
                 .minGpa(request.getMinGpa())
                 .tags(tags)
@@ -97,56 +153,216 @@ public class ScholarshipService {
                 .position(request.getPosition())
                 .viewsCnt(0)
                 .build();
-
         Opportunity savedOpp = opportunityRepository.save(opportunity);
         log.info("Đã tạo Opportunity mới với ID: {}", savedOpp.getId());
 
-        // 4. GỬI SỰ KIỆN TỚI RABBITMQ (ASYNC)
-        // Chuyển đổi sang DTO trước khi gửi đi
         OpportunityDto dtoToSend = OpportunityDto.fromEntity(savedOpp);
         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "scholarship.created", dtoToSend);
         log.info("Đã gửi sự kiện 'scholarship.created' cho ID: {}", savedOpp.getId());
 
-        // 5. Trả về DTO cho client
         return dtoToSend;
     }
 
     /**
-     * Hàm helper gọi sang Auth-Service để lấy thông tin User
+     * Lấy cơ hội do tôi tạo (GET /my)
      */
-    private UserDetailDto getUserDetailsFromAuthService(String username, String token) {
-        String url = authServiceUrl + "/api/internal/user/" + username;
+    public List<OpportunityDto> getMyOpportunities(UserDetails userDetails) {
+        UserDetailDto user = getProviderDetails(userDetails.getUsername(),
+                (String) SecurityContextHolder.getContext().getAuthentication().getCredentials());
 
-        // --- TẠO HEADER VÀ GẮN TOKEN ---
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + token); // Gắn token vào header
-        HttpEntity<Void> entity = new HttpEntity<>(headers); // Tạo entity chỉ chứa header
-        // --- --------------------------- ---
+        List<Opportunity> opps = opportunityRepository.findByCreatorUserId(user.getId());
+        return opps.stream()
+                .map(OpportunityDto::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Cập nhật cơ hội (PUT /{id})
+     */
+    @Transactional
+    public OpportunityDto updateOpportunity(Long id, CreateOpportunityRequest request, UserDetails userDetails) {
+        UserDetailDto user = getProviderDetails(userDetails.getUsername(),
+                (String) SecurityContextHolder.getContext().getAuthentication().getCredentials());
+
+        Opportunity opp = opportunityRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy cơ hội với ID: " + id));
+
+        if (!opp.getCreatorUserId().equals(user.getId())) {
+            throw new AccessDeniedException("Bạn không có quyền cập nhật cơ hội này.");
+        }
+
+        opp.setTitle(request.getTitle());
+        opp.setFullDescription(request.getFullDescription());
+        opp.setApplicationDeadline(request.getApplicationDeadline());
+        opp.setMinGpa(request.getMinGpa());
+        opp.setMinExperienceLevel(request.getMinExperienceLevel());
+        opp.setPosition(request.getPosition());
+
+        Set<Tag> tags = new HashSet<>(request.getTags()).stream()
+                .map(name -> tagRepository.findByName(name)
+                        .orElseGet(() -> tagRepository.save(new Tag(null, name, null))))
+                .collect(Collectors.toSet());
+        opp.setTags(tags);
+
+        Set<Skill> skills = new HashSet<>(request.getRequiredSkills()).stream()
+                .map(name -> skillRepository.findByName(name)
+                        .orElseGet(() -> skillRepository.save(new Skill(null, name, null))))
+                .collect(Collectors.toSet());
+        opp.setRequiredSkills(skills);
+
+        Opportunity updatedOpp = opportunityRepository.save(opp);
+
+        OpportunityDto dto = OpportunityDto.fromEntity(updatedOpp);
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "scholarship.updated", dto);
+        log.info("Đã gửi sự kiện 'scholarship.updated' cho ID: {}", updatedOpp.getId());
+
+        return dto;
+    }
+
+    /**
+     * Xóa cơ hội (DELETE /{id})
+     */
+    @Transactional
+    public void deleteOpportunity(Long id, UserDetails userDetails) {
+        UserDetailDto user = getProviderDetails(userDetails.getUsername(),
+                (String) SecurityContextHolder.getContext().getAuthentication().getCredentials());
+
+        Opportunity opp = opportunityRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy cơ hội với ID: " + id));
+
+        if (!opp.getCreatorUserId().equals(user.getId())) {
+            throw new AccessDeniedException("Bạn không có quyền xóa cơ hội này.");
+        }
+
+        bookmarkRepository.deleteAllByOpportunityId(id);
+        List<Application> applications = applicationRepository.findByOpportunityId(id);
+        if (applications != null && !applications.isEmpty()) {
+            List<Long> appIds = applications.stream()
+                    .map(Application::getId)
+                    .collect(Collectors.toList());
+            applicationDocumentRepository.deleteAllByApplicationIdIn(appIds);
+            applicationRepository.deleteAll(applications);
+        }
+        opp.getTags().clear();
+        opp.getRequiredSkills().clear();
+        opportunityRepository.delete(opp);
+
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.EXCHANGE_NAME,
+                "scholarship.deleted",
+                Map.of("opportunityId", id)
+        );
+        log.info("Đã gửi sự kiện 'scholarship.deleted' cho ID: {}", id);
+    }
+
+    /**
+     * Tìm kiếm/Lọc cơ hội (phân trang)
+     * (Đã cập nhật để dùng Specification)
+     */
+    public Page<OpportunityDto> searchOpportunities(
+            // THÊM CÁC THAM SỐ NÀY VÀO
+            String keyword, BigDecimal gpa, Pageable pageable
+    ) {
+        // 1. Tạo Specification từ các tham số
+        Specification<Opportunity> spec = OpportunitySpecification.filterBy(keyword, gpa);
+
+        // 2. Thực thi Specification (Đúng rồi)
+        Page<Opportunity> page = opportunityRepository.findAll(spec, pageable);
+
+        // 3. Chuyển đổi và trả về
+        return page.map(OpportunityDto::fromEntity);
+    }
+
+    /**
+     * Lấy chi tiết 1 cơ hội
+     * (Đã cập nhật - Kiểm tra trạng thái duyệt)
+     */
+    public OpportunityDetailDto getOpportunityDetails(Long opportunityId, UserDetails userDetails) {
+        Opportunity opp = opportunityRepository.findById(opportunityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy cơ hội với ID: " + opportunityId));
+
+        // KIỂM TRA BẢO MẬT: Chỉ cho phép xem nếu đã được duyệt
+        // (Hoặc sau này: nếu user là chủ bài đăng)
+        if (!"APPROVED".equals(opp.getModerationStatus())) {
+            // (Tạm thời chúng ta log, nhưng sau này nên ném lỗi 403)
+            log.warn("Đang truy cập cơ hội (ID: {}) chưa được duyệt.", opportunityId);
+            // throw new AccessDeniedException("Cơ hội này chưa được duyệt hoặc không tồn tại.");
+        }
+
+        OpportunityDto oppDto = OpportunityDto.fromEntity(opp);
+        OpportunityDetailDto detailDto = new OpportunityDetailDto(oppDto);
+
+        if (userDetails != null) {
+            log.info("User đã đăng nhập, gọi MatchingService để lấy điểm...");
+            try {
+                Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+                String token = (String) authentication.getCredentials();
+                UserDetailDto user = getUserDetailsFromAuthService(userDetails.getUsername(), token);
+
+                Float score = getMatchingScore(user.getId(), opportunityId);
+                detailDto.setMatchScore(score);
+            } catch (Exception e) {
+                log.warn("Không thể lấy match score cho user {}: {}", userDetails.getUsername(), e.getMessage());
+                detailDto.setMatchScore(null);
+            }
+        }
+        return detailDto;
+    }
+
+    /*
+     * Gọi Matching-Service để lấy điểm
+     */
+    private Float getMatchingScore(Long applicantId, Long opportunityId) {
+        // (MatchingService dùng String ID)
+        ScoreRequest request = new ScoreRequest(
+                applicantId.toString(),
+                opportunityId.toString()
+        );
+
+        String url = matchingServiceUrl + "/api/v1/match/score";
 
         try {
-            // --- SỬ DỤNG .exchange() ĐỂ GỬI REQUEST VỚI HEADER ---
-            ResponseEntity<UserDetailDto> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
-                    UserDetailDto.class
-            );
-            UserDetailDto user = response.getBody();
-            // --- ----------------------------------------------- ---
-
-            if (user == null || user.getId() == null || user.getOrganizationId() == null) {
-                throw new ResourceNotFoundException("Không thể lấy thông tin user hoặc user không thuộc tổ chức nào.");
+            ScoreResponse response = restTemplate.postForObject(url, request, ScoreResponse.class);
+            if (response != null) {
+                return response.getOverallScore();
             }
-            return user;
-        } catch (HttpClientErrorException.NotFound ex) {
-            throw new ResourceNotFoundException("Không tìm thấy User với username: " + username + " bên Auth-Service.");
-        } catch (HttpClientErrorException.Unauthorized ex) {
-            // (Catch lỗi 401 nếu token bị hết hạn giữa chừng)
-            log.error("Token bị từ chối bởi Auth-Service: {}", ex.getMessage());
-            throw new IllegalStateException("Token không hợp lệ khi gọi Auth-Service.");
-        } catch (Exception ex) {
-            log.error("Lỗi khi gọi Auth-Service: {}", ex.getMessage());
-            throw new IllegalStateException("Không thể kết nối tới Auth-Service.");
+        } catch (Exception e) {
+            log.error("Lỗi khi gọi MatchingService (match/score): {}", e.getMessage());
+            // (Nếu MatchingService sập, không làm sập ScholarshipService)
         }
+        return null;
+    }
+    /**
+     * Lấy TẤT CẢ cơ hội (bao gồm cả PENDING) cho Admin
+     */
+    public Page<OpportunityDto> getAllOpportunitiesForAdmin(Pageable pageable) {
+        // Không lọc, lấy tất cả
+        return opportunityRepository.findAll(pageable)
+                .map(OpportunityDto::fromEntity);
+    }
+
+    /**
+     * Admin cập nhật trạng thái kiểm duyệt (Duyệt/Từ chối)
+     */
+    @Transactional
+    public OpportunityDto moderateOpportunity(Long opportunityId, String newStatus) {
+        // 1. Tìm cơ hội
+        Opportunity opp = opportunityRepository.findById(opportunityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy cơ hội với ID: " + opportunityId));
+
+        // 2. Cập nhật trạng thái
+        opp.setModerationStatus(newStatus); // Ví dụ: "APPROVED" hoặc "REJECTED"
+        Opportunity savedOpp = opportunityRepository.save(opp);
+
+        // 3. (QUAN TRỌNG) Gửi sự kiện 'updated'
+        // Khi Admin duyệt bài (APPROVED), chúng ta phải báo cho MatchingService
+        // biết rằng bài này "sẵn sàng" để được xử lý và hiển thị.
+        if ("APPROVED".equals(newStatus)) {
+            OpportunityDto dto = OpportunityDto.fromEntity(savedOpp);
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "scholarship.updated", dto);
+            log.info("Đã gửi sự kiện 'scholarship.updated' (Admin Approved) cho ID: {}", savedOpp.getId());
+        }
+
+        return OpportunityDto.fromEntity(savedOpp);
     }
 }

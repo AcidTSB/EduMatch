@@ -51,6 +51,9 @@ public class Opportunity {
     @Column(name = "position", length = 255)
     private String position;
 
+    @Column(name = "moderation_status", length = 50)
+    private String moderationStatus = "PENDING";
+
     @Column(name = "views_cnt")
     private Integer viewsCnt = 0;
 
