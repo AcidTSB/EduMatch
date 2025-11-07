@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     RABBITMQ_USER: str = "guest"
     RABBITMQ_PASSWORD: str = "guest"
     
+    # JWT Authentication (must match Auth Service settings)
+    JWT_SECRET: str = "your-256-bit-secret-key-change-this-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    
     # Celery
     CELERY_BROKER_URL: str = "amqp://guest:guest@rabbitmq:5672//"
     CELERY_RESULT_BACKEND: str = "rpc://"

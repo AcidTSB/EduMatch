@@ -9,14 +9,21 @@ COPY mvnw ./
 COPY .mvn .mvn
 COPY pom.xml ./
 
+# Fix line endings and make mvnw executable
+RUN dos2unix mvnw || sed -i 's/\r$//' mvnw
+RUN chmod +x mvnw
+
 # Tải dependency trước để cache
 RUN ./mvnw dependency:go-offline -B
 
 # Copy toàn bộ source
 COPY src ./src
 
-# Build project
-RUN ./mvnw package -DskipTests -B
+# Fix encoding issues in properties files
+RUN find src/main/resources -name "*.properties" -type f -exec sh -c 'iconv -f UTF-8 -t UTF-8 -c "$1" > "$1.tmp" && mv "$1.tmp" "$1"' _ {} \; || true
+
+# Build project with explicit encoding
+RUN ./mvnw package -DskipTests -B -Dproject.build.sourceEncoding=UTF-8
 
 # --------------------
 # Run stage
@@ -27,5 +34,5 @@ WORKDIR /app
 # Copy jar từ stage build
 COPY --from=build /app/target/*.jar app.jar
 
-EXPOSE 8080
+EXPOSE 8081
 ENTRYPOINT ["java", "-jar", "app.jar"]

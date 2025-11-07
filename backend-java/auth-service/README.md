@@ -1,26 +1,30 @@
-# Spring Boot JWT Authentication Example-2025
+# Auth Service - EduMatch Platform
 
-A complete JWT authentication and authorization implementation using Spring Boot 3, Spring Security 6, and JPA.
+Authentication & Authorization service cho EduMatch platform - Quan ly nguoi dung, JWT tokens va phan quyen.
 
 ## Features
 
-- 🔐 Complete JWT-based authentication system
-- 👤 User registration and login
-- 👮 Role-based authorization
-- 🛡️ Protected API endpoints
-- 📝 User profile management
-- 🔄 Token generation and validation
-- ⚡ Exception handling for authentication failures
+- 🔐 JWT-based authentication (Login/Register)
+- 👤 User management (Create, Read, Delete, Lock/Unlock)
+- 👮 Role-based authorization (USER, ADMIN, EMPLOYER)
+- � Refresh token support
+- 📝 Audit logging (Track user actions)
+- �🛡️ Protected API endpoints
+- 🏢 Organization support for employers
+- � Internal API for microservices
+- 🐳 Docker support
 
 ## Technology Stack
 
-- Java 21+
-- Spring Boot 3.x
-- Spring Security 6.x
+- Java 17
+- Spring Boot 3.3.2
+- Spring Security 6
 - Spring Data JPA
-- JWT (JSON Web Token)
-- Maven
-- MySQL (configurable)
+- JWT (io.jsonwebtoken 0.12.5)
+- MySQL 8.0
+- Maven 3.9+
+- Lombok
+- RabbitMQ (Optional - for event publishing)
 
 ## Project Structure
 
@@ -54,139 +58,179 @@ A complete JWT authentication and authorization implementation using Spring Boot
 │   │   └── CustomUserDetailsService.java    # UserDetailsService implementation
 ```
 
-## Setup Instructions
+## Quick Start
 
 ### Prerequisites
+- Java 17+
+- Maven 3.9+
+- MySQL 8.0+
 
-- Java 17 or higher
-- Maven 3.6 or higher
-- Your favorite IDE (IntelliJ IDEA, Eclipse, VS Code)
-
-### Configuration
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/jwt-authentication-example.git
-   cd jwt-authentication-example
-   ```
-
-2. Configure application.properties:
-   ```properties
-   # Database Configuration
-   spring.datasource.url=jdbc:mysql://localhost:3306/jwt_auth_db
-   spring.datasource.username=root
-   spring.datasource.password=your_password
-   spring.jpa.hibernate.ddl-auto=update
-   
-   # JWT Configuration
-   app.jwt.secret=your_jwt_secret_key_should_be_very_long_and_secure
-   app.jwt.expiration=86400000
-   app.jwt.header=Authorization
-   app.jwt.prefix=Bearer 
-   ```
-
-3. Create the database:
-   ```sql
-   CREATE DATABASE jwt_auth_db;
-   ```
-
-4. Initialize roles in the database:
-   ```sql
-   INSERT INTO roles(name, description) VALUES('ROLE_USER', 'Standard user role');
-   INSERT INTO roles(name, description) VALUES('ROLE_ADMIN', 'Administrator role');
-   ```
-
-### Build and Run
-
+### Run Locally
 ```bash
-mvn clean install
+# 1. Create database
+mysql -u root -p
+CREATE DATABASE jwt;
+
+# 2. Configure application.properties
+# Update database credentials if needed
+
+# 3. Run service
+cd backend-java/auth-service
 mvn spring-boot:run
 ```
 
-The application will be available at `http://localhost:8080`
+Service will start on: `http://localhost:8081`
+
+### Run with Docker
+```bash
+cd backend-java/auth-service
+docker build -t auth-service .
+docker run -p 8081:8080 \
+  -e DB_HOST=mysql \
+  -e DB_PORT=3306 \
+  auth-service
+```
 
 ## API Endpoints
 
-### Authentication
-
-| Method | URL | Description | Required Fields |
-|--------|-----|-------------|----------------|
-| POST | `/api/auth/signup` | Register a new user | username, password, firstName, lastName, email |
-| POST | `/api/auth/signin` | Authenticate user & get JWT | username, password |
-
-### User Management
-
+### Authentication (`/api/auth`)
 | Method | URL | Description | Access |
 |--------|-----|-------------|--------|
-| GET | `/api/user/me` | Get current user details | Authenticated users |
-| GET | `/api/users/{username}` | Get user profile | All users |
-| DELETE | `/api/users/{username}` | Delete a user | ADMIN only |
+| POST | `/api/auth/signup` | Register new user | Public |
+| POST | `/api/auth/signin` | Login and get JWT | Public |
+| POST | `/api/auth/refresh` | Refresh access token | Public |
+
+### User (`/api/user`)
+| Method | URL | Description | Access |
+|--------|-----|-------------|--------|
+| GET | `/api/user/me` | Get current user info | ROLE_USER |
+| GET | `/api/internal/user/{username}` | Get user details (internal API) | Authenticated |
+
+### Admin (`/api/admin`)
+| Method | URL | Description | Access |
+|--------|-----|-------------|--------|
+| POST | `/api/admin/create-employer` | Create employer account | ROLE_ADMIN |
+| POST | `/api/admin/create-user` | Create user account | ROLE_ADMIN |
+| GET | `/api/admin/users` | List all users (paginated) | ROLE_ADMIN |
+| GET | `/api/admin/users/{id}` | Get user by ID | ROLE_ADMIN |
+| DELETE | `/api/admin/users/{id}` | Delete user | ROLE_ADMIN |
+| PATCH | `/api/admin/users/{id}/toggle-status` | Lock/unlock user | ROLE_ADMIN |
+| GET | `/api/admin/scholarships` | List scholarships (mock) | ROLE_ADMIN |
+| PATCH | `/api/admin/scholarships/{id}/approve` | Approve scholarship | ROLE_ADMIN |
+| PATCH | `/api/admin/scholarships/{id}/reject` | Reject scholarship | ROLE_ADMIN |
+| GET | `/api/admin/audit/logs` | View audit logs | ROLE_ADMIN |
+| GET | `/api/admin/audit/users/{id}` | View user's audit logs | ROLE_ADMIN |
 
 ## Example Usage
 
-### Register a new user
+### 1. Register a new user
 ```bash
-curl -X POST http://localhost:8080/api/auth/signup \
+curl -X POST http://localhost:8081/api/auth/signup \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "testuser",
-    "password": "Test@123",
-    "firstName": "Test",
-    "lastName": "User",
-    "email": "test@example.com"
+    "username": "john_doe",
+    "email": "john@example.com",
+    "password": "password123",
+    "firstName": "John",
+    "lastName": "Doe"
 }'
 ```
 
-### Login and get token
+**Response:**
+```json
+{
+  "success": true,
+  "message": "User registered successfully"
+}
+```
+
+### 2. Login and get JWT token
 ```bash
-curl -X POST http://localhost:8080/api/auth/signin \
+curl -X POST http://localhost:8081/api/auth/signin \
   -H "Content-Type: application/json" \
   -d '{
-    "username": "testuser",
-    "password": "Test@123"
+    "username": "john_doe",
+    "password": "password123"
 }'
 ```
 
-### Access protected endpoint
+**Response:**
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzUxMiJ9...",
+  "refreshToken": "550e8400-e29b-41d4-a716-446655440000",
+  "tokenType": "Bearer"
+}
+```
+
+### 3. Get current user info
 ```bash
-curl -X GET http://localhost:8080/api/user/me \
+curl -X GET http://localhost:8081/api/user/me \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
-## Security Implementation Details
+**Response:**
+```json
+{
+  "id": 1,
+  "username": "john_doe",
+  "name": "John Doe"
+}
+```
 
-### JWT Token Structure
+### 4. Admin: List all users
+```bash
+curl -X GET "http://localhost:8081/api/admin/users?page=0&size=10" \
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN"
+```
 
-The JWT token contains:
+### 5. Refresh token
+```bash
+curl -X POST http://localhost:8081/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "550e8400-e29b-41d4-a716-446655440000"
+}'
+```
 
-- Subject: Username of the authenticated user
-- Roles: User authorities (ROLE_USER, ROLE_ADMIN)
-- Issued At: Token creation timestamp
-- Expiration: Token expiration timestamp
+## Configuration
 
-### Authentication Flow
+### application.properties
+```properties
+# Application
+spring.application.name=jwt_my_example
+server.port=8081
 
-1. Client sends credentials to `/api/auth/signin`
-2. Server validates credentials and returns a JWT token
-3. Client includes the JWT token in the Authorization header for subsequent requests
-4. JwtAuthenticationFilter intercepts requests, validates tokens, and sets up SecurityContext
-5. Protected resources are accessed based on user roles and permissions
+# Database
+spring.datasource.url=jdbc:mysql://localhost:3306/jwt
+spring.datasource.username=root
+spring.datasource.password=@Saitamass2
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
 
-## Project Highlights
+# JWT
+app.jwt.secret=EduMatch_Super_Secret_Key_!@#_DoNotShare_!@#
+app.jwt.expiration=86400000  # 24 hours
+app.jwtRefreshExpirationMs=604800000  # 7 days
+app.jwt.header=Authorization
+app.jwt.prefix=Bearer
 
-- **Stateless Authentication**: No session management required
-- **Role-Based Security**: Method-level security with @PreAuthorize
-- **Custom Exception Handling**: Proper error responses for authentication failures
-- **Password Encryption**: BCrypt password encoding
-- **Token Validation**: Comprehensive JWT validation
+# RabbitMQ (Optional)
+spring.rabbitmq.host=localhost
+spring.rabbitmq.port=5672
+spring.rabbitmq.username=guest
+spring.rabbitmq.password=guest
 
+# Logging
+logging.level.org.springframework.security=DEBUG
+```
 
-## Contributing
+### Database Schema
+```sql
+-- Create database
+CREATE DATABASE jwt;
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+-- Roles will be auto-created by Hibernate
+-- Default roles: ROLE_USER, ROLE_ADMIN, ROLE_EMPLOYER
+```

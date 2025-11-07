@@ -1,0 +1,246 @@
+# Docker Compose for Testing - ONLY Auth Service & Matching Service
+# Comment out all unnecessary services
+version: '3.8'
+
+services:
+  
+  # === AUTH DATABASE (MySQL for Auth Service) ===
+  auth-db:
+    image: mysql:8.0
+    container_name: auth-db-test
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpass
+      - MYSQL_DATABASE=auth_db
+      - MYSQL_USER=auth_user
+      - MYSQL_PASSWORD=auth_pass
+    ports:
+      - "3307:3306"
+    volumes:
+      - auth_test_data:/var/lib/mysql
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    command: --default-authentication-plugin=mysql_native_password
+
+  # === AUTH SERVICE (Java - Port 8081) ===
+  auth-service:
+    build:
+      context: ./backend-java/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service-test
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_PROFILES_ACTIVE=mysql
+      - SPRING_DATASOURCE_URL=jdbc:mysql://auth-db:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=auth_user
+      - SPRING_DATASOURCE_PASSWORD=auth_pass
+      - APP_JWT_SECRET=EduMatch_Super_Secret_Key_!@#_DoNotShare_!@#
+      - APP_JWT_EXPIRATION=86400000
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+    depends_on:
+      auth-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8081/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
+  # === MATCHING SERVICE (Python - Port 8000) ===
+  matching-service:
+    build:
+      context: ./matching-service
+      dockerfile: Dockerfile
+    container_name: matching-service-test
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://matching_user:matching_pass@matching-db:5432/matching_db
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
+      - JWT_SECRET=EduMatch_Super_Secret_Key_!@#_DoNotShare_!@#
+      - JWT_ALGORITHM=HS256
+    depends_on:
+      matching-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - test-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/health\")' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # === MATCHING CONSUMER (RabbitMQ Event Consumer) ===
+  matching-consumer:
+    build:
+      context: ./matching-service
+      dockerfile: Dockerfile
+    container_name: matching-consumer-test
+    environment:
+      - DATABASE_URL=postgresql://matching_user:matching_pass@matching-db:5432/matching_db
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=rpc://
+    depends_on:
+      matching-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - test-network
+    command: python -m app.consumer
+    restart: unless-stopped
+
+  # === CELERY WORKER (Process async tasks) ===
+  celery-worker:
+    build:
+      context: ./matching-service
+      dockerfile: Dockerfile
+    container_name: celery-worker-test
+    environment:
+      - DATABASE_URL=postgresql://matching_user:matching_pass@matching-db:5432/matching_db
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=rpc://
+    depends_on:
+      matching-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - test-network
+    command: celery -A app.celery_app worker --loglevel=info
+    restart: unless-stopped
+
+  # === MATCHING DATABASE (PostgreSQL for Matching Service) ===
+  matching-db:
+    image: postgres:14-alpine
+    container_name: matching-db-test
+    environment:
+      - POSTGRES_USER=matching_user
+      - POSTGRES_PASSWORD=matching_pass
+      - POSTGRES_DB=matching_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - matching_test_data:/var/lib/postgresql/data
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U matching_user -d matching_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # === RABBITMQ (Required for both services) ===
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq-test
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ==================== COMMENTED OUT - NOT NEEDED FOR TESTING ====================
+  
+  # # === API GATEWAY (Nginx) ===
+  # api-gateway:
+  #   build: ./nginx-gateway
+  #   container_name: api-gateway
+  #   ports:
+  #     - "80:80"
+  #   networks:
+  #     - test-network
+  #   depends_on:
+  #     - auth-service
+  #     - matching-service
+
+  # # === FRONTEND (React) ===
+  # frontend:
+  #   container_name: frontend
+  #   build: ./fE
+  #   ports:
+  #     - "3000:3000"
+  #   networks:
+  #     - test-network
+
+  # # === OTHER BACKEND SERVICES ===
+  # # user-service:
+  # #   container_name: user-service
+  # #   build: ./backend/user-service
+  # #   ports:
+  # #     - "8082:8080"
+  # #   networks:
+  # #     - test-network
+  
+  # # scholarship-service:
+  # #   container_name: scholarship-service
+  # #   build: ./backend/scholarship-service
+  # #   ports:
+  # #     - "8083:8080"
+  # #   networks:
+  # #     - test-network
+  
+  # # chat-service:
+  # #   container_name: chat-service
+  # #   build: ./backend/chat-service
+  # #   ports:
+  # #     - "8084:8080"
+  # #   networks:
+  # #     - test-network
+
+  # # === OTHER DATABASES ===
+  # # java-db:
+  # #   image: postgres:14-alpine
+  # #   container_name: java-db
+  # #   environment:
+  # #     - POSTGRES_USER=java_admin
+  # #     - POSTGRES_PASSWORD=secure_password
+  # #     - POSTGRES_DB=java_edumatch_db
+  # #   ports:
+  # #     - "5433:5432"
+  # #   networks:
+  # #     - test-network
+
+# === NETWORKS & VOLUMES ===
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  matching_test_data:
+  auth_test_data:

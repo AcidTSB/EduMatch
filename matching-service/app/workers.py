@@ -4,7 +4,6 @@ Celery workers for processing RabbitMQ events
 import logging
 from datetime import datetime
 from sqlalchemy.orm import Session
-
 from .celery_app import celery_app
 from .database import SessionLocal
 from . import models, schemas

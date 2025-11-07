@@ -14,6 +14,7 @@ from .config import settings
 from .database import get_db, engine, Base
 from . import models, schemas
 from .service import MatchingService
+from .auth import get_current_user
 
 # Configure logging
 logging.basicConfig(
@@ -149,16 +150,17 @@ async def get_recommendations_for_applicant(
     applicantId: str,
     limit: int = Query(default=10, ge=1, le=100),
     page: int = Query(default=1, ge=1),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Get opportunity recommendations for an applicant
     
     **⚠️ WARNING:** This API is SLOW (2-5 seconds) as it performs ML computation on-the-fly
     
-    **Premium Feature:** Caller must verify user has premium access
+    **Premium Feature:** Requires authentication
     """
-    logger.info(f"Getting recommendations for applicant={applicantId}, limit={limit}, page={page}")
+    logger.info(f"Getting recommendations for applicant={applicantId}, user={current_user.get('sub')}, limit={limit}, page={page}")
     
     try:
         service = MatchingService(db)
@@ -180,16 +182,17 @@ async def get_recommendations_for_opportunity(
     opportunityId: str,
     limit: int = Query(default=10, ge=1, le=100),
     page: int = Query(default=1, ge=1),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Get applicant recommendations for an opportunity
     
     **⚠️ WARNING:** This API is SLOW (2-5 seconds) as it performs ML computation on-the-fly
     
-    **Premium Feature:** Caller must verify user has premium access
+    **Premium Feature:** Requires authentication
     """
-    logger.info(f"Getting recommendations for opportunity={opportunityId}, limit={limit}, page={page}")
+    logger.info(f"Getting recommendations for opportunity={opportunityId}, user={current_user.get('sub')}, limit={limit}, page={page}")
     
     try:
         service = MatchingService(db)

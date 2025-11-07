@@ -103,8 +103,18 @@ class RabbitMQConsumer:
     def callback(self, ch, method, properties, body):
         """Handle incoming messages"""
         try:
-            # Parse message
-            message = json.loads(body.decode('utf-8'))
+            # Try to parse as JSON first (Spring Boot with Jackson2JsonMessageConverter)
+            if properties.content_type == 'application/json':
+                message = json.loads(body.decode('utf-8'))
+            else:
+                # Fallback: try UTF-8 decode then JSON parse
+                try:
+                    message = json.loads(body.decode('utf-8'))
+                except (UnicodeDecodeError, json.JSONDecodeError):
+                    logger.error(f"❌ Cannot decode message - content_type: {properties.content_type}, body[:20]: {body[:20]}")
+                    ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
+                    return
+            
             routing_key = method.routing_key
             
             logger.info(f"📨 Received message with routing_key: {routing_key}")
