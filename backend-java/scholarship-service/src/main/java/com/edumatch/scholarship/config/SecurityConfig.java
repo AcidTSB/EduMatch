@@ -37,6 +37,8 @@ public class SecurityConfig {
 
                 // Định nghĩa các luật truy cập
                 .authorizeHttpRequests(auth -> auth
+                        // --- DEBUG ENDPOINTS ---
+                        .requestMatchers("/debug/**").permitAll()
                         // --- API Public (Không cần đăng nhập) ---
                         // Cho phép xem (GET) danh sách và chi tiết học bổng
                         .requestMatchers(HttpMethod.GET, "/api/scholarships").permitAll()

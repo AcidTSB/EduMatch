@@ -6,6 +6,7 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 
 import lombok.extern.slf4j.Slf4j;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -34,6 +35,7 @@ public class JwtTokenProvider {
     private long jwtExpirationInMs;
 
     private SecretKey key;
+    private final SignatureAlgorithm SIGNATURE_ALGORITHM = SignatureAlgorithm.HS256;
 
     @PostConstruct
     public void init() {
@@ -54,7 +56,7 @@ public class JwtTokenProvider {
                 .claim("roles", authorities)
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(key)
+                .signWith(key, SIGNATURE_ALGORITHM)
                 .compact();
     }
 
@@ -111,7 +113,7 @@ public class JwtTokenProvider {
                 .subject(username)
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(key)
+                .signWith(key, SIGNATURE_ALGORITHM)
                 .compact();
     }
 }

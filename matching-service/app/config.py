@@ -22,8 +22,8 @@ class Settings(BaseSettings):
     RABBITMQ_PASSWORD: str = "guest"
     
     # JWT Authentication (must match Auth Service settings)
-    JWT_SECRET: str = "your-256-bit-secret-key-change-this-in-production"
-    JWT_ALGORITHM: str = "HS256"
+    JWT_SECRET: str = "EduMatch_Super_Secret_Key_!@#_DoNotShare_!@#"
+    JWT_ALGORITHM: str = "HS512"
     
     # Celery
     CELERY_BROKER_URL: str = "amqp://guest:guest@rabbitmq:5672//"

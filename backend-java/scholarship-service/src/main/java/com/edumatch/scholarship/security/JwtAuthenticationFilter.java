@@ -35,14 +35,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             // 1. Lấy JWT từ request
             String jwt = getJwtFromRequest(request);
+            log.debug("JWT Filter - URI: {}, JWT present: {}", request.getRequestURI(), jwt != null);
 
             // 2. Xác thực token
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
                 // 3. Lấy thông tin user (username, roles)
                 Authentication authentication = tokenProvider.getAuthentication(jwt);
+                log.debug("JWT Filter - Authentication successful for user: {}", authentication.getName());
 
                 // 4. Lưu vào SecurityContext
                 SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                log.debug("JWT Filter - Token validation failed or token missing");
             }
         } catch (Exception ex) {
             log.error("Could not set user authentication in security context", ex);

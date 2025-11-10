@@ -1,302 +1,108 @@
-# 📄 Tài liệu Cấu hình & Test End-to-End (E2E): Auth ↔ Matching
+# 🧪 Kế hoạch Test Tổng thể (Master Test Plan)
 
-**Mục tiêu:** Test 2 luồng E2E:
-1.  **Sync (API):** Client ➔ Gateway ➔ `auth-service` (Lấy Token) ➔ Client ➔ Gateway ➔ `matching-service` (Dùng Token).
-2.  **Async (Event):** Client ➔ Gateway ➔ `auth-service` (Đăng ký User) ➔ RabbitMQ ➔ `matching-consumer` ➔ `matching-worker` ➔ `matching-db`.
-
----
-
-## (A) ⚠️ BƯỚC 1: SỬA CODE (BẮT BUỘC)
-
-Bạn **PHẢI** sửa code `auth-service` (Java) để nó "bắn" (publish) event ra RabbitMQ.
-
-### 1. Thêm Dependency vào `pom.xml`
-
-Đảm bảo file `pom.xml` của bạn có dependency này:
-
-```xml
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-amqp</artifactId>
-</dependency>
-```
-
-### 2. Cấu hình Exchange (Tùy chọn, nhưng nên có)
-
-Tạo 1 file `RabbitMQConfig.java` để tự động tạo `events_exchange` (giống như `consumer.py` đã làm).
-
-```java
-// auth-service/src/main/java/com/example/jwt/example/config/RabbitMQConfig.java
-package com.example.jwt.example.config;
-
-import org.springframework.amqp.core.TopicExchange;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-@Configuration
-public class RabbitMQConfig {
-
-    public static final String EXCHANGE_NAME = "events_exchange";
-
-    @Bean
-    public TopicExchange eventsExchange() {
-        return new TopicExchange(EXCHANGE_NAME, true, false);
-    }
-}
-```
-
-### 3. Sửa `AuthService.java` (để "bắn" event khi Đăng ký)
-
-Sửa file `AuthService.java` của bạn:
-
-```java
-package com.example.jwt.example.service;
-
-// ... (các import khác)
-import org.springframework.amqp.rabbit.core.RabbitTemplate; // Thêm import
-import java.util.Map; // Thêm import
-
-@Service
-@RequiredArgsConstructor
-@Transactional
-@Slf4j
-public class AuthService {
-
-    private final RabbitTemplate rabbitTemplate; // THÊM DÒNG NÀY
-    private final AuthenticationManager authenticationManager;
-    // ... (các dependency khác)
-
-    public User registerUser(SignUpRequest signUpRequest) {
-        log.info("Registering new user: {}", signUpRequest.getUsername());
-        
-        // ... (code validate username, email của bạn)
-
-        User user = buildUserFromSignUpRequest(signUpRequest);
-        // ... (code gán Role)
-        User savedUser = userRepository.save(user);
-
-        // ... (code ghi AuditLog)
-        
-        // === BẮN EVENT RA RABBITMQ ===
-        try {
-            Map<String, Object> eventPayload = Map.of(
-                "userId", savedUser.getId().toString(), // Chuyển sang String
-                "email", savedUser.getEmail(),
-                "skills", List.of(), // Gửi mảng rỗng
-                "gpa", 0.0 // Gửi gpa mặc định
-            );
-            rabbitTemplate.convertAndSend(
-                "events_exchange",           // Tên Exchange
-                "user.profile.updated",    // Routing Key
-                eventPayload
-            );
-            log.info("Published user.profile.updated event for user ID: {}", savedUser.getId());
-        } catch (Exception e) {
-            log.error("Failed to publish RabbitMQ event for user: {}", savedUser.getId(), e);
-            // Không re-throw, đăng ký vẫn thành công
-        }
-        // =============================
-
-        log.info("User {} registered successfully with ID: {}", savedUser.getUsername(), savedUser.getId());
-        return savedUser;
-    }
-    
-    // ... (các hàm khác)
-}
-```
+**Ngày test:** 09/11/2025
+**Mục tiêu:** Xác minh 3 service (`Auth`, `Scholarship`, `Matching`) hoạt động đúng logic và giao tiếp End-to-End (E2E) chính xác qua cả 2 luồng (Sync API và Async RabbitMQ).
 
 ---
 
-## (B) BƯỚC 2: Cấu hình Môi trường (Docker Compose)
+## 1. 🛠️ Tiền điều kiện (Bắt buộc)
 
-Đây là file `docker-compose.yml` (nằm ở thư mục gốc) để chạy E2E.
+### 1.1. Lấy 3 Token (Vai trò)
 
-```yaml
-version: '3.8'
+Để test, bạn cần 3 Token (JWT) ứng với 3 vai trò (Role) khác nhau.
 
-services:
-  
-  # === 1. DATABASES ===
-  auth-db:
-    image: mysql:8.0
-    container_name: auth-db
-    environment:
-      - MYSQL_ROOT_PASSWORD=@Saitamass2
-      - MYSQL_DATABASE=jwt
-    ports:
-      - "3306:3306" # Cổng MySQL
-    volumes:
-      - auth_db_data:/var/lib/mysql
-    networks:
-      - edumatch-net
-
-  matching-db:
-    image: postgres:14-alpine
-    container_name: matching-db
-    environment:
-      - POSTGRES_USER=matching_user
-      - POSTGRES_PASSWORD=matching_pass
-      - POSTGRES_DB=matching_db
-    ports:
-      - "5432:5432" # Cổng PostgreSQL
-    volumes:
-      - matching_db_data:/var/lib/postgresql/data
-    networks:
-      - edumatch-net
-
-  # === 2. MESSAGE BROKER ===
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"  # Cổng giao tiếp
-      - "15672:15672" # Cổng UI (truy cập localhost:15672)
-    networks:
-      - edumatch-net
-
-  # === 3. AUTH SERVICE (Java) ===
-  auth-service:
-    container_name: auth-service
-    build:
-      context: ./backend-java/auth-service # Trỏ đến folder auth-service của bạn
-      dockerfile: Dockerfile
-    ports:
-      - "8081:8081" # Cổng service Java
-    environment:
-      # Chờ DB sẵn sàng (Cần config trong code Java để đọc)
-      - SPRING_DATASOURCE_URL=jdbc:mysql://auth-db:3306/jwt?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      - SPRING_DATASOURCE_USERNAME=root
-      - SPRING_DATASOURCE_PASSWORD=@Saitamass2
-      - SPRING_RABBITMQ_HOST=rabbitmq # Cho RabbitTemplate
-    depends_on:
-      - auth-db
-      - rabbitmq
-    networks:
-      - edumatch-net
-
-  # === 4. MATCHING SERVICE (Python) ===
-  matching-service:
-    container_name: matching-service
-    build:
-      context: ./matching-service # Trỏ đến folder matching-service
-      dockerfile: Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://matching_user:matching_pass@matching-db:5432/matching_db
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
-      # QUAN TRỌNG: JWT Secret phải khớp 100% với file Java
-      - JWT_SECRET=EduMatch_Super_Secret_Key_!@#_DoNotShare_!@# 
-      - JWT_ALGORITHM=HS512 # Java đang dùng HS512, Python phải dùng HS512
-    depends_on:
-      - matching-db
-      - rabbitmq
-    networks:
-      - edumatch-net
-
-  matching-celery-worker:
-    container_name: matching-celery-worker
-    build:
-      context: ./matching-service
-    command: celery -A app.celery_app worker --loglevel=info
-    environment:
-      - DATABASE_URL=postgresql://matching_user:matching_pass@matching-db:5432/matching_db
-      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
-    depends_on:
-      - matching-db
-      - rabbitmq
-    networks:
-      - edumatch-net
-
-  matching-consumer:
-    container_name: matching-consumer
-    build:
-      context: ./matching-service
-    command: python -m app.consumer
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-    depends_on:
-      - rabbitmq
-      - matching-celery-worker
-    networks:
-      - edumatch-net
-
-# === 5. API GATEWAY (Nginx) ===
-# (Bạn có thể thêm Nginx Gateway vào đây, trỏ đến
-# auth-service:8081 và matching-service:8000)
-
-# Mạng ảo
-networks:
-  edumatch-net:
-    driver: bridge
-
-# Volumes
-volumes:
-  auth_db_data:
-  matching_db_data:
-```
-*(**Lưu ý quan trọng:** `MatchingService` của bạn (Python) đang dùng `HS256` trong khi `AuthService` (Java) đang dùng `HS512`. Bạn phải sửa `matching-service/app/config.py` thành `JWT_ALGORITHM: str = "HS512"` để nó khớp nhau).*
+| ID | Vai trò | Cách lấy | Ghi chú |
+| :--- | :--- | :--- | :--- |
+| **T-01** | `TOKEN_ADMIN` | `POST /api/auth/signin` (dùng `admin` / `admin123`) | Dùng để duyệt học bổng, quản lý user. |
+| **T-02** | `TOKEN_STUDENT`| `POST /api/auth/signup` (tạo user mới) và `signin` | Dùng để nộp đơn, xem gợi ý. |
+| **T-03** | `TOKEN_PROVIDER`| Dùng `TOKEN_ADMIN` gọi `POST /api/admin/create-employer`, sau đó `signin` | Dùng để đăng học bổng, duyệt đơn. |
 
 ---
 
-## (C) BƯỚC 3: Kịch bản Test E2E
+## 2. 🧪 Test Case: `AuthService` (Java)
 
-### 1. Test Luồng Đồng bộ (Sync - API Call)
+**Mục tiêu:** Test logic nội bộ của `auth-service` (Xác thực, Quản lý User, Audit).
 
-**Mục tiêu:** Kiểm tra `auth-service` (Java) tạo token, và `matching-service` (Python) xác thực token đó thành công.
+| ID | Chức năng | API | Role | Kết quả mong đợi |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **AUTH-01**| Đăng ký | `POST /api/auth/signup` | Public | `201 Created`. User được tạo với `enabled: false`. Email được gửi. |
+| **AUTH-02**| Xác minh Email | `GET /api/auth/verify?code=...` | Public | `200 OK`. User đổi `enabled` thành `true`. |
+| **AUTH-03**| Đăng nhập | `POST /api/auth/signin` | Public | `200 OK`. Trả về `accessToken` (JWT). |
+| **AUTH-04**| Lấy Profile | `GET /api/user/me` | `STUDENT` | `200 OK`. Trả về `UserSummary`. |
+| **AUTH-05**| Phân quyền (Fail) | `GET /api/admin/users` | `STUDENT` | `403 Forbidden` (Access Denied). |
+| **AUTH-06**| Lấy User (Admin) | `GET /api/admin/users` | `ADMIN` | `200 OK`. Trả về danh sách `UserResponse`. |
+| **AUTH-07**| Khóa User (Admin) | `PATCH /api/admin/users/{id}/toggle-status` | `ADMIN` | `200 OK`. User `enabled` đổi trạng thái. |
+| **AUTH-08**| Xóa User (Admin) | `DELETE /api/admin/users/{id}` | `ADMIN` | `200 OK` (hoặc 204). (Test này sẽ PASS vì `UserService.java` đã sửa lỗi FK, gọi `refreshTokenService.deleteByUserId` trước) |
+| **AUTH-09**| Lấy Audit Log | `GET /api/admin/audit/logs` | `ADMIN` | `200 OK`. Kiểm tra log `DELETE_USER` (từ AUTH-08) phải tồn tại. |
+| **AUTH-10**| API Nội bộ | `GET /api/internal/user/admin` | `STUDENT` | `200 OK`. (Vì API này chỉ yêu cầu `isAuthenticated()`, không yêu cầu Admin). |
 
-| ID | Kịch bản | API | Body / Header | Kết quả mong đợi |
+---
+
+## 3. 🧪 Test Case: `ScholarshipService` (Java)
+
+**Mục tiêu:** Test logic nghiệp vụ chính (CRUD, Nộp đơn) theo tài liệu Test Plan.
+
+| ID | Chức năng | API (Giả định) | Role | Kết quả mong đợi |
 | :--- | :--- | :--- | :--- | :--- |
-| **E2E-SYNC-01** | Lấy Token (Java) | `POST http://localhost:8081/api/auth/signin` | `{"username": "admin", "password": "admin123"}` | `200 OK`. Lấy `accessToken` (TOKEN_ADMIN). |
-| **E2E-SYNC-02** | Gọi API (Python) | `GET http://localhost:8000/api/v1/recommendations/applicant/app_001` | `Authorization: Bearer TOKEN_ADMIN` | `200 OK` (Hoặc 404 nếu data không tồn tại). **Không được** trả về `401 Unauthorized`. |
-| **E2E-SYNC-03** | Gọi API (Python) (Sai) | `GET http://localhost:8000/api/v1/recommendations/applicant/app_001` | (Không có Header) | `401 Unauthorized`. Xác minh `auth.py` hoạt động. |
+| **SCH-01**| Provider Đăng HB | `POST /api/scholarships` | `PROVIDER` | `201 Created`. Học bổng được lưu vào `scholarship-db` (status `PENDING`). |
+| **SCH-02**| Admin Duyệt HB | `PATCH /api/admin/scholarships/{id}/approve` | `ADMIN` | `200 OK`. Status đổi thành `APPROVED`. |
+| **SCH-03**| Student Nộp đơn | `POST /api/applications` | `STUDENT` | `201 Created`. Đơn được lưu vào `applications` và `application_documents`. |
+| **SCH-04**| Student Nộp Lại | `POST /api/applications` (Giống SCH-03) | `STUDENT` | `409 Conflict` (Lỗi: Đã nộp). |
+| **SCH-05**| Provider Duyệt Đơn| `PATCH /api/applications/{id}/status` | `PROVIDER` | `200 OK`. Status của application đổi thành `APPROVED`. |
 
-### 2. Test Luồng Bất đồng bộ (Async - RabbitMQ Event)
+---
 
-**Mục tiêu:** Kiểm tra `auth-service` (Java) "bắn" event `user.profile.updated` khi đăng ký user, và `matching-service` (Python) nhận được và lưu vào DB.
+## 4. 🧪 Test Case: `MatchingService` (Python)
 
-**Luồng Test (Test Flow):**
-```
-┌──────────┐
-│ Tester   │
-└───┬──────┘
-    │ 1. (Check DB Python)
-    │ docker exec matching-db psql -U matching_user -d matching_db -c 
-    │   "SELECT COUNT(*) FROM applicant_features WHERE applicant_id = '100'"
-    │ (Kết quả mong đợi: 0)
-    ▼
-┌────────────────┐
-│ Tester         │
-│ (Gọi API Java)│
-└───┬────────────┘
-    │ 2. (GỌI API AUTH-SERVICE)
-    │ curl -X POST http://localhost:8081/api/auth/signup \
-    │   -H "Content-Type: application/json" \
-    │   -d '{"username": "e2e_user", "email": "e2e@test.com", "password": "password123", "id": 100}'
-    │ (AuthService sẽ lưu user vào MySQL VÀ bắn event "user.profile.updated" ra RabbitMQ)
-    ▼
-┌────────────────┐
-│ RabbitMQ       │
-└───┬────────────┘
-    │ 3. (Matching-Consumer nhận event...)
-    ▼
-┌────────────────┐
-│ Matching-Worker│
-└───┬────────────┘
-    │ 4. (Worker tiền xử lý và lưu vào PostgreSQL...)
-    ▼
-┌──────────┐
-│ Tester   │
-└───┬──────┘
-    │ 5. (Chờ 10 giây...)
-    │ (Check DB Python Lần 2)
-    │ docker exec matching-db psql -U matching_user -d matching_db -c 
-    │   "SELECT COUNT(*) FROM applicant_features WHERE applicant_id = '100'"
-    ▼
-┌────────────────┐
-│ Kết quả mong đợi │
-└───┬────────────┘
-    │ 6. (PASS)
-    │ Kết quả: 1
-```
+**Mục tiêu:** Test logic nội bộ của `matching-service` (Tính điểm nhanh, Tính điểm chậm).
+
+| ID | Chức năng | API | Role | Kết quả mong đợi |
+| :--- | :--- | :--- | :--- | :--- |
+| **MAT-01**| Tính điểm Nhanh | `POST /api/v1/match/score` | Public | `200 OK`. Trả về `overallScore` (tính bằng `calculate_rule_based_score`). |
+| **MAT-02**| Lấy Gợi ý (Fail) | `GET /api/v1/recommendations/applicant/123` | (No Token) | `401 Unauthorized` (Xác minh `auth.py` hoạt động). |
+| **MAT-03**| Lấy Gợi ý (OK) | `GET /api/v1/recommendations/applicant/123` | `STUDENT` | `200 OK`. Chấp nhận 2-5 giây, trả về danh sách (tính bằng `calculate_ml_based_scores`). |
+
+---
+
+## 5. 🔄 Test Case: End-to-End (E2E)
+
+**Mục tiêu:** Test các luồng giao tiếp phức tạp giữa các service (đã sửa 2 lỗi ở Tiền điều kiện 1.2).
+
+### Luồng E2E-Sync-1: `Auth` (Java) ➔ `Matching` (Python) - (Xác thực)
+* **Kịch bản:** Dùng Token (JWT) của `auth-service` để gọi `matching-service`.
+* **Test:**
+    1.  Gọi `POST /api/auth/signin` (Java) ➔ Lấy `TOKEN_STUDENT`.
+    2.  Dùng `TOKEN_STUDENT` gọi `GET /api/v1/recommendations/applicant/123` (Python).
+* **Kết quả (PASS):** `200 OK`. Python đã hiểu token HS512 của Java.
+
+### Luồng E2E-Sync-2: `Scholarship` (Java) ➔ `Auth` (Java) & `Matching` (Python) - (Xem chi tiết)
+* **Kịch bản:** Khi Student gọi `GET /api/scholarships/{id}`, `ScholarshipService` (Java) phải gọi 2 service khác để làm giàu (enrich) dữ liệu.
+* **Test:**
+    1.  Dùng `TOKEN_STUDENT` gọi `GET /api/scholarships/{id_hoc_bong}`.
+* **Kết quả (PASS):** Response `200 OK` (JSON) trả về phải chứa **CẢ HAI** trường:
+    1.  `"applicant_snapshot": {...}` (Lấy từ `AuthService` - `GET /api/internal/user/...`).
+    2.  `"matchScore": 82.5` (Lấy từ `MatchingService` - `POST /api/v1/match/score`).
+
+### Luồng E2E-Async-1: `Auth` (Java) ➔ RabbitMQ ➔ `Matching` (Python) - (Đăng ký)
+* **Kịch bản:** Khi Student đăng ký (`POST /api/auth/signup`), `AuthService` (Java) phải "bắn" event `user.profile.updated`. `MatchingService` (Python) phải nhận và lưu vào `matching-db`.
+* **Test:**
+    1.  (Check DB Python) Query `applicant_features` (ví dụ: `WHERE email = 'e2e-async-1@test.com'`) ➔ Kết quả: 0.
+    2.  (Gọi API Java) `POST /api/auth/signup` với email `e2e-async-1@test.com`.
+    3.  (Chờ 10 giây).
+    4.  (Check DB Python Lần 2) Query lại ➔ **Kết quả (PASS):** 1 (Một hàng mới đã được tạo bởi worker).
+
+### Luồng E2E-Async-2: `Scholarship` (Java) ➔ RabbitMQ ➔ `Matching` (Python) - (Đăng học bổng)
+* **Kịch bản:** Khi Provider đăng học bổng (`POST /api/scholarships`), `ScholarshipService` (Java) phải "bắn" event `scholarship.created`. `MatchingService` (Python) phải nhận và lưu vào `matching-db` (bảng `opportunity_features`).
+* **Test:**
+    1.  (Check DB Python) Query `opportunity_features` (ví dụ: `WHERE opportunity_id = 'opp-e2e-1'`) ➔ Kết quả: 0.
+    2.  (Gọi API Java) Dùng `TOKEN_PROVIDER`, gọi `POST /api/scholarships` (để tạo học bổng `opp-e2e-1`).
+    3.  (Chờ 10 giây).
+    4.  (Check DB Python Lần 2) Query lại ➔ **Kết quả (PASS):** 1.
+
+### Luồng E2E-Async-3: `Scholarship` (Java) ➔ RabbitMQ ➔ `ChatService` (Java) - (Thông báo)
+* **Kịch bản:** Khi Provider duyệt đơn (`PATCH /api/applications/{id}/status`), `ScholarshipService` (Java) phải "bắn" event `application.status.changed`. `ChatService` (Java) phải nhận và lưu vào `chat-db` (bảng `notifications`).
+* **Test:**
+    1.  (Check DB Chat) Query `notifications` (ví dụ: `WHERE user_id = 'student-123'`) ➔ Kết quả: 0.
+    2.  (Gọi API Java) Dùng `TOKEN_PROVIDER`, gọi `PATCH /api/applications/{id_cua_student_123}/status` (Body: `{"status": "APPROVED"}`).
+    3.  (Chờ 5 giây).
+    4.  (Check DB Chat Lần 2) Query lại ➔ **Kết quả (PASS):** 1 (Một thông báo mới "Hồ sơ của bạn đã được duyệt" đã được tạo).

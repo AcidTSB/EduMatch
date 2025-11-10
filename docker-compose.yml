@@ -1,99 +1,131 @@
-# docker-compose.yml
 version: '3.8'
+
+# Mạng ảo
+networks:
+  edumatch-net:
+    driver: bridge
+
+# Volumes
+volumes:
+  auth_db_data:
+  scholarship_db_data:
+  chat_db_data:
+  matching_db_data:
 
 services:
   
   # === 1. API GATEWAY (Nginx) ===
   api-gateway:
-    build: ./nginx-gateway
+    image: nginx:alpine
     container_name: api-gateway
     ports:
-      - "80:80"  # Mở cổng 80 cho người dùng truy cập
+      - "80:80"
+    volumes:
+      - ./nginx-gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - edumatch-net
     depends_on:
-      - frontend
-      - user-service
+      - auth-service
       - scholarship-service
       - chat-service
       - matching-service
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 5s
+      - frontend
 
   # === 2. FRONTEND (React) ===
   frontend:
     container_name: frontend
-    # "build: ./fE" nghĩa là "Tìm Dockerfile trong thư mục ./fE và build nó"
-    build: ./fE
+    build: ./frontend
     ports:
-      - "3000:3000" # Mở cổng 3000 để debug (không bắt buộc)
+      - "3000:3000"
     networks:
       - edumatch-net
-    # (Thêm biến môi trường nếu React cần)
 
   # === 3. BACKEND SERVICES ===
 
-  # --- User Service (Java) ---
-  user-service:
-    container_name: user-service
-    build: ./backend/user-service
+  # --- Service 1: Auth (Java) ---
+  auth-service:
+    container_name: auth-service
+    build:
+      context: ./backend-java/auth-service
     ports:
-      - "8081:8080" # Map cổng 8080 của container ra 8081 của máy
+      - "8081:8081"
     environment:
-      - DB_HOST=java-db # Ví dụ, cho Java biết địa chỉ DB
-      - DB_PORT=5432
+      # Truyền biến môi trường vào service (Java sẽ đọc từ đây)
+      - SPRING_DATASOURCE_URL=jdbc:mysql://auth-db:3306/jwt?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=${AUTH_DB_PASSWORD} # <-- Đọc từ file .env
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - APP_JWT_SECRET=${JWT_SECRET_KEY} # <-- Đọc từ file .env
     depends_on:
-      - java-db
-    networks:
-      - edumatch-net
-
-  # --- Scholarship Service (Java) ---
-  scholarship-service:
-    container_name: scholarship-service
-    build: ./backend/scholarship-service
-    ports:
-      - "8082:8080"
-    environment:
-      - DB_HOST=java-db
-      - DB_PORT=5432
-      - RABBITMQ_HOST=rabbitmq # Service này cần "bắn" event
-    depends_on:
-      - java-db
+      - auth-db
       - rabbitmq
     networks:
       - edumatch-net
 
-  # --- Chat Service (Java) ---
-  chat-service:
-    container_name: chat-service
-    build: ./backend/chat-service
+  # --- Service 2: Scholarship (Java) ---
+  scholarship-service:
+    container_name: scholarship-service
+    build:
+      context: ./backend-java/scholarship-service
     ports:
-      - "8083:8080"
+      - "8082:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://scholarship-db:3306/scholarships?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=${SCHOLARSHIP_DB_PASSWORD} # <-- Đọc từ file .env
+      - SPRING_RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - scholarship-db
+      - rabbitmq
     networks:
       - edumatch-net
-    # (Có thể cần DB hoặc Redis cho chat)
 
-  # --- Matching Service (Python) (Theo báo cáo của bạn) ---
+  # --- Service 3: Chat (Java) ---
+  chat-service:
+    container_name: chat-service
+    build:
+      context: ./backend-java/chat-service
+    ports:
+      - "8083:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://chat-db:3306/chat?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=${CHAT_DB_PASSWORD} # <-- Đọc từ file .env
+      - SPRING_RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - chat-db
+      - rabbitmq
+    networks:
+      - edumatch-net
+
+  # --- Service 4: Matching (Python) ---
   matching-service:
     container_name: matching-service
-    build: ./backend/matching-service
+    build:
+      context: ./matching-service
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://matching_user:${MATCHING_DB_PASSWORD}@matching-db:5432/matching_db # <-- Đọc từ file .env
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672// # <-- Đọc từ file .env
+      - JWT_SECRET=${JWT_SECRET_KEY} # <-- Đọc từ file .env
+      - JWT_ALGORITHM=${JWT_ALGORITHM} # <-- Đọc từ file .env
     depends_on:
       - matching-db
       - rabbitmq
     networks:
       - edumatch-net
 
+  # --- Workers (Python) ---
   matching-celery-worker:
     container_name: matching-celery-worker
-    build: ./backend/matching-service
+    build:
+      context: ./matching-service
     command: celery -A app.celery_app worker --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://matching_user:${MATCHING_DB_PASSWORD}@matching-db:5432/matching_db # <-- Đọc từ file .env
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672// # <-- Đọc từ file .env
     depends_on:
       - matching-db
       - rabbitmq
@@ -102,8 +134,13 @@ services:
 
   matching-consumer:
     container_name: matching-consumer
-    build: ./backend/matching-service
+    build:
+      context: ./matching-service
     command: python -m app.consumer
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_USER} # <-- Đọc từ file .env
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD} # <-- Đọc từ file .env
     depends_on:
       - rabbitmq
       - matching-celery-worker
@@ -111,29 +148,65 @@ services:
       - edumatch-net
 
   # === 4. INFRASTRUCTURE (Hạ tầng) ===
-
-  # --- Database cho các service Java ---
-  java-db:
-    image: postgres:14-alpine
-    container_name: java-db
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq
     environment:
-      - POSTGRES_USER=java_admin
-      - POSTGRES_PASSWORD=secure_password
-      - POSTGRES_DB=java_edumatch_db
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER} # <-- Đọc từ file .env
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD} # <-- Đọc từ file .env
     ports:
-      - "5433:5432" # Map ra cổng 5433 (để không đụng matching-db)
-    volumes:
-      - java_db_data:/var/lib/postgresql/data
+      - "5672:5672"
+      - "15672:15672"
     networks:
       - edumatch-net
 
-  # --- Database cho Matching Service (Theo báo cáo của bạn) ---
+  # --- 3 DBs cho Java (MySQL) ---
+  auth-db:
+    image: mysql:8.0
+    container_name: auth-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${AUTH_DB_PASSWORD} # <-- Đọc từ file .env
+      - MYSQL_DATABASE=jwt
+    ports:
+      - "3306:3306"
+    volumes:
+      - auth_db_data:/var/lib/mysql
+    networks:
+      - edumatch-net
+
+  scholarship-db:
+    image: mysql:8.0
+    container_name: scholarship-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${SCHOLARSHIP_DB_PASSWORD} # <-- Đọc từ file .env
+      - MYSQL_DATABASE=scholarships
+    ports:
+      - "3307:3306"
+    volumes:
+      - scholarship_db_data:/var/lib/mysql
+    networks:
+      - edumatch-net
+
+  chat-db:
+    image: mysql:8.0
+    container_name: chat-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${CHAT_DB_PASSWORD} # <-- Đọc từ file .env
+      - MYSQL_DATABASE=chat
+    ports:
+      - "3308:3306"
+    volumes:
+      - chat_db_data:/var/lib/mysql
+    networks:
+      - edumatch-net
+
+  # --- 1 DB cho Python (PostgreSQL) ---
   matching-db:
     image: postgres:14-alpine
     container_name: matching-db
     environment:
-      - POSTGRES_USER=matching_admin
-      - POSTGRES_PASSWORD=secure_password
+      - POSTGRES_USER=matching_user
+      - POSTGRES_PASSWORD=${MATCHING_DB_PASSWORD} # <-- Đọc từ file .env
       - POSTGRES_DB=matching_db
     ports:
       - "5432:5432"
@@ -141,25 +214,3 @@ services:
       - matching_db_data:/var/lib/postgresql/data
     networks:
       - edumatch-net
-
-  # --- Message Broker (RabbitMQ) ---
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"  # Cổng giao tiếp
-      - "15672:15672" # Cổng UI (truy cập localhost:15672)
-    networks:
-      - edumatch-net
-
-# === 5. NETWORKS & VOLUMES ===
-
-# Mạng ảo để các container "nhìn thấy" nhau bằng tên
-networks:
-  edumatch-net:
-    driver: bridge
-
-# Nơi lưu trữ data (để không bị mất khi restart container)
-volumes:
-  java_db_data:
-  matching_db_data:
