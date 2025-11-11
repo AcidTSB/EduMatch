@@ -62,7 +62,9 @@ class UserProfileUpdatedEvent(BaseModel):
     
 class ScholarshipCreatedEvent(BaseModel):
     """Event schema for scholarship.created"""
-    opportunityId: str
+    # Accept both 'opportunityId' (old) and 'id' (from Java service)
+    opportunityId: Optional[str] = None
+    id: Optional[int] = None  # Java sends 'id' instead of 'opportunityId'
     opportunityType: str = "scholarship"
     title: Optional[str] = None
     description: Optional[str] = None
@@ -70,6 +72,10 @@ class ScholarshipCreatedEvent(BaseModel):
     requiredSkills: Optional[List[str]] = []
     preferredMajors: Optional[List[str]] = []
     researchAreas: Optional[List[str]] = []
+    
+    def get_opportunity_id(self) -> str:
+        """Get opportunity ID from either field"""
+        return str(self.opportunityId or self.id or "")
 
 class ScholarshipUpdatedEvent(BaseModel):
     """Event schema for scholarship.updated (same as created)"""

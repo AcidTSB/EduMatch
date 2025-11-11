@@ -111,12 +111,17 @@ def process_scholarship_created(self, event_data: dict):
     2. Tiền xử lý features (vectorization)
     3. Lưu vào PostgreSQL
     """
-    logger.info(f"[Worker] Processing scholarship.created: {event_data.get('opportunityId')}")
+    logger.info(f"[Worker] Processing scholarship.created: {event_data.get('opportunityId') or event_data.get('id')}")
     
     db = SessionLocal()
     try:
         # Validate event data
         event = schemas.ScholarshipCreatedEvent(**event_data)
+        
+        # Get opportunity ID (Java sends 'id', not 'opportunityId')
+        opp_id = str(event.id or event.opportunityId or "")
+        if not opp_id:
+            raise ValueError("No opportunity ID found in event")
         
         # Preprocess features
         preprocessed = matching_engine.preprocess_text_features(
@@ -126,9 +131,9 @@ def process_scholarship_created(self, event_data: dict):
         )
         
         # Create new opportunity feature
-        logger.info(f"[Worker] Creating new opportunity features: {event.opportunityId}")
+        logger.info(f"[Worker] Creating new opportunity features: {opp_id}")
         opportunity_feature = models.OpportunityFeature(
-            opportunity_id=event.opportunityId,
+            opportunity_id=opp_id,
             opportunity_type=event.opportunityType,
             title=event.title,
             description=event.description,

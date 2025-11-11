@@ -1,5 +1,6 @@
 package com.edumatch.scholarship.config;
 
+import com.edumatch.scholarship.security.JwtAccessDeniedHandler;
 import com.edumatch.scholarship.security.JwtAuthenticationEntryPoint;
 import com.edumatch.scholarship.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationEntryPoint unauthorizedHandler;
+    private final JwtAccessDeniedHandler accessDeniedHandler;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
@@ -28,9 +30,10 @@ public class SecurityConfig {
         http
                 // Tắt CSRF
                 .csrf(AbstractHttpConfigurer::disable)
-                // Báo lỗi 401 khi user chưa xác thực
-
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+                // Báo lỗi 401 khi user chưa xác thực, 403 khi không đủ quyền
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(unauthorizedHandler)
+                        .accessDeniedHandler(accessDeniedHandler))
 
                 // Không lưu session (vì dùng JWT)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

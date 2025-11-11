@@ -51,6 +51,15 @@ public class ApplicationService {
         String token = (String) authentication.getCredentials();
         UserDetailDto user = scholarshipService.getUserDetailsFromAuthService(userDetails.getUsername(), token);
 
+        // 1.5. Check: Provider không thể apply vào opportunity của chính mình
+        Opportunity opportunity = opportunityRepository.findById(request.getOpportunityId())
+                .orElseThrow(() -> new RuntimeException("Opportunity not found"));
+        
+        if (opportunity.getCreatorUserId().equals(user.getId())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                "Provider cannot apply to their own opportunity");
+        }
+
         // 2. Tạo đối tượng Application (Đơn ứng tuyển)
         Application app = new Application();
         app.setApplicantUserId(user.getId());

@@ -73,6 +73,9 @@ public class ScholarshipService {
      */
     public UserDetailDto getUserDetailsFromAuthService(String username, String token) {
         String url = authServiceUrl + "/api/internal/user/" + username;
+        
+        log.info("E2E-Sync-2: Calling Auth-Service to get user details for: {}", username);
+        log.debug("Auth-Service URL: {}", url);
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + token);
@@ -91,6 +94,8 @@ public class ScholarshipService {
             if (user == null || user.getId() == null) {
                 throw new ResourceNotFoundException("Không thể lấy thông tin (ID) user từ Auth-Service.");
             }
+            
+            log.info("E2E-Sync-2: Successfully received user details from Auth-Service, userId={}", user.getId());
             return user;
 
         } catch (HttpClientErrorException.NotFound ex) {
@@ -131,14 +136,18 @@ public class ScholarshipService {
         UserDetailDto user = getProviderDetails(username, token);
 
         log.info("Xử lý Tags và Skills...");
-        Set<Tag> tags = new HashSet<>(request.getTags()).stream()
-                .map(name -> tagRepository.findByName(name)
-                        .orElseGet(() -> tagRepository.save(new Tag(null, name, null))))
-                .collect(Collectors.toSet());
-        Set<Skill> skills = new HashSet<>(request.getRequiredSkills()).stream()
-                .map(name -> skillRepository.findByName(name)
-                        .orElseGet(() -> skillRepository.save(new Skill(null, name, null))))
-                .collect(Collectors.toSet());
+        Set<Tag> tags = request.getTags() != null && !request.getTags().isEmpty()
+                ? request.getTags().stream()
+                    .map(name -> tagRepository.findByName(name)
+                            .orElseGet(() -> tagRepository.save(new Tag(null, name, null))))
+                    .collect(Collectors.toSet())
+                : new HashSet<>();
+        Set<Skill> skills = request.getRequiredSkills() != null && !request.getRequiredSkills().isEmpty()
+                ? request.getRequiredSkills().stream()
+                    .map(name -> skillRepository.findByName(name)
+                            .orElseGet(() -> skillRepository.save(new Skill(null, name, null))))
+                    .collect(Collectors.toSet())
+                : new HashSet<>();
 
         Opportunity opportunity = Opportunity.builder()
                 .title(request.getTitle())
@@ -157,8 +166,14 @@ public class ScholarshipService {
         log.info("Đã tạo Opportunity mới với ID: {}", savedOpp.getId());
 
         OpportunityDto dtoToSend = OpportunityDto.fromEntity(savedOpp);
-        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "scholarship.created", dtoToSend);
-        log.info("Đã gửi sự kiện 'scholarship.created' cho ID: {}", savedOpp.getId());
+        
+        // Publish event to RabbitMQ (non-critical, continue even if fails)
+        try {
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "scholarship.created", dtoToSend);
+            log.info("Đã gửi sự kiện 'scholarship.created' cho ID: {}", savedOpp.getId());
+        } catch (Exception e) {
+            log.warn("Failed to publish scholarship.created event for ID {}: {}", savedOpp.getId(), e.getMessage());
+        }
 
         return dtoToSend;
     }
@@ -198,23 +213,33 @@ public class ScholarshipService {
         opp.setMinExperienceLevel(request.getMinExperienceLevel());
         opp.setPosition(request.getPosition());
 
-        Set<Tag> tags = new HashSet<>(request.getTags()).stream()
-                .map(name -> tagRepository.findByName(name)
-                        .orElseGet(() -> tagRepository.save(new Tag(null, name, null))))
-                .collect(Collectors.toSet());
+        Set<Tag> tags = request.getTags() != null && !request.getTags().isEmpty()
+                ? request.getTags().stream()
+                    .map(name -> tagRepository.findByName(name)
+                            .orElseGet(() -> tagRepository.save(new Tag(null, name, null))))
+                    .collect(Collectors.toSet())
+                : new HashSet<>();
         opp.setTags(tags);
 
-        Set<Skill> skills = new HashSet<>(request.getRequiredSkills()).stream()
-                .map(name -> skillRepository.findByName(name)
-                        .orElseGet(() -> skillRepository.save(new Skill(null, name, null))))
-                .collect(Collectors.toSet());
+        Set<Skill> skills = request.getRequiredSkills() != null && !request.getRequiredSkills().isEmpty()
+                ? request.getRequiredSkills().stream()
+                    .map(name -> skillRepository.findByName(name)
+                            .orElseGet(() -> skillRepository.save(new Skill(null, name, null))))
+                    .collect(Collectors.toSet())
+                : new HashSet<>();
         opp.setRequiredSkills(skills);
 
         Opportunity updatedOpp = opportunityRepository.save(opp);
 
         OpportunityDto dto = OpportunityDto.fromEntity(updatedOpp);
-        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "scholarship.updated", dto);
-        log.info("Đã gửi sự kiện 'scholarship.updated' cho ID: {}", updatedOpp.getId());
+        
+        // Publish event to RabbitMQ (non-critical, continue even if fails)
+        try {
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "scholarship.updated", dto);
+            log.info("Đã gửi sự kiện 'scholarship.updated' cho ID: {}", updatedOpp.getId());
+        } catch (Exception e) {
+            log.warn("Failed to publish scholarship.updated event for ID {}: {}", updatedOpp.getId(), e.getMessage());
+        }
 
         return dto;
     }

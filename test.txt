@@ -1,7 +1,8 @@
-# 🧪 Kế hoạch Test Tổng thể (Master Test Plan)
+# 🧪 Kế hoạch Test (Test Plan): Scholarship Service (Java)
 
 **Ngày test:** 09/11/2025
-**Mục tiêu:** Xác minh 3 service (`Auth`, `Scholarship`, `Matching`) hoạt động đúng logic và giao tiếp End-to-End (E2E) chính xác qua cả 2 luồng (Sync API và Async RabbitMQ).
+**Mục tiêu:** Xác minh `ScholarshipService` hoạt động đúng logic nghiệp vụ (CRUD, Nộp đơn, Bookmark) và giao tiếp End-to-End (E2E) chính xác với các service khác (`AuthService`, `MatchingService`, `ChatService`).
+**Trạng thái:** 🟢 Sẵn sàng Test
 
 ---
 
@@ -9,100 +10,106 @@
 
 ### 1.1. Lấy 3 Token (Vai trò)
 
-Để test, bạn cần 3 Token (JWT) ứng với 3 vai trò (Role) khác nhau.
+Để test service này, chúng ta cần 3 loại Token (lấy từ `AuthService`):
 
-| ID | Vai trò | Cách lấy | Ghi chú |
+1.  `TOKEN_ADMIN`: Lấy bằng tài khoản `admin` / `admin123`. Dùng để *duyệt* học bổng.
+2.  `TOKEN_PROVIDER`: Lấy bằng tài khoản `employer` (Giáo sư/Trường học) mà Admin tạo (API `POST /api/admin/create-employer`). Dùng để *đăng* (Post) học bổng.
+3.  `TOKEN_STUDENT`: Lấy bằng tài khoản `testuser` / `password123`. Dùng để *nộp đơn* (Apply).
+
+### 1.2. ⚠️ Lỗi E2E Cần Sửa (BẮT BUỘC)
+
+Test E2E **SẼ THẤT BẠI** nếu mày không sửa 2 lỗi không tương thích (mismatch) này:
+
+1.  **Lỗi SYNC (JWT):** `auth-service` (Java) và `scholarship-service` (Java) của mày đang tạo token bằng `HS512` (vì `jjwt` tự chọn do key bí mật quá dài). Nhưng `matching-service` (Python) lại đang check bằng `HS256`.
+    * **Sửa:** Sửa `matching-service/app/config.py` thành `JWT_ALGORITHM: str = "HS512"` và `JWT_SECRET` (cho khớp 100%).
+
+2.  **Lỗi ASYNC (RabbitMQ):** (Lỗi này vẫn còn) `matching-consumer` (Pika) đẩy task vào queue `scholarship_events_queue`, nhưng `celery_app` (Worker) lại đang "nghe" queue `celery` (vì `task_routes` bị comment).
+    * **Sửa:** **Bỏ comment** khối `celery_app.conf.task_routes` trong file `matching-service/app/celery_app.py`.
+
+---
+
+## 2. 🧪 Test Case Đơn lẻ (Logic nội bộ)
+
+**Mục tiêu:** Test logic CRUD nội bộ của `ScholarshipService` (đọc/ghi vào `scholarship-db`) và phân quyền.
+
+### 2.1. Test Phân quyền (SecurityConfig)
+
+| ID | Role | API | Kết quả mong đợi |
 | :--- | :--- | :--- | :--- |
-| **T-01** | `TOKEN_ADMIN` | `POST /api/auth/signin` (dùng `admin` / `admin123`) | Dùng để duyệt học bổng, quản lý user. |
-| **T-02** | `TOKEN_STUDENT`| `POST /api/auth/signup` (tạo user mới) và `signin` | Dùng để nộp đơn, xem gợi ý. |
-| **T-03** | `TOKEN_PROVIDER`| Dùng `TOKEN_ADMIN` gọi `POST /api/admin/create-employer`, sau đó `signin` | Dùng để đăng học bổng, duyệt đơn. |
+| **SEC-01**| (Không có) | `GET /api/scholarships` | `200 OK` (Public) |
+| **SEC-02**| (Không có) | `POST /api/opportunities` | `401 Unauthorized` (Cần Token) |
+| **SEC-03**| `STUDENT` | `POST /api/opportunities` | `403 Forbidden` (Sai Role) |
+| **SEC-04**| `PROVIDER` | `POST /api/opportunities` | `201 Created` (Đúng Role) |
+| **SEC-05**| `PROVIDER` | `POST /api/applications` | `403 Forbidden` (Sai Role) |
+| **SEC-06**| `STUDENT` | `POST /api/applications` | `201 Created` (Đúng Role) |
+| **SEC-07**| `STUDENT` | `GET /api/opportunities/all` | `403 Forbidden` (Sai Role) |
+| **SEC-08**| `ADMIN` | `GET /api/opportunities/all` | `200 OK` (Đúng Role) |
 
----
-
-## 2. 🧪 Test Case: `AuthService` (Java)
-
-**Mục tiêu:** Test logic nội bộ của `auth-service` (Xác thực, Quản lý User, Audit).
-
-| ID | Chức năng | API | Role | Kết quả mong đợi |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **AUTH-01**| Đăng ký | `POST /api/auth/signup` | Public | `201 Created`. User được tạo với `enabled: false`. Email được gửi. |
-| **AUTH-02**| Xác minh Email | `GET /api/auth/verify?code=...` | Public | `200 OK`. User đổi `enabled` thành `true`. |
-| **AUTH-03**| Đăng nhập | `POST /api/auth/signin` | Public | `200 OK`. Trả về `accessToken` (JWT). |
-| **AUTH-04**| Lấy Profile | `GET /api/user/me` | `STUDENT` | `200 OK`. Trả về `UserSummary`. |
-| **AUTH-05**| Phân quyền (Fail) | `GET /api/admin/users` | `STUDENT` | `403 Forbidden` (Access Denied). |
-| **AUTH-06**| Lấy User (Admin) | `GET /api/admin/users` | `ADMIN` | `200 OK`. Trả về danh sách `UserResponse`. |
-| **AUTH-07**| Khóa User (Admin) | `PATCH /api/admin/users/{id}/toggle-status` | `ADMIN` | `200 OK`. User `enabled` đổi trạng thái. |
-| **AUTH-08**| Xóa User (Admin) | `DELETE /api/admin/users/{id}` | `ADMIN` | `200 OK` (hoặc 204). (Test này sẽ PASS vì `UserService.java` đã sửa lỗi FK, gọi `refreshTokenService.deleteByUserId` trước) |
-| **AUTH-09**| Lấy Audit Log | `GET /api/admin/audit/logs` | `ADMIN` | `200 OK`. Kiểm tra log `DELETE_USER` (từ AUTH-08) phải tồn tại. |
-| **AUTH-10**| API Nội bộ | `GET /api/internal/user/admin` | `STUDENT` | `200 OK`. (Vì API này chỉ yêu cầu `isAuthenticated()`, không yêu cầu Admin). |
-
----
-
-## 3. 🧪 Test Case: `ScholarshipService` (Java)
-
-**Mục tiêu:** Test logic nghiệp vụ chính (CRUD, Nộp đơn) theo tài liệu Test Plan.
-
-| ID | Chức năng | API (Giả định) | Role | Kết quả mong đợi |
-| :--- | :--- | :--- | :--- | :--- |
-| **SCH-01**| Provider Đăng HB | `POST /api/scholarships` | `PROVIDER` | `201 Created`. Học bổng được lưu vào `scholarship-db` (status `PENDING`). |
-| **SCH-02**| Admin Duyệt HB | `PATCH /api/admin/scholarships/{id}/approve` | `ADMIN` | `200 OK`. Status đổi thành `APPROVED`. |
-| **SCH-03**| Student Nộp đơn | `POST /api/applications` | `STUDENT` | `201 Created`. Đơn được lưu vào `applications` và `application_documents`. |
-| **SCH-04**| Student Nộp Lại | `POST /api/applications` (Giống SCH-03) | `STUDENT` | `409 Conflict` (Lỗi: Đã nộp). |
-| **SCH-05**| Provider Duyệt Đơn| `PATCH /api/applications/{id}/status` | `PROVIDER` | `200 OK`. Status của application đổi thành `APPROVED`. |
-
----
-
-## 4. 🧪 Test Case: `MatchingService` (Python)
-
-**Mục tiêu:** Test logic nội bộ của `matching-service` (Tính điểm nhanh, Tính điểm chậm).
+### 2.2. Test Logic Nghiệp vụ (Controllers & Services)
 
 | ID | Chức năng | API | Role | Kết quả mong đợi |
 | :--- | :--- | :--- | :--- | :--- |
-| **MAT-01**| Tính điểm Nhanh | `POST /api/v1/match/score` | Public | `200 OK`. Trả về `overallScore` (tính bằng `calculate_rule_based_score`). |
-| **MAT-02**| Lấy Gợi ý (Fail) | `GET /api/v1/recommendations/applicant/123` | (No Token) | `401 Unauthorized` (Xác minh `auth.py` hoạt động). |
-| **MAT-03**| Lấy Gợi ý (OK) | `GET /api/v1/recommendations/applicant/123` | `STUDENT` | `200 OK`. Chấp nhận 2-5 giây, trả về danh sách (tính bằng `calculate_ml_based_scores`). |
+| **OPP-01**| Provider Đăng HB | `POST /api/opportunities` | `PROVIDER` | `201 Created`. Data được lưu vào `opportunity`. Status là `PENDING`. |
+| **OPP-02**| Admin Duyệt HB | `PUT /api/opportunities/{id}/moderate` | `ADMIN` | `200 OK`. `moderationStatus` đổi thành `APPROVED`. |
+| **OPP-03**| Lọc HB (Public) | `GET /api/scholarships?gpa=3.5` | Public | `200 OK`. Chỉ trả về các HB có `minGpa <= 3.5` VÀ `moderationStatus = 'APPROVED'` (theo logic `OpportunitySpecification.java`). |
+| **APP-01**| Student Nộp đơn | `POST /api/applications` | `STUDENT` | `201 Created`. Data được lưu vào `applications` và `application_documents`. |
+| **APP-02**| Student Nộp Lại | `POST /api/applications` (Giống APP-01) | `STUDENT` | `409 Conflict` (Lỗi: Đã nộp - Logic này mày phải code trong `ApplicationService.java`). |
+| **APP-03**| Provider Duyệt Đơn| `PUT /api/applications/{id}/status` | `PROVIDER` | `200 OK`. Status của application đổi thành `APPROVED`. |
+| **BOOK-01**| Student Bookmark | `POST /api/bookmarks/{id}` | `STUDENT` | `200 OK`. Trả về `{"bookmarked": true}`. |
+| **BOOK-02**| Student Bỏ Bookmark| `POST /api/bookmarks/{id}` (Lần 2) | `STUDENT` | `200 OK`. Trả về `{"bookmarked": false}` (Toggle logic). |
 
 ---
 
-## 5. 🔄 Test Case: End-to-End (E2E)
+## 3. 🔄 Test Case: End-to-End (E2E)
 
-**Mục tiêu:** Test các luồng giao tiếp phức tạp giữa các service (đã sửa 2 lỗi ở Tiền điều kiện 1.2).
+### 3.1. Luồng E2E-Sync-1: `Scholarship` (Java) ➔ `Auth` (Java) & `Matching` (Python)
 
-### Luồng E2E-Sync-1: `Auth` (Java) ➔ `Matching` (Python) - (Xác thực)
-* **Kịch bản:** Dùng Token (JWT) của `auth-service` để gọi `matching-service`.
+**Mục tiêu:** Khi Student xem chi tiết học bổng, `ScholarshipService` phải gọi (call) E2E 2 service kia.
+
 * **Test:**
-    1.  Gọi `POST /api/auth/signin` (Java) ➔ Lấy `TOKEN_STUDENT`.
-    2.  Dùng `TOKEN_STUDENT` gọi `GET /api/v1/recommendations/applicant/123` (Python).
-* **Kết quả (PASS):** `200 OK`. Python đã hiểu token HS512 của Java.
+    1.  Dùng `TOKEN_STUDENT` (T-03), gọi `GET /api/scholarships/{id_hoc_bong_da_duyet}`.
+* **Kết quả (PASS):**
+    * Response `200 OK`.
+    * JSON trả về (là `OpportunityDetailDto`) phải chứa trường `"matchScore": 82.5` (Lấy từ `MatchingService` - `getMatchingScore()`).
+* **Cách kiểm tra (Debug):**
+    * Check log `scholarship-service` phải thấy dòng: "User đã đăng nhập, gọi MatchingService để lấy điểm...".
+    * Check log `matching-service` phải thấy dòng: "Calculating score for...".
 
-### Luồng E2E-Sync-2: `Scholarship` (Java) ➔ `Auth` (Java) & `Matching` (Python) - (Xem chi tiết)
-* **Kịch bản:** Khi Student gọi `GET /api/scholarships/{id}`, `ScholarshipService` (Java) phải gọi 2 service khác để làm giàu (enrich) dữ liệu.
-* **Test:**
-    1.  Dùng `TOKEN_STUDENT` gọi `GET /api/scholarships/{id_hoc_bong}`.
-* **Kết quả (PASS):** Response `200 OK` (JSON) trả về phải chứa **CẢ HAI** trường:
-    1.  `"applicant_snapshot": {...}` (Lấy từ `AuthService` - `GET /api/internal/user/...`).
-    2.  `"matchScore": 82.5` (Lấy từ `MatchingService` - `POST /api/v1/match/score`).
+### 3.2. Luồng E2E-Sync-2: `Scholarship` (Java) ➔ `Auth` (Java)
 
-### Luồng E2E-Async-1: `Auth` (Java) ➔ RabbitMQ ➔ `Matching` (Python) - (Đăng ký)
-* **Kịch bản:** Khi Student đăng ký (`POST /api/auth/signup`), `AuthService` (Java) phải "bắn" event `user.profile.updated`. `MatchingService` (Python) phải nhận và lưu vào `matching-db`.
-* **Test:**
-    1.  (Check DB Python) Query `applicant_features` (ví dụ: `WHERE email = 'e2e-async-1@test.com'`) ➔ Kết quả: 0.
-    2.  (Gọi API Java) `POST /api/auth/signup` với email `e2e-async-1@test.com`.
-    3.  (Chờ 10 giây).
-    4.  (Check DB Python Lần 2) Query lại ➔ **Kết quả (PASS):** 1 (Một hàng mới đã được tạo bởi worker).
+**Mục tiêu:** Khi Student nộp đơn, `ScholarshipService` phải gọi (call) `AuthService` để lấy `UserDetailDto`.
 
-### Luồng E2E-Async-2: `Scholarship` (Java) ➔ RabbitMQ ➔ `Matching` (Python) - (Đăng học bổng)
-* **Kịch bản:** Khi Provider đăng học bổng (`POST /api/scholarships`), `ScholarshipService` (Java) phải "bắn" event `scholarship.created`. `MatchingService` (Python) phải nhận và lưu vào `matching-db` (bảng `opportunity_features`).
 * **Test:**
-    1.  (Check DB Python) Query `opportunity_features` (ví dụ: `WHERE opportunity_id = 'opp-e2e-1'`) ➔ Kết quả: 0.
-    2.  (Gọi API Java) Dùng `TOKEN_PROVIDER`, gọi `POST /api/scholarships` (để tạo học bổng `opp-e2e-1`).
-    3.  (Chờ 10 giây).
-    4.  (Check DB Python Lần 2) Query lại ➔ **Kết quả (PASS):** 1.
+    1.  Dùng `TOKEN_STUDENT` (T-03), gọi `POST /api/applications` (Nộp đơn).
+* **Kết quả (PASS):**
+    * Response `201 Created`.
+* **Cách kiểm tra (Debug):**
+    * Check log `scholarship-service` phải thấy nó gọi `getUserDetailsFromAuthService`.
+    * Check log `auth-service` phải thấy nó nhận được request `GET /api/internal/user/{username}`.
 
-### Luồng E2E-Async-3: `Scholarship` (Java) ➔ RabbitMQ ➔ `ChatService` (Java) - (Thông báo)
-* **Kịch bản:** Khi Provider duyệt đơn (`PATCH /api/applications/{id}/status`), `ScholarshipService` (Java) phải "bắn" event `application.status.changed`. `ChatService` (Java) phải nhận và lưu vào `chat-db` (bảng `notifications`).
+### 3.3. Luồng E2E-Async-1: `Scholarship` (Java) ➔ `Matching` (Python)
+
+**Mục tiêu:** Khi Provider đăng học bổng, `ScholarshipService` phải "bắn" event `scholarship.created` để `MatchingService` (Python) nhận và lưu vào `matching-db` (bảng `opportunity_features`).
+
 * **Test:**
-    1.  (Check DB Chat) Query `notifications` (ví dụ: `WHERE user_id = 'student-123'`) ➔ Kết quả: 0.
-    2.  (Gọi API Java) Dùng `TOKEN_PROVIDER`, gọi `PATCH /api/applications/{id_cua_student_123}/status` (Body: `{"status": "APPROVED"}`).
-    3.  (Chờ 5 giây).
-    4.  (Check DB Chat Lần 2) Query lại ➔ **Kết quả (PASS):** 1 (Một thông báo mới "Hồ sơ của bạn đã được duyệt" đã được tạo).
+    1.  **(Check DB Python)** Query `opportunity_features` (ví dụ: `WHERE opportunity_id = '123'`) ➔ **Kết quả: 0**.
+    2.  **(Gọi API Java)** Dùng `TOKEN_PROVIDER` (T-02), gọi `POST /api/opportunities` (Học bổng mày tạo sẽ có ID là `123`).
+    3.  **(Chờ 10 giây)** (Cho RabbitMQ, Pika, và Celery xử lý).
+    4.  **(Check DB Python Lần 2)** Query lại ➔ **Kết quả (PASS): 1**.
+* **Cách kiểm tra (Debug):**
+    * Check log `scholarship-service` phải thấy: "Đã gửi sự kiện 'scholarship.created'".
+    * Check log `matching-consumer` phải thấy: "Received message... scholarship.created".
+    * Check log `matching-celery-worker` phải thấy: "Processing scholarship.created... Successfully processed".
+
+### 3.4. Luồng E2E-Async-2: `Scholarship` (Java) ➔ `ChatService` (Java)
+
+**Mục tiêu:** Khi Provider duyệt đơn, `ScholarshipService` (`ApplicationService.java`) phải "bắn" event `notification.send.email` để `ChatService` (Java) nhận và lưu vào `chat-db` (bảng `notifications`).
+
+* **Test:**
+    1.  **(Check DB Chat)** Query `notifications` (ví dụ: `WHERE user_id = '456'`) ➔ **Kết quả: 0**.
+    2.  **(Gọi API Java)** Dùng `TOKEN_PROVIDER` (T-02), gọi `PUT /api/applications/{id_don_cua_user_456}/status` (Body: `{"status": "APPROVED"}`).
+    3.  **(Chờ 5 giây)**.
+    4.  **(Check DB Chat Lần 2)** Query lại ➔ **Kết quả (PASS): 1**.
+* **Cách kiểm tra (Debug):**
+    * Check log `scholarship-service` (`ApplicationService.java`) phải thấy: "Đã gửi sự kiện 'notification.send.email'".
+    * Check log `chat-service` (Worker) phải thấy: "Đã nhận event... Đã lưu notification".
