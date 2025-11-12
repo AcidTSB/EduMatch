@@ -27,8 +27,13 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.client.HttpClientErrorException;
+import com.edumatch.chat.dto.UserDetailDto;
+import com.edumatch.chat.model.Notification;
+import com.edumatch.chat.repository.NotificationRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +43,7 @@ public class ChatService {
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final FcmTokenRepository fcmTokenRepository;
+    private final NotificationRepository notificationRepository;
     private final RestTemplate restTemplate;
 
     @Value("${app.services.auth-service.url:http://auth-service:8081}") // Lấy URL từ properties
@@ -198,5 +204,51 @@ public class ChatService {
             log.error("Lỗi khi gọi Auth-Service: {}", ex.getMessage());
             throw new IllegalStateException("Không thể kết nối hoặc xác thực với Auth-Service.");
         }
+    }
+    /**
+     * (Logic cho API: GET /api/notifications)
+     * Lấy danh sách thông báo đã lưu trong DB của user
+     */
+    @Transactional(readOnly = true)
+    public Page<Notification> getMyNotifications(Pageable pageable, Authentication authentication) {
+        // 1. Lấy UserID (Long)
+        UserDetailDto user = getUserDetailsFromAuthService(
+                authentication.getName(),
+                (String) authentication.getCredentials()
+        );
+        Long currentUserId = user.getId();
+
+        // 2. Lấy dữ liệu (đã được sắp xếp và phân trang)
+        return notificationRepository.findByUserIdOrderByCreatedAtDesc(currentUserId, pageable);
+    }
+
+    /**
+     * (Logic cho API: PATCH /api/notifications/{id}/read)
+     * Đánh dấu thông báo là đã đọc
+     */
+    @Transactional
+    public void markNotificationAsRead(Long notificationId, Authentication authentication) {
+        // 1. Lấy UserID (Long)
+        UserDetailDto user = getUserDetailsFromAuthService(
+                authentication.getName(),
+                (String) authentication.getCredentials()
+        );
+        Long currentUserId = user.getId();
+
+        // 2. Tìm thông báo
+        Notification notification = notificationRepository.findById(notificationId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy thông báo với ID: " + notificationId));
+
+        // 3. Kiểm tra quyền sở hữu (Bắt buộc)
+        if (!notification.getUserId().equals(currentUserId)) {
+            log.warn("User {} cố gắng đánh dấu thông báo {} của người khác là đã đọc.",
+                    currentUserId, notificationId);
+            throw new AccessDeniedException("Bạn không có quyền chỉnh sửa thông báo này.");
+        }
+
+        // 4. Đánh dấu đã đọc và lưu
+        notification.setRead(true);
+        notificationRepository.save(notification);
+        log.info("Notification {} của User {} đã được đánh dấu là đã đọc.", notificationId, currentUserId);
     }
 }
