@@ -43,6 +43,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.pointer.motionEventSpy
 import com.example.edumatch_androi.ui.components.FooterSectionRegister
 import com.example.edumatch_androi.ui.components.StatsSection
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 @Composable
 fun ApplicationsScreen(
@@ -62,19 +64,35 @@ fun ApplicationsScreen(
     var statusExpanded by remember { mutableStateOf(false) }
     val statuses = listOf("All Status", "Submitted", "Under Review", "Accepted", "Rejected")
     var selectedStatus by remember { mutableStateOf(statuses.first()) }
+    val isLoggedIn = user.uid.isNotBlank()
+    val coroutineScope = rememberCoroutineScope() // <<< THÊM COROUTINE SCOPE
 
     Scaffold(
         topBar = {
-            DashboardHeader(
-                userName = user.displayName,
-                screenWidth = screenWidth,
-                onHomeClicked = { navController.navigate("dashboard_route") },
-                onDashboardClicked = { navController.navigate("dashboard_route") },
-                onScholarshipsClicked = { navController.navigate("scholarships_route") },
-                // ✅ SỬA LỖI: Cung cấp hành động điều hướng cho Applications
-                onApplicationsClicked = { navController.navigate("applications_route") },
-                onMessagesClicked = { navController.navigate("messages_route") }
-            )
+            if (isLoggedIn) {
+                DashboardHeader(
+                    userName = user.displayName,
+                    userEmail = user.userEmail,
+                    role = user.role,
+                    screenWidth = screenWidth,
+                    onHomeClicked = { navController.navigate("dashboard_route") },
+                    onDashboardClicked = { navController.navigate("dashboard_route") },
+                    onScholarshipsClicked = { navController.navigate("scholarships_route") },
+                    // ✅ SỬA LỖI: Cung cấp hành động điều hướng cho Applications
+                    onApplicationsClicked = { navController.navigate("applications_route") },
+                    onMessagesClicked = { navController.navigate("messages_route") },
+                    activeScreen = "Applications",
+                    onSignOutClicked = {
+                        viewModel.signOut {
+                            coroutineScope.launch {
+                                navController.navigate("home_route") {
+                                    popUpTo("home_route") { inclusive = true }
+                                }
+                            }
+                        }
+                    }
+                    )
+            }
         },
         containerColor = Color(0xFFFAFAFA) // Light Gray Background
     ) { padding ->

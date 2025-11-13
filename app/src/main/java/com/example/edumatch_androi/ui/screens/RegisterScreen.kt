@@ -24,12 +24,14 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.navigation.NavController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.launch
 import com.example.edumatch_androi.ui.components.FooterSectionRegister
+import com.example.edumatch_androi.ui.components.home.CustomHeaderRow
 
 // Màu sắc được sử dụng trong thiết kế (ĐÃ ĐỔI TÊN ĐỂ TRÁNH XUNG ĐỘT)
 val RegEduMatchBlue = Color(0xFF1877F2)
@@ -42,7 +44,9 @@ val RegDarkText = Color(0xFF333333)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    onNavigateBack: () -> Unit = {}
+    navController: NavController,
+    onNavigateBack: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     val auth = FirebaseAuth.getInstance()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -70,7 +74,14 @@ fun RegisterScreen(
 
     Scaffold(
         // SỬ DỤNG HEADER CHUNG CỦA LOGIN (CustomHeaderRow phải chấp nhận 2 tham số)
-        topBar = { CustomHeaderRow(onNavigateToRegister = {}, onSignInClicked = onNavigateBack) },
+        topBar = {
+            CustomHeaderRow(
+                navController = navController,
+                activeScreen = "register_route",
+                onNavigateToRegister = {},
+                //onSignInClicked = onNavigateBack
+                onSignInClicked = { navController.navigate("login_route") } // đưa về màn login
+            ) },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = RegLightGrayBackground
     ) { padding ->

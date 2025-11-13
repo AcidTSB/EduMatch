@@ -24,6 +24,7 @@ data class Fellowship(
     val type: String, // Ví dụ: "PhD", "Graduate"
     val deadline: String, // Ví dụ: "Expired", "12/12/2024"
     val description: String,
+    val canApply: Boolean = false, // Xác định nút Apply Now hay Deadline Passed
 )
 
 // Dữ liệu cho mục thông báo
@@ -48,4 +49,29 @@ data class CurrentUser(
     val displayName: String, // Tên để hiển thị (ví dụ: John Doe)
     val userEmail: String,
     val role: String, // Ví dụ: "Student"
+)
+
+// 1. Data Class cho Stats Grid trên màn hình Scholarships (Active Scholarships, Total Value,...)
+// --- MODELS MỚI CHO SCHOLARSHIPS ---
+
+// 1. Data Class cho Stats Grid trên màn hình Scholarships (CHỈ CÓ 3 THAM SỐ)
+data class ScholarshipStat(
+    val id: String,
+    val count: String, // Ví dụ: "13+", "$500M+"
+    val label: String, // Ví dụ: "Active Scholarships"
+)
+
+// 2. Data Class cho Danh sách Học bổng (ĐẦY ĐỦ THAM SỐ CHO CARD SCHOLARSHIPS)
+data class Scholarship(
+    val id: String,
+    val title: String,
+    val university: String,
+    val location: String,
+    val deadline: String,
+    val matchPercentage: Int,
+    val description: String,
+    val level: String, // Ví dụ: "PhD", "Undergraduate"
+    val salary: String, // Ví dụ: "$75000"
+    val tags: List<String>,
+    val canApply: Boolean
 )

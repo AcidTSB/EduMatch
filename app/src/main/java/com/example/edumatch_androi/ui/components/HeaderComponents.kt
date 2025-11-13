@@ -34,7 +34,11 @@ import com.example.edumatch_androi.ui.theme.RedAccent
 @Composable
 fun DashboardHeader(
     userName: String,
+    userEmail: String,
+    role: String,
     screenWidth: Int,
+    // nhận biết màn nào đang active
+    activeScreen: String,
     onHomeClicked: () -> Unit,
     onDashboardClicked: () -> Unit,
     onScholarshipsClicked: () -> Unit,
@@ -95,11 +99,11 @@ fun DashboardHeader(
                     .horizontalScroll(scrollState),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                NavBarItem("Home", onClick = onHomeClicked)
-                NavBarItem("Dashboard", isActive = true, onClick = onDashboardClicked)
-                NavBarItem("Scholarships", onClick = onScholarshipsClicked)
-                NavBarItem("Applications", onClick = onApplicationsClicked)
-                NavBarItem("Messages", onClick = onMessagesClicked)
+                NavBarItem("Home", isActive = activeScreen == "Home", onClick = onHomeClicked)
+                NavBarItem("Dashboard",isActive = activeScreen == "Dashboard", onClick = onDashboardClicked)
+                NavBarItem("Scholarships",isActive = activeScreen == "Scholarships", onClick = onScholarshipsClicked)
+                NavBarItem("Applications",isActive = activeScreen == "Applications", onClick = onApplicationsClicked)
+                NavBarItem("Messages", isActive = activeScreen == "Messages", onClick = onMessagesClicked)
 
                 // Thêm padding cuối để cuộn thoải mái
                 Spacer(Modifier.width(16.dp))
@@ -116,8 +120,8 @@ fun DashboardHeader(
 
                 UserInfoDropdown(
                     userName = userName,
-                    userEmail = "student@demo2.com",
-                    role = "Student",
+                    userEmail = userEmail,
+                    role = role,
                     isMobile = screenWidth <= 600,
                     onSignOutClicked = onSignOutClicked
                 )

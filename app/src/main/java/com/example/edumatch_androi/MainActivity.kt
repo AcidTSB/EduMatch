@@ -18,11 +18,20 @@ import com.example.edumatch_androi.ui.screens.LoginScreen
 import com.example.edumatch_androi.ui.screens.RegisterScreen
 import com.example.edumatch_androi.ui.screens.DashboardScreen
 import com.example.edumatch_androi.ui.screens.ApplicationsScreen
+import com.example.edumatch_androi.ui.screens.HomeScreen
 import com.example.edumatch_androi.ui.screens.MessagesScreen
+import com.example.edumatch_androi.ui.screens.DashboardRegisterWrapper
+import com.google.firebase.auth.FirebaseAuth
+import com.example.edumatch_androi.ui.screens.ScholarshipsScreen
+import com.example.edumatch_androi.ui.screens.AboutScreen
+import com.example.edumatch_androi.ui.screens.PricingScreen
+import com.example.edumatch_androi.ui.screens.ContactScreen
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+//        FirebaseAuth.getInstance().signOut()
         setContent {
             EduMatchApp()
         }
@@ -36,11 +45,12 @@ fun EduMatchApp() {
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
-            startDestination = "login_route"
+            startDestination = "home_route"
         ) {
             // --- 1. LOGIN SCREEN ---
             composable("login_route") {
                 LoginScreen(
+                    navController = navController,
                     onNavigateToRegister = {
                         navController.navigate("register_route")
                     },
@@ -57,9 +67,11 @@ fun EduMatchApp() {
             // --- 2. REGISTER SCREEN ---
             composable("register_route") {
                 RegisterScreen(
+                    navController = navController, // ✅ Thêm tham số bắt buộc
                     onNavigateBack = {
                         navController.popBackStack()
-                    }
+                    },
+                    modifier = Modifier
                 )
             }
 
@@ -68,7 +80,7 @@ fun EduMatchApp() {
             composable("dashboard_route") {
                 DashboardScreen(
                     navController = navController,
-                    onHomeClicked = { navController.navigate("dashboard_route") },
+                    onHomeClicked = { navController.navigate("home_route") },
                     onDashboardClicked = { /* Đang ở Dashboard */ },
                     onApplicationsClicked = { navController.navigate("applications_route") },
                     onScholarshipsClicked = { navController.navigate("scholarships_route") },
@@ -80,6 +92,11 @@ fun EduMatchApp() {
 
             // --- 4. CÁC ĐÍCH ĐẾN MỚI TỪ DASHBOARD (ROUTES BỊ THIẾU) ---
 
+            // My Home
+            composable("home_route") {
+                HomeScreen(navController = navController)
+            }
+
             //  MY APPLICATIONS SCREEN
             composable("applications_route") {
                 // Thay thế Text bằng Composable Screen thực tế
@@ -88,7 +105,7 @@ fun EduMatchApp() {
 
             // ✅ scholarships_route
             composable("scholarships_route") {
-                Text("Scholarships List Screen")
+                ScholarshipsScreen(navController = navController)
             }
 
 
@@ -106,6 +123,13 @@ fun EduMatchApp() {
                 Text("Scholarship Details for ID: $fellowshipId")
             }
 
+            // --- ĐĂNG KÝ SAU KHI LOGIN (Header Dashboard) ---
+            composable("register_flow_route") {
+                // Chúng ta sẽ tạo một wrapper screen để giả lập việc hiển thị DashboardHeader
+                DashboardRegisterWrapper(navController = navController)
+            }
+
+
             // Thêm route cho việc ứng tuyển (ví dụ từ nút Apply)
             composable(
                 route = "apply_route/{fellowshipId}",
@@ -113,6 +137,21 @@ fun EduMatchApp() {
             ) { backStackEntry ->
                 val fellowshipId = backStackEntry.arguments?.getString("fellowshipId")
                 Text("Apply Screen for ID: $fellowshipId")
+            }
+
+            // ✅ ABOUT SCREEN: THÊM ROUTE NÀY VÀO NAVGRAPH
+            composable("about_route") {
+                AboutScreen(navController = navController)
+            }
+
+            // Pricing screen;
+            composable("pricing_route") {
+                PricingScreen(navController = navController)
+            }
+
+            // Contact screen;
+            composable("contact_route") {
+                ContactScreen(navController = navController)
             }
         }
     }

@@ -19,24 +19,25 @@ class DashboardViewModel(
     // Trong môi trường thực tế, dùng Hilt để inject Repository
     private val repository: DashboardRepository = DashboardRepository()
 ) : ViewModel() {
-    //States được quan sát bởi Ui
+
+    // ✅ THAY ĐỔI 1: Đảm bảo giá trị khởi tạo RỖNG để isNotBlank() là FALSE
+    var currentUser by mutableStateOf(
+        CurrentUser(
+            uid = "",
+            displayName = "", // <<< ĐẶT MẶC ĐỊNH LÀ CHUỖI RỖNG
+            userEmail = "",
+            role = ""
+        )
+    )
+        private set
+
+    //States được quan sát bởi Ui (Giữ nguyên)
     var stats by mutableStateOf<List<ApplicationStat>>(emptyList())
         private set
     var notifications by mutableStateOf<List<Notification>>(emptyList())
         private set
     var recommended by mutableStateOf<List<Fellowship>>(emptyList())
         private set
-    var currentUser by mutableStateOf(
-        CurrentUser(
-            uid = "",
-            displayName = "Guest",
-            userEmail = "",
-            role = ""
-        )
-    ) // Giá trị khởi tạo
-        private set
-
-    // THÊM STATE MỚI CHO RECENT APPLICATIONS
     var recentApplications by mutableStateOf<List<Application>>(emptyList())
         private set
 
@@ -61,7 +62,6 @@ class DashboardViewModel(
                 recommended = it
             }
         }
-        // THÊM MỘT LAUNCH NỮA ĐỂ LẤY RECENT APPLICATIONS
         viewModelScope.launch {
             repository.getRecentApplications().collect {
                 recentApplications = it
@@ -69,30 +69,40 @@ class DashboardViewModel(
         }
     }
 
-    // HÀM fetchUserName NẰM BÊN TRONG CLASS, NGANG HÀNG VỚI fetchDashboardData
-    // ✅ CẬP NHẬT HÀM ĐỂ XÂY DỰNG VÀ GÁN ĐỐI TƯỢNG CurrentUser
+    // ✅ THAY ĐỔI 2: Cập nhật logic khi chưa đăng nhập
     private fun fetchUserInfo() {
         val auth = FirebaseAuth.getInstance()
         val firebaseUser = auth.currentUser
 
-        if (firebaseUser != null) {
+        if (firebaseUser != null && firebaseUser.uid.isNotBlank()) {
             val userEmail = firebaseUser.email ?: "email@error.com"
-            // Lấy tên để hiển thị (từ displayName hoặc email)
-            val fetchedDisplayName = firebaseUser.displayName?.takeIf { it.isNotBlank() } ?: userEmail.substringBefore('@')
+            val fetchedDisplayName = firebaseUser.displayName?.takeIf { it.isNotBlank() }
+                ?: userEmail.substringBefore('@')
 
             // TODO: Lấy role thực tế từ Firestore
-            val fetchedRole = "Student" // MOCK/GIẢ LẬP ROLE
+            val fetchedRole = "Student"
 
-            // GÁN GIÁ TRỊ USER MỚI
+            // GÁN GIÁ TRỊ USER MỚI (Đã đăng nhập)
             currentUser = CurrentUser(
-                uid = firebaseUser.uid?: "default_uid",
+                uid = firebaseUser.uid, //?: "default_uid",
                 displayName = fetchedDisplayName,
                 userEmail = userEmail,
                 role = fetchedRole
             )
         } else {
-            // Gán giá trị khi người dùng chưa đăng nhập
-            currentUser = CurrentUser(uid = "", displayName = "Khách", userEmail = "", role = "Unknown")
+            // GÁN GIÁ TRỊ RỖNG khi người dùng chưa đăng nhập
+            currentUser = CurrentUser(uid = "", displayName = "", userEmail = "", role = "Unknown")
         }
     }
+
+    // đăng xuất
+    fun signOut(onSignOutComplete: () -> Unit) {
+        FirebaseAuth.getInstance().signOut()
+        // Đặt lại trạng thái người dùng về rỗng ngay lập tức
+        currentUser = CurrentUser(uid = "", displayName = "", userEmail = "", role = "Unknown")
+
+        // Yêu cầu Navigation chuyển hướng đến màn hình Login sau khi đăng xuất
+        onSignOutComplete()
+    }
 }
+

@@ -16,6 +16,8 @@ import com.example.edumatch_androi.ui.theme.YellowAccent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+//import com.example.edumatch_androi.data.model.ScholarshipStat
+import com.example.edumatch_androi.data.model.*
 
 class DashboardRepository {
     // --- MOCK DATA (Thay thế bằng Firebase Firestore logic thực tế) ---
@@ -92,4 +94,41 @@ class DashboardRepository {
         delay(500)
         emit(mockApplications())
     }
+
+
+    // --- MOCK DATA MỚI CHO SCHOLARSHIPS ---
+    private fun mockScholarshipStats() = listOf(
+        ScholarshipStat(id = "s1", count = "13+", label = "Active Scholarships"), // <<< CHỈ 3 THAM SỐ
+        ScholarshipStat(id = "s2", count = "$500M+", label = "Total Value"),
+        ScholarshipStat(id = "s3", count = "21+", label = "Study Fields"),
+        ScholarshipStat(id = "s4", count = "95%", label = "Match Rate")
+    )
+
+    private fun mockScholarshipsList(): List<Scholarship> = listOf(
+        Scholarship( // Dùng Scholarship (11 tham số)
+            id = "sch1", title = "Google PhD Fellowship", university = "Google", location = "United States",
+            deadline = "Deadline: Expired", matchPercentage = 92,
+            description = "Prestigious fellowship program for PhD students conducting research in computer science and related fields.",
+            level = "PhD", salary = "$100000", tags = listOf("Computer Science", "Research"), canApply = false
+        ),
+        Scholarship(
+            id = "sch2", title = "MIT AI Research Fellowship", university = "MIT", location = "United States",
+            deadline = "Deadline: Nov 25, 2025", matchPercentage = 90,
+            description = "Join our cutting-edge artificial intelligence research lab working on machine learning applications for real-world problems.",
+            level = "Graduate", salary = "$43000", tags = listOf("Cloud Computing", "DevOps"), canApply = true
+        )
+    )
+
+// --- CÁC HÀM TRUY CẬP DỮ LIỆU MỚI ---
+
+    fun getScholarshipStats(): Flow<List<ScholarshipStat>> = flow {
+        delay(500)
+        emit(mockScholarshipStats())
+    }
+
+    fun getAllScholarships(): Flow<List<Scholarship>> = flow {
+        delay(500)
+        emit(mockScholarshipsList()) // <<< GỌI HÀM ĐÃ ĐƯỢC CHỈ ĐỊNH TYPE
+    }
 }
+

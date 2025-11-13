@@ -30,6 +30,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.example.edumatch_androi.ui.components.FooterSectionRegister
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+
 
 @Composable
 fun DashboardScreen(
@@ -62,17 +65,35 @@ fun DashboardScreen(
     // SỬ DỤNG BIẾN PADDING LINH HOẠT
     val horizontalPadding = if (screenWidth > 600) 80.dp else 16.dp
 
+    val isLoggedIn = user.uid.isNotBlank()
+    val coroutineScope = rememberCoroutineScope() // <<< THÊM COROUTINE SCOPE
+
     Scaffold(
         topBar = {
-            DashboardHeader(
-                userName = user.displayName,
-                screenWidth = screenWidth,
-                onHomeClicked = { /* ... */ },
-                onDashboardClicked = { /* ... */ },
-                onScholarshipsClicked = { navController.navigate("scholarships_route") },
-                onApplicationsClicked = { navController.navigate("applications_route") },
-                onMessagesClicked = { navController.navigate("messages_route") }
-            )
+            if (isLoggedIn) { // Cần kiểm tra isLoggedIn ở đây để an toàn
+                DashboardHeader(
+                    userName = user.displayName,
+                    userEmail = user.userEmail,
+                    role = user.role,
+                    screenWidth = screenWidth,
+                    onHomeClicked = onHomeClicked,
+                    onDashboardClicked = onDashboardClicked,
+                    onScholarshipsClicked = onScholarshipsClicked,
+                    onApplicationsClicked = onApplicationsClicked,
+                    onMessagesClicked = onMessagesClicked,
+                    activeScreen = "Dashboard",
+                    // ✅ THÊM LOGIC ĐĂNG XUẤT
+                    onSignOutClicked = {
+                        viewModel.signOut {
+                            coroutineScope.launch {
+                                navController.navigate("home_route") {
+                                    popUpTo("home_route") { inclusive = true }
+                                }
+                            }
+                        }
+                    }
+                )
+            }
         },
         containerColor = LightGrayBackground
     ) { padding ->
