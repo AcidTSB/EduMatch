@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Email;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,14 +23,38 @@ public class CreateOpportunityRequest {
     @Future(message = "Application deadline must be in the future")
     private LocalDate applicationDeadline;
 
+    // --- TRƯỜNG MỚI CHO TIMELINE ---
+    @NotNull(message = "Start date is required")
+    private LocalDate startDate;
+
+    @NotNull(message = "End date is required")
+    private LocalDate endDate;
+    // --- ------------------------- ---
+
+    @NotNull(message = "Scholarship amount is required")
+    private BigDecimal scholarshipAmount; // MỚI: Tiền học bổng
+
     private BigDecimal minGpa;
 
-    // Provider sẽ gửi lên 1 danh sách tên các Tag (String)
+    // --- TRƯỜNG MỚI CHO CẤU TRÚC ---
+    @NotBlank(message = "Study mode is required")
+    private String studyMode;
+
+    @NotBlank(message = "Level is required")
+    private String level;
+
+    @NotNull(message = "Public status is required")
+    private Boolean isPublic;
+    // --- ------------------------- ---
+
+    // --- TRƯỜNG MỚI CHO CONTACT ---
+    private String contactEmail;
+
+    private String website;
+    // --- ------------------------- ---
+
     private List<String> tags;
 
-    // Tương tự với Skills
     private List<String> requiredSkills;
 
-    private String minExperienceLevel;
-    private String position;
 }

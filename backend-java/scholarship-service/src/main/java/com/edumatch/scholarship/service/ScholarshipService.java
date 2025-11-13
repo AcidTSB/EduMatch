@@ -43,6 +43,7 @@ import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.time.LocalDate;
 import java.util.stream.Collectors;
 
 @Service
@@ -153,13 +154,20 @@ public class ScholarshipService {
                 .title(request.getTitle())
                 .fullDescription(request.getFullDescription())
                 .creatorUserId(user.getId())
-                .organizationId(user.getOrganizationId()) // Đã được đảm bảo không null
+                .organizationId(user.getOrganizationId())
                 .applicationDeadline(request.getApplicationDeadline())
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .scholarshipAmount(request.getScholarshipAmount())
                 .minGpa(request.getMinGpa())
+                .studyMode(request.getStudyMode())
+                .level(request.getLevel())
+                .isPublic(request.getIsPublic())
+                .contactEmail(request.getContactEmail())
+                .website(request.getWebsite())
+                .moderationStatus("PENDING")
                 .tags(tags)
                 .requiredSkills(skills)
-                .minExperienceLevel(request.getMinExperienceLevel())
-                .position(request.getPosition())
                 .viewsCnt(0)
                 .build();
         Opportunity savedOpp = opportunityRepository.save(opportunity);
@@ -209,9 +217,15 @@ public class ScholarshipService {
         opp.setTitle(request.getTitle());
         opp.setFullDescription(request.getFullDescription());
         opp.setApplicationDeadline(request.getApplicationDeadline());
+        opp.setStartDate(request.getStartDate());
+        opp.setEndDate(request.getEndDate());
+        opp.setScholarshipAmount(request.getScholarshipAmount());
+        opp.setStudyMode(request.getStudyMode());
+        opp.setLevel(request.getLevel());
+        opp.setIsPublic(request.getIsPublic());
+        opp.setContactEmail(request.getContactEmail());
+        opp.setWebsite(request.getWebsite());
         opp.setMinGpa(request.getMinGpa());
-        opp.setMinExperienceLevel(request.getMinExperienceLevel());
-        opp.setPosition(request.getPosition());
 
         Set<Tag> tags = request.getTags() != null && !request.getTags().isEmpty()
                 ? request.getTags().stream()
@@ -286,10 +300,15 @@ public class ScholarshipService {
      */
     public Page<OpportunityDto> searchOpportunities(
             // THÊM CÁC THAM SỐ NÀY VÀO
-            String keyword, BigDecimal gpa, Pageable pageable
+            String keyword, BigDecimal gpa, String studyMode,
+            String level,
+            Boolean isPublic,
+            LocalDate currentDate, Pageable pageable
     ) {
         // 1. Tạo Specification từ các tham số
-        Specification<Opportunity> spec = OpportunitySpecification.filterBy(keyword, gpa);
+        Specification<Opportunity> spec = OpportunitySpecification.filterBy(
+                keyword, gpa, studyMode, level, isPublic, currentDate
+        );
 
         // 2. Thực thi Specification (Đúng rồi)
         Page<Opportunity> page = opportunityRepository.findAll(spec, pageable);

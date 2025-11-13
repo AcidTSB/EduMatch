@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -18,10 +17,9 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 public class Opportunity {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // Khóa chính kiểu Long
+    private Long id;
 
     @Column(nullable = false, length = 255)
     private String title;
@@ -29,27 +27,49 @@ public class Opportunity {
     @Column(name = "full_description", columnDefinition = "TEXT")
     private String fullDescription;
 
-    // --- Tham chiếu logic tới Auth-Service ---
-    // Đây là ID của User (vai trò EMPLOYER) đã tạo ra opportunity này
+    // --- Tham chiếu logic tới Auth-Service (Giữ nguyên) ---
     @Column(name = "creator_user_id", nullable = false)
-    private Long creatorUserId; // BẮT BUỘC là Long
-
-    // chỉ lưu ID
+    private Long creatorUserId;
     @Column(name = "organization_id", nullable = false)
-    private Long organizationId; // BẮT BUỘC là Long
+    private Long organizationId;
     // --- --------------------------------- ---
 
+    // --- TIMELINE (Đã sửa) ---
     @Column(name = "application_deadline")
     private LocalDate applicationDeadline;
+
+    @Column(name = "start_date") // MỚI
+    private LocalDate startDate;
+
+    @Column(name = "end_date") // MỚI
+    private LocalDate endDate;
+    // --- ----------------- ---
+
+    // --- TÀI CHÍNH & YÊU CẦU ---
+    @Column(name = "scholarship_amount", precision = 10, scale = 2) // MỚI: Tiền học bổng
+    private BigDecimal scholarshipAmount;
 
     @Column(name = "min_gpa", precision = 3, scale = 2)
     private BigDecimal minGpa;
 
-    @Column(name = "min_experience_level", length = 100)
-    private String minExperienceLevel;
+    // --- THÔNG TIN LIÊN HỆ (MỚI) ---
+    @Column(name = "contact_email", length = 255)
+    private String contactEmail;
 
-    @Column(name = "position", length = 255)
-    private String position;
+    @Column(name = "website", length = 255)
+    private String website;
+    // --- ------------------------- ---
+
+    // --- CẤU TRÚC MỚI (Đã thêm) ---
+    @Column(name = "study_mode", length = 50) // MỚI
+    private String studyMode;
+
+    @Column(name = "level", length = 50) // MỚI
+    private String level;
+
+    @Column(name = "is_public") // MỚI
+    private Boolean isPublic = false;
+
 
     @Column(name = "moderation_status", length = 50)
     private String moderationStatus = "PENDING";
@@ -57,7 +77,7 @@ public class Opportunity {
     @Column(name = "views_cnt")
     private Integer viewsCnt = 0;
 
-    // --- Mối quan hệ Nhiều-Nhiều (Owner) ---
+    // ... (Mối quan hệ Nhiều-Nhiều giữ nguyên) ...
     @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinTable(
             name = "opportunity_to_tags",
@@ -73,7 +93,6 @@ public class Opportunity {
             inverseJoinColumns = @JoinColumn(name = "skill_id")
     )
     private Set<Skill> requiredSkills;
-    // --- --------------------------------- ---
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

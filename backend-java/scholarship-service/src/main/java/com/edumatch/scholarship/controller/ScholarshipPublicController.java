@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import org.springframework.web.bind.annotation.RequestParam;
+import java.time.LocalDate; // Cần thêm import này
+import java.util.Optional; // Cần thêm import này
+
 
 @RestController
 @RequestMapping("/api/scholarships") // Đường dẫn gốc
@@ -31,9 +34,23 @@ public class ScholarshipPublicController {
     public ResponseEntity<Page<OpportunityDto>> searchOpportunities(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) BigDecimal gpa,
+
+            // --- THAM SỐ LỌC MỚI ĐÃ ĐƯỢC THỐNG NHẤT ---
+            @RequestParam(required = false) String studyMode,
+            @RequestParam(required = false) String level,
+            @RequestParam(required = false) Boolean isPublic,
+            @RequestParam(required = false) LocalDate currentDate,
+            // --- ------------------------------------ ---
+
             Pageable pageable
     ) {
-        Page<OpportunityDto> results = scholarshipService.searchOpportunities(q, gpa, pageable);
+        // Lấy ngày hiện tại nếu không được cung cấp (cho check deadline trong Specification)
+        LocalDate date = Optional.ofNullable(currentDate).orElse(LocalDate.now());
+
+        // Gọi service với tất cả các tham số lọc mới
+        Page<OpportunityDto> results = scholarshipService.searchOpportunities(
+                q, gpa, studyMode, level, isPublic, date, pageable
+        );
         return ResponseEntity.ok(results);
     }
 
