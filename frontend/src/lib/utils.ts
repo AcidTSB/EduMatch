@@ -11,7 +11,6 @@ export function getFromLocalStorage(key: string): string | null {
   try {
     return localStorage.getItem(key);
   } catch (error) {
-    console.warn('Failed to get from localStorage:', error);
     return null;
   }
 }
@@ -21,7 +20,7 @@ export function setToLocalStorage(key: string, value: string): void {
   try {
     localStorage.setItem(key, value);
   } catch (error) {
-    console.warn('Failed to set to localStorage:', error);
+    // Silent fail for storage operations
   }
 }
 
@@ -30,7 +29,7 @@ export function removeFromLocalStorage(key: string): void {
   try {
     localStorage.removeItem(key);
   } catch (error) {
-    console.warn('Failed to remove from localStorage:', error);
+    // Silent fail for storage operations
   }
 }
 

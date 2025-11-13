@@ -32,7 +32,7 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
         const status = await checkApplicationStatus(scholarship.id);
         setHasApplied(!!status);
       } catch (error) {
-        console.error('Error checking application status:', error);
+        // Failed to check application status
       } finally {
         setLoading(false);
       }
@@ -65,11 +65,11 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
       whileHover="hover"
       whileTap={{ scale: 0.98 }}
     >
-      <Card className={`flex flex-col h-full ${className}`}>
+      <Card className={`flex flex-col h-full border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300 ${className}`}>
         {/* Header */}
         <CardHeader className="pb-3">
         <div className="flex justify-between items-start gap-3">
-          <CardTitle className="text-lg font-semibold line-clamp-2 text-balance">
+          <CardTitle className="text-lg font-semibold line-clamp-2 text-balance bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">
             {scholarship.title}
           </CardTitle>
           {showMatchScore && scholarship.matchScore && (
@@ -129,8 +129,10 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
           
           {(scholarship.stipend || scholarship.amount) && (
             <div className="flex items-center gap-2 col-span-2">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <span className="font-medium text-success-600">
+              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
+                <DollarSign className="h-3 w-3 text-white" />
+              </div>
+              <span className="font-semibold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 {scholarship.stipend || (scholarship.amount ? `$${scholarship.amount.toLocaleString()}` : '')}
               </span>
             </div>
@@ -155,7 +157,7 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
 
       {/* Footer */}
       <CardFooter className="pt-0 flex gap-2">
-        <Button asChild variant="outline" className="flex-1">
+        <Button asChild variant="outline" className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700">
           <Link href={`/applicant/scholarships/${scholarship.id}`}>
             {t('scholarshipCard.viewDetails')}
           </Link>
@@ -164,7 +166,7 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
           scholarship={scholarship}
           hasApplied={hasApplied}
           disabled={loading || isExpired}
-          className="flex-1"
+          className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0"
           showDialog={true}
         />
       </CardFooter>

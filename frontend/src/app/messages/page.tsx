@@ -310,53 +310,53 @@ export default function MessagesPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-brand-blue-100 rounded-lg mr-4">
-                <MessageSquare className="h-6 w-6 text-brand-blue-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg mr-4">
+                <MessageSquare className="h-6 w-6 text-blue-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{recentConversations.length}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{recentConversations.length}</p>
                 <p className="text-xs text-muted-foreground">{t('messages.stats.total')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-lg mr-4">
-                <Clock className="h-6 w-6 text-red-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-red-100 to-red-200 rounded-lg mr-4">
+                <Clock className="h-6 w-6 text-red-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{unreadCount}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{unreadCount}</p>
                 <p className="text-xs text-muted-foreground">{t('messages.stats.unread')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mr-4">
-                <Users className="h-6 w-6 text-green-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-200 rounded-lg mr-4">
+                <Users className="h-6 w-6 text-green-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{onlineContacts.length}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{onlineContacts.length}</p>
                 <p className="text-xs text-muted-foreground">{t('messages.stats.onlineUsers')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mr-4">
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg mr-4">
                 {isConnected ? (
-                  <Wifi className="h-6 w-6 text-purple-600" />
+                  <Wifi className="h-6 w-6 text-purple-700" />
                 ) : (
-                  <WifiOff className="h-6 w-6 text-purple-600" />
+                  <WifiOff className="h-6 w-6 text-purple-700" />
                 )}
               </div>
               <div>
-                <p className="text-lg font-bold">
+                <p className="text-lg font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">
                   {isConnected ? t('messages.connected') : t('messages.offline')}
                 </p>
                 <p className="text-xs text-muted-foreground">{t('messages.stats.status')}</p>

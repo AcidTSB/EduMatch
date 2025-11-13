@@ -104,7 +104,6 @@ export const useMessageStore = create<MessageState>()(
       );
       
       if (isDuplicate) {
-        console.log('Duplicate message detected, skipping:', message.content);
         return state;
       }
       

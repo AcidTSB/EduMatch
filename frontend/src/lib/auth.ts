@@ -53,28 +53,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Initialize auth state from localStorage
   useEffect(() => {
-    console.log('[AuthProvider] Initializing auth state...');
-    
     // PRIORITY 1: Try to get from cookies first (more reliable after redirect)
     let token = getCookie('auth_token');
     let userData = getCookie('auth_user');
     
-    console.log('[AuthProvider] Token from COOKIE:', token ? 'EXISTS' : 'NULL');
-    console.log('[AuthProvider] User data from COOKIE:', userData ? 'EXISTS' : 'NULL');
-    
     // PRIORITY 2: Fallback to localStorage if cookies are empty
     if (!token || !userData) {
-      console.log('[AuthProvider] Cookies empty, trying localStorage...');
       token = getFromLocalStorage('auth_token');
       userData = getFromLocalStorage('auth_user');
-      console.log('[AuthProvider] Token from localStorage:', token ? 'EXISTS' : 'NULL');
-      console.log('[AuthProvider] User data from localStorage:', userData ? 'EXISTS' : 'NULL');
     }
 
     if (token && userData) {
       try {
         const user = JSON.parse(userData);
-        console.log('[AuthProvider] Parsed user:', user);
         
         // Re-set cookies AND localStorage for redundancy
         setCookie('auth_token', token, 7);
@@ -89,9 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           isAuthenticated: true,
           role: user?.role || null,
         });
-        console.log('[AuthProvider] ✅ Auth state set - User authenticated');
       } catch (error) {
-        console.error('[AuthProvider] ❌ Error parsing user data:', error);
         // Invalid user data, clear storage and cookies
         removeFromLocalStorage('auth_token');
         removeFromLocalStorage('auth_user');
@@ -106,7 +95,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
       }
     } else {
-      console.log('[AuthProvider] ⚠️ No auth data found - User not authenticated');
       setAuthState(resetAuthState());
     }
   }, []);
@@ -119,7 +107,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         await refreshToken();
       } catch (error) {
-        console.warn('Token refresh failed:', error);
         logout();
       }
     }, 15 * 60 * 1000); // Refresh every 15 minutes
@@ -137,30 +124,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.success && response.data) {
         const { user, token } = response.data;
 
-        console.log('[LOGIN] 1️⃣ Received token:', token);
-        console.log('[LOGIN] 2️⃣ Received user:', user);
-
         // Store in localStorage
         setToLocalStorage('auth_token', token);
         setToLocalStorage('auth_user', JSON.stringify(user));
-        
-        console.log('[LOGIN] 3️⃣ Saved to localStorage');
-        console.log('[LOGIN] 4️⃣ Verify token in localStorage:', getFromLocalStorage('auth_token'));
-        console.log('[LOGIN] 5️⃣ Verify user in localStorage:', getFromLocalStorage('auth_user'));
 
         // Set cookies for middleware using utility function
         setCookie('auth_token', token, 7);
         setCookie('auth_user', JSON.stringify(user), 7);
-        
-        console.log('[LOGIN] 6️⃣ Cookies set');
-        console.log('[LOGIN] 7️⃣ Document.cookie:', document.cookie);
 
         setAuthState(createAuthenticatedState(user));
 
         // Wait a bit then redirect to let cookies set
         setTimeout(() => {
-          console.log('[LOGIN] 8️⃣ About to redirect...');
-          console.log('[LOGIN] 9️⃣ Final check - Token:', getFromLocalStorage('auth_token'));
           // Redirect based on user role
           if (user.role === 'admin') {
             window.location.href = '/admin';
@@ -222,7 +197,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await mockApi.auth.logout();
     } catch (error) {
       // Continue with logout even if API call fails
-      console.warn('Logout API call failed:', error);
     } finally {
       // Clear localStorage
       removeFromLocalStorage('auth_token');

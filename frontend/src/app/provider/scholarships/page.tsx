@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { Plus, Search, Filter, Edit, Trash2, Eye, Users, Calendar, DollarSign, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,13 @@ export default function ProviderScholarshipsPage() {
   // Use AppContext data
   const { applications } = useApplicationsData();
   const { scholarships: allScholarships } = useScholarshipsData();
+  
+  // Animation variants
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+    hover: { y: -4, transition: { duration: 0.2 } }
+  };
   
   // Mock provider scholarships (filter by a mock provider)
   const [scholarships] = useState<Scholarship[]>(
@@ -47,7 +55,6 @@ export default function ProviderScholarshipsPage() {
     stipend: '',
     requirements: [''],
   });
-
   const router = useRouter();
 
   const getStatusColor = (status: ScholarshipStatus) => {
@@ -250,49 +257,49 @@ export default function ProviderScholarshipsPage() {
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-brand-blue-100 rounded-lg mr-4">
-                <DollarSign className="h-6 w-6 text-brand-blue-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg mr-4">
+                <DollarSign className="h-6 w-6 text-blue-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{stats.total}</p>
                 <p className="text-xs text-muted-foreground">{t('providerScholarships.stats.total')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mr-4">
-                <Calendar className="h-6 w-6 text-green-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-200 rounded-lg mr-4">
+                <Calendar className="h-6 w-6 text-green-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.active}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{stats.active}</p>
                 <p className="text-xs text-muted-foreground">{t('providerScholarships.stats.published')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-lg mr-4">
-                <Edit className="h-6 w-6 text-gray-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg mr-4">
+                <Edit className="h-6 w-6 text-gray-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.draft}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{stats.draft}</p>
                 <p className="text-xs text-muted-foreground">{t('providerScholarships.stats.draft')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-lg mr-4">
-                <Users className="h-6 w-6 text-red-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-red-100 to-red-200 rounded-lg mr-4">
+                <Users className="h-6 w-6 text-red-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.closed}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{stats.closed}</p>
                 <p className="text-xs text-muted-foreground">{t('providerScholarships.stats.closed')}</p>
               </div>
             </CardContent>
@@ -357,67 +364,77 @@ export default function ProviderScholarshipsPage() {
             <>
               <div className="space-y-6">
                 {paginatedScholarships.map((scholarship) => (
-                  <Card key={scholarship.id}>
-                    <CardContent className="p-6">
-                      <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-lg font-semibold">{scholarship.title}</h3>
-                            <Badge variant={getStatusColor((scholarship as any).status)}>
-                              {(scholarship as any).status}
-                            </Badge>
+                  <motion.div
+                    key={scholarship.id}
+                    variants={cardVariants}
+                    initial="hidden"
+                    animate="visible"
+                    whileHover="hover"
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h3 className="text-lg font-semibold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{scholarship.title}</h3>
+                              <Badge variant={getStatusColor((scholarship as any).status)}>
+                                {(scholarship as any).status}
+                              </Badge>
+                            </div>
+                            
+                            <p className="text-muted-foreground mb-3 line-clamp-2">{scholarship.description}</p>
+                            
+                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center">
+                                <DollarSign className="h-4 w-4 mr-1" />
+                                {scholarship.stipend}
+                              </div>
+                              <div className="flex items-center">
+                                <Calendar className="h-4 w-4 mr-1" />
+                                Deadline: {scholarship.deadline ? formatDate(scholarship.deadline) : 'TBA'}
+                              </div>
+                              <div className="flex items-center">
+                                <Users className="h-4 w-4 mr-1" />
+                                {(scholarship as any).applicationCount || 0} applications
+                              </div>
+                            </div>
                           </div>
-                          
-                          <p className="text-muted-foreground mb-3 line-clamp-2">{scholarship.description}</p>
-                          
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center">
-                              <DollarSign className="h-4 w-4 mr-1" />
-                              {scholarship.stipend}
-                            </div>
-                            <div className="flex items-center">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              Deadline: {scholarship.deadline ? formatDate(scholarship.deadline) : 'TBA'}
-                            </div>
-                            <div className="flex items-center">
-                              <Users className="h-4 w-4 mr-1" />
-                              {(scholarship as any).applicationCount || 0} applications
-                            </div>
+
+                          <div className="flex items-center space-x-3">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => router.push(`/provider/scholarships/${scholarship.id}/applications`)}
+                              className="border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
+                            >
+                              <Users className="h-4 w-4 mr-2" />
+                              Applications
+                            </Button>
+
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="outline" size="sm" className="border-cyan-600 text-cyan-600 hover:bg-cyan-600 hover:text-white transition-colors">
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </Button>
+                              </DialogTrigger>
+                              <ScholarshipDetailModal scholarship={scholarship} />
+                            </Dialog>
+
+                            <Button variant="outline" size="sm" className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white transition-colors">
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </Button>
+
+                            <Button variant="outline" size="sm" className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition-colors">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
                         </div>
-
-                        <div className="flex items-center space-x-3">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => router.push(`/provider/scholarships/${scholarship.id}/applications`)}
-                          >
-                            <Users className="h-4 w-4 mr-2" />
-                            Applications
-                          </Button>
-
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
-                              </Button>
-                            </DialogTrigger>
-                            <ScholarshipDetailModal scholarship={scholarship} />
-                          </Dialog>
-
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit
-                          </Button>
-
-                          <Button variant="outline" size="sm" className="text-danger-600 hover:text-danger-700 hover:bg-danger-50">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 ))}
               </div>
 

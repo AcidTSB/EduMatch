@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { toast } from 'sonner';
 
 export default function RegisterPage() {
   const { t } = useLanguage();
@@ -71,9 +72,15 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      toast.error('Thông tin không hợp lệ', {
+        description: 'Vui lòng kiểm tra lại các trường thông tin'
+      });
+      return;
+    }
 
     setIsLoading(true);
+    const toastId = toast.loading('Đang tạo tài khoản...');
     
     try {
       // Mock API call - replace with actual registration
@@ -83,15 +90,27 @@ export default function RegisterPage() {
       localStorage.setItem('auth_token', 'mock-jwt-token');
       localStorage.setItem('user_role', formData.role);
       
+      toast.success('Đăng ký thành công!', {
+        id: toastId,
+        description: `Chào mừng ${formData.name} đến với EduMatch!`
+      });
+      
       // Redirect based on role
-      if (formData.role === 'provider') {
-        router.push('/provider/dashboard');
-      } else {
-        router.push('/applicant/dashboard');
-      }
+      setTimeout(() => {
+        if (formData.role === 'provider') {
+          router.push('/provider/dashboard');
+        } else {
+          router.push('/applicant/dashboard');
+        }
+      }, 1000);
     } catch (error) {
       console.error('Registration failed:', error);
-      setErrors({ submit: t('register.errors.submitFailed') });
+      const errorMessage = t('register.errors.submitFailed');
+      toast.error('Đăng ký thất bại', {
+        id: toastId,
+        description: errorMessage
+      });
+      setErrors({ submit: errorMessage });
     } finally {
       setIsLoading(false);
     }

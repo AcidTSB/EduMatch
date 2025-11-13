@@ -1732,16 +1732,12 @@ export const mockApi = {
      * Mock login - finds user by email
      */
     async login(credentials: LoginCredentials): Promise<ApiResponse<{ user: AuthUser; token: string }>> {
-      console.log('🔐 Mock API Login called with:', credentials);
-      
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const user = USERS.find(u => u.email === credentials.email);
-      console.log('👤 User found:', user ? `${user.name} (${user.role})` : 'NOT FOUND');
 
       if (!user) {
-        console.log('❌ Login failed: Invalid email');
         return {
           success: false,
           error: 'Invalid email or password',
@@ -1751,8 +1747,6 @@ export const mockApi = {
       // In a real app, you'd verify the password hash
       // For mock, we accept any password for development
       const token = `mock_token_${user.id}_${Date.now()}`;
-      
-      console.log('✅ Login successful! Token:', token);
 
       return {
         success: true,

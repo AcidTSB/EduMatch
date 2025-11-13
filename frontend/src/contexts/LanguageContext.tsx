@@ -1928,7 +1928,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.pricing': 'Bảng giá',
     'nav.contact': 'Liên hệ',
     'nav.dashboard': 'Tổng quan',
-    'nav.applications': 'Hồ sơ',
+    'nav.applications': 'Đơn xin',
     'nav.messages': 'Tin nhắn',
     'nav.myScholarships': 'Học bổng',
     'nav.analytics': 'Thống kê',
@@ -1954,7 +1954,7 @@ const translations: Record<Language, Record<string, string>> = {
     
     // Roles
     'role.applicant': 'Học sinh',
-    'role.provider': 'Nhà cung cấp học bổng',
+    'role.provider': 'Nhà cung cấp',
     'role.admin': 'Quản trị viên',
     'role.student': 'Học sinh',
     'role.user': 'Người dùng',
@@ -2065,7 +2065,7 @@ const translations: Record<Language, Record<string, string>> = {
     'home.hero.title': 'Tìm Học Bổng Phù Hợp Với Bạn',
     'home.hero.subtitle': 'với công nghệ AI',
     'home.hero.description': 'Khám phá các cơ hội học bổng và vị trí nghiên cứu được cá nhân hóa bằng nền tảng AI của chúng tôi. Tham gia cùng hàng ngàn sinh viên đã tìm thấy sự phù hợp học thuật hoàn hảo.',
-    'home.hero.browseScholarships': 'Duyệt học bổng',
+    'home.hero.browseScholarships': 'Khám phá học bổng',
     'home.hero.postOpportunities': 'Đăng cơ hội',
     'home.hero.trust1': '1000+ Học bổng',
     'home.hero.trust2': '95% độ chính xác',
@@ -2135,7 +2135,7 @@ const translations: Record<Language, Record<string, string>> = {
     'about.cta.title': 'Sẵn sàng tìm kiếm cơ hội hoàn hảo?',
     'about.cta.subtitle': 'Tham gia hàng ngàn học sinh đã tìm thấy học bổng lý tưởng thông qua EduMatch.',
     'about.cta.getStarted': 'Bắt đầu miễn phí',
-    'about.cta.browse': 'Duyệt học bổng',
+    'about.cta.browse': 'Khám phá học bổng',
     
     // Pricing Page
     'pricing.hero.title': 'Giá cả đơn giản, minh bạch',
@@ -2215,7 +2215,7 @@ const translations: Record<Language, Record<string, string>> = {
     'pricing.cta.title': 'Sẵn sàng tìm học bổng hoàn hảo?',
     'pricing.cta.subtitle': 'Tham gia hơn 50.000 học sinh đã tìm thấy cơ hội tài trợ lý tưởng.',
     'pricing.cta.startFree': 'Bắt đầu miễn phí ngay',
-    'pricing.cta.browse': 'Duyệt học bổng',
+    'pricing.cta.browse': 'Khám phá học bổng',
     
     // Old Pricing Keys (kept for compatibility)
     'pricing.title': 'Chọn gói của bạn',
@@ -2335,13 +2335,13 @@ const translations: Record<Language, Record<string, string>> = {
     'dashboard.recentApplications.viewAll': 'Xem tất cả',
     'dashboard.recentApplications.applied': 'Đã nộp',
     'dashboard.recentApplications.noApplications': 'Chưa có đơn nào',
-    'dashboard.recentApplications.browse': 'Duyệt học bổng',
+    'dashboard.recentApplications.browse': 'Khám phá học bổng',
     'dashboard.notifications.title': 'Thông báo gần đây',
     'dashboard.notifications.viewAll': 'Xem tất cả',
     'dashboard.recommended.title': 'Đề xuất cho bạn',
     'dashboard.recommended.viewAll': 'Xem tất cả học bổng',
     'dashboard.quickAction.updateProfile': 'Cập nhật hồ sơ',
-    'dashboard.quickAction.browseScholarships': 'Duyệt học bổng',
+    'dashboard.quickAction.browseScholarships': 'Khám phá học bổng',
     'dashboard.quickAction.myApplications': 'Đơn của tôi',
     'dashboard.quickAction.settings': 'Cài đặt',
     'dashboard.status.accepted': 'Đã chấp nhận',
@@ -2924,7 +2924,7 @@ const translations: Record<Language, Record<string, string>> = {
     'applicantApplications.empty.title': 'Không tìm thấy đơn xin',
     'applicantApplications.empty.withFilters': 'Thử điều chỉnh tìm kiếm hoặc bộ lọc.',
     'applicantApplications.empty.noApps': 'Bạn chưa nộp đơn xin nào.',
-    'applicantApplications.empty.browse': 'Duyệt học bổng',
+    'applicantApplications.empty.browse': 'Khám phá học bổng',
     
     // Provider Applications Page
     'providerApplications.title': 'Quản lý đơn xin',
@@ -2984,7 +2984,7 @@ const translations: Record<Language, Record<string, string>> = {
     'footer.quickLinks': 'Liên kết nhanh',
     'footer.home': 'Trang chủ',
     'footer.aboutUs': 'Về chúng tôi',
-    'footer.browseScholarships': 'Duyệt học bổng',
+    'footer.browseScholarships': 'Khám phá học bổng',
     'footer.pricingPlans': 'Gói dịch vụ',
     'footer.support': 'Hỗ trợ',
     'footer.contactUs': 'Liên hệ',

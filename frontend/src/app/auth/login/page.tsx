@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -42,17 +43,32 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      toast.error(t('login.invalidCredentials'), {
+        description: 'Vui lòng kiểm tra lại thông tin đăng nhập'
+      });
+      return;
+    }
 
     setIsLoading(true);
+    const toastId = toast.loading('Đang đăng nhập...');
     
     try {
       // Use the auth context login method
       await login({ email, password });
+      toast.success('Đăng nhập thành công!', {
+        id: toastId,
+        description: `Chào mừng bạn trở lại, ${email}`
+      });
       // Redirect is handled automatically in auth.ts based on role
     } catch (error) {
       console.error('Login failed:', error);
-      setErrors({ submit: authError || t('login.invalidCredentials') });
+      const errorMessage = authError || t('login.invalidCredentials');
+      toast.error('Đăng nhập thất bại', {
+        id: toastId,
+        description: errorMessage
+      });
+      setErrors({ submit: errorMessage });
     } finally {
       setIsLoading(false);
     }

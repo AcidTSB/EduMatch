@@ -7,8 +7,10 @@ import { AuthProvider } from '@/lib/auth'
 import { AppProvider } from '@/contexts/AppContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { RealTimeProvider } from '@/providers/RealTimeProvider'
-import { RealTimeIndicator } from '@/components/RealTimeIndicator'
+import { ToastProvider } from '@/providers/ToastProvider'
 import { MessagingWidget } from '@/components/messaging/MessagingWidget'
+import { Toaster } from '@/components/ui/toaster'
+import { Toaster as HotToaster } from 'react-hot-toast'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -29,15 +31,42 @@ export default function RootLayout({
           <AppProvider>
             <AuthProvider>
               <RealTimeProvider>
-                <div className="min-h-screen bg-background flex flex-col">
-                  <Navbar />
-                  <RealTimeIndicator />
-                  <main className="flex-1">
-                    {children}
-                  </main>
-                  <Footer />
-                  <MessagingWidget />
-                </div>
+                <ToastProvider>
+                  <div className="min-h-screen bg-background flex flex-col">
+                    <Navbar />
+                    <main className="flex-1">
+                      {children}
+                    </main>
+                    <Footer />
+                    <MessagingWidget />
+                  </div>
+                  {/* Toast Notifications */}
+                  <Toaster />
+                  <HotToaster 
+                    position="top-right"
+                    toastOptions={{
+                      duration: 5000,
+                      style: {
+                        background: '#fff',
+                        color: '#333',
+                        border: '1px solid #e5e7eb',
+                        marginTop: '80px',
+                      },
+                      success: {
+                        iconTheme: {
+                          primary: '#10b981',
+                          secondary: '#fff',
+                        },
+                      },
+                      error: {
+                        iconTheme: {
+                          primary: '#ef4444',
+                          secondary: '#fff',
+                        },
+                      },
+                    }}
+                  />
+                </ToastProvider>
               </RealTimeProvider>
             </AuthProvider>
           </AppProvider>

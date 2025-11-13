@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { toast } from 'sonner';
 
 // Mock user profiles
 const mockUserProfiles = [
@@ -107,17 +108,26 @@ export default function ProfilePage() {
     e.preventDefault();
     setIsLoading(true);
 
+    const toastId = toast.loading('Đang cập nhật hồ sơ...');
+
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       console.log('Profile updated:', profile);
-      setIsEditing(false);
       
-      // Show success message (you could add a toast notification here)
-      alert(t('applicantProfile.successMessage'));
+      toast.success('Cập nhật hồ sơ thành công!', {
+        id: toastId,
+        description: 'Thông tin của bạn đã được lưu'
+      });
+      
+      setIsEditing(false);
     } catch (error) {
       console.error('Profile update failed:', error);
+      toast.error('Cập nhật hồ sơ thất bại', {
+        id: toastId,
+        description: t('applicantProfile.errorMessage')
+      });
       setErrors({ submit: t('applicantProfile.errorMessage') });
     } finally {
       setIsLoading(false);
@@ -127,6 +137,22 @@ export default function ProfilePage() {
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Ảnh quá lớn', {
+          description: 'Vui lòng chọn ảnh có kích thước nhỏ hơn 5MB'
+        });
+        return;
+      }
+      
+      // Check file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('File không hợp lệ', {
+          description: 'Vui lòng chọn file ảnh'
+        });
+        return;
+      }
+      
       setPhotoFile(file);
       // Create preview URL
       const previewUrl = URL.createObjectURL(file);
@@ -134,6 +160,10 @@ export default function ProfilePage() {
         ...prev,
         avatar: previewUrl
       }));
+      
+      toast.success('Đã chọn ảnh mới', {
+        description: 'Nhớ lưu hồ sơ để cập nhật ảnh đại diện'
+      });
     }
   };
 

@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/lib/auth';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { toast } from 'sonner';
 
 // Mock settings data
 const initialSettings = {
@@ -114,23 +115,39 @@ export default function SettingsPage() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
+      toast.error('Mật khẩu không khớp', {
+        description: t('settings.passwordMismatch')
+      });
       setMessage({ type: 'error', text: t('settings.passwordMismatch') });
       return;
     }
     if (newPassword.length < 8) {
+      toast.error('Mật khẩu quá ngắn', {
+        description: t('settings.passwordLength')
+      });
       setMessage({ type: 'error', text: t('settings.passwordLength') });
       return;
     }
 
     setIsLoading(true);
+    const toastId = toast.loading('Đang đổi mật khẩu...');
+    
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
+      toast.success('Đổi mật khẩu thành công!', {
+        id: toastId,
+        description: 'Mật khẩu của bạn đã được cập nhật'
+      });
       setMessage({ type: 'success', text: t('settings.passwordSuccess') });
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
+      toast.error('Đổi mật khẩu thất bại', {
+        id: toastId,
+        description: t('settings.passwordError')
+      });
       setMessage({ type: 'error', text: t('settings.passwordError') });
     } finally {
       setIsLoading(false);
@@ -139,11 +156,21 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async () => {
     setIsLoading(true);
+    const toastId = toast.loading('Đang lưu cài đặt...');
+    
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success('Lưu cài đặt thành công!', {
+        id: toastId,
+        description: 'Các thay đổi đã được lưu'
+      });
       setMessage({ type: 'success', text: t('settings.success') });
     } catch (error) {
+      toast.error('Lưu cài đặt thất bại', {
+        id: toastId,
+        description: t('settings.error')
+      });
       setMessage({ type: 'error', text: t('settings.error') });
     } finally {
       setIsLoading(false);
@@ -151,19 +178,37 @@ export default function SettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (window.confirm(t('settings.data.deleteConfirm'))) {
-      setIsLoading(true);
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        alert(t('settings.data.deleteSuccess'));
-        logout();
-      } catch (error) {
-        setMessage({ type: 'error', text: t('settings.error') });
-      } finally {
-        setIsLoading(false);
+    toast('Xác nhận xóa tài khoản?', {
+      description: 'Hành động này không thể hoàn tác',
+      action: {
+        label: 'Xóa',
+        onClick: async () => {
+          const toastId = toast.loading('Đang xóa tài khoản...');
+          setIsLoading(true);
+          try {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            toast.success('Đã xóa tài khoản', {
+              id: toastId,
+              description: t('settings.data.deleteSuccess')
+            });
+            setTimeout(() => {
+              logout();
+            }, 1500);
+          } catch (error) {
+            toast.error('Xóa tài khoản thất bại', {
+              id: toastId
+            });
+          } finally {
+            setIsLoading(false);
+          }
+        }
+      },
+      cancel: {
+        label: 'Hủy',
+        onClick: () => toast.info('Đã hủy')
       }
-    }
+    });
   };
 
   const handleExportData = () => {

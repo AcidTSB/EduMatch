@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { toast } from 'sonner';
 
 export default function ContactPage() {
   const { t } = useLanguage();
@@ -118,8 +119,15 @@ export default function ContactPage() {
     e.preventDefault();
     setIsSubmitting(true);
     
+    const toastId = toast.loading('Đang gửi tin nhắn...');
+    
     // Simulate form submission
     await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    toast.success('Gửi tin nhắn thành công!', {
+      id: toastId,
+      description: 'Chúng tôi sẽ phản hồi trong vòng 24 giờ'
+    });
     
     setIsSubmitted(true);
     setIsSubmitting(false);

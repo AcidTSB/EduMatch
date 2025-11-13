@@ -97,9 +97,7 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
   // Request notification permission on mount
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then(permission => {
-        console.log('Notification permission:', permission);
-      });
+      Notification.requestPermission();
     }
   }, []);
 
@@ -109,11 +107,8 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
   useEffect(() => {
     if (!socket.isConnected || !isAuthenticated || !enabled) return;
 
-    console.log('Setting up Socket.IO event listeners...');
-
     // User online/offline events
     (socket as any).on('user_online', (userData: { userId: string; role: string; name: string }) => {
-      console.log('User came online:', userData);
       setOnlineUsersMap(prev => {
         const newMap = new Map(prev);
         newMap.set(userData.userId, { name: userData.name, role: userData.role });
@@ -122,7 +117,6 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
     });
 
     (socket as any).on('user_offline', (userData: { userId: string; role: string; name: string }) => {
-      console.log('User went offline:', userData);
       setOnlineUsersMap(prev => {
         const newMap = new Map(prev);
         newMap.delete(userData.userId);
@@ -131,7 +125,6 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
     });
 
     (socket as any).on('online_users', (users: Array<{ userId: string; role: string; name: string }>) => {
-      console.log('Received online users list:', users);
       const newMap = new Map();
       users.forEach(u => newMap.set(u.userId, { name: u.name, role: u.role }));
       setOnlineUsersMap(newMap);
@@ -139,19 +132,13 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
 
     // Message events
     socket.on('message', (message: Message) => {
-      console.log('📨 Received message:', message);
       const roomId = [message.senderId, message.receiverId].sort().join('-');
-      console.log('📍 Calculated room ID:', roomId, '| Current user:', user?.id);
       
       // Only add if it's not from current user (to avoid duplicate)
-      // Because we already added it locally when sending
       if (message.senderId !== user?.id) {
-        console.log('✅ Adding message to room:', roomId);
-        
         // If currently in this room, mark as read immediately
         if (activeRoom === roomId) {
           addMessage(roomId, { ...message, status: 'read' as const });
-          // Also emit to server that we've read it
           (socket as any).emit('mark_messages_read', { roomId, messageIds: [message.id] });
         } else {
           // Not in this room, add as delivered and show toast
@@ -161,14 +148,11 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
             icon: '💬',
           });
         }
-      } else {
-        console.log('⏭️ Skipping message (from current user)');
       }
     });
 
     // Notification events
     socket.on('notification', (notification: NotificationModel) => {
-      console.log('Received notification:', notification);
       addNotification(notification);
       
       // Show toast
@@ -223,8 +207,6 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
 
   // Helper functions
   const sendMessage = (roomId: string, content: string, attachments?: string[]) => {
-    console.log('🚀 sendMessage called with roomId:', roomId, '| user.id:', user?.id);
-    
     if (!user?.id || !isAuthenticated || !socket.isConnected) {
       toast.error('Cannot send message. Please check your connection.');
       return;
@@ -243,12 +225,9 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
       // Current user is last: "provider-1-student-1" → receiver is "provider-1"
       receiverId = roomId.substring(0, roomId.length - user.id.length - 1);
     } else {
-      console.error('❌ Could not determine receiver from room ID:', roomId, '| user.id:', user.id);
       toast.error('Invalid chat room');
       return;
     }
-    
-    console.log('🎯 Receiver ID:', receiverId);
     
     const messageData = {
       id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -262,14 +241,11 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
       senderName: user.name || user.email || 'User'
     };
     
-    console.log('💬 Sending message:', messageData, '| Room:', roomId);
-    
     // Add to local store immediately for instant feedback
     addMessage(roomId, messageData as any);
     
     // Emit to server
     (socket as any).emit('send_message', messageData);
-    console.log('✉️ Message emitted to server');
   };
 
   const markMessagesAsRead = (roomId: string, messageIds: string[]) => {

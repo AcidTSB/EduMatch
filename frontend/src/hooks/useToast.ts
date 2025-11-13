@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ToastProps } from '@/types';
 
 interface ToastState {
@@ -8,6 +8,10 @@ interface ToastState {
 interface UseToastReturn {
   toasts: ToastProps[];
   toast: (toast: Omit<ToastProps, 'id'>) => void;
+  success: (message: string, title?: string) => void;
+  error: (message: string, title?: string) => void;
+  warning: (message: string, title?: string) => void;
+  info: (message: string, title?: string) => void;
   dismiss: (id: string) => void;
   dismissAll: () => void;
 }
@@ -49,7 +53,7 @@ const dismissAllToasts = () => {
 export const useToast = (): UseToastReturn => {
   const [toastState, setToastState] = useState<ToastProps[]>(toasts);
   
-  useState(() => {
+  useEffect(() => {
     const listener = (newToasts: ToastProps[]) => {
       setToastState(newToasts);
     };
@@ -59,10 +63,26 @@ export const useToast = (): UseToastReturn => {
     return () => {
       toastListeners = toastListeners.filter(l => l !== listener);
     };
-  });
+  }, []);
   
   const toast = useCallback((toast: Omit<ToastProps, 'id'>) => {
     addToast(toast);
+  }, []);
+
+  const success = useCallback((message: string, title?: string) => {
+    addToast({ message, title, type: 'success' });
+  }, []);
+
+  const error = useCallback((message: string, title?: string) => {
+    addToast({ message, title, type: 'error' });
+  }, []);
+
+  const warning = useCallback((message: string, title?: string) => {
+    addToast({ message, title, type: 'warning' });
+  }, []);
+
+  const info = useCallback((message: string, title?: string) => {
+    addToast({ message, title, type: 'info' });
   }, []);
   
   const dismiss = useCallback((id: string) => {
@@ -76,7 +96,19 @@ export const useToast = (): UseToastReturn => {
   return {
     toasts: toastState,
     toast,
+    success,
+    error,
+    warning,
+    info,
     dismiss,
     dismissAll,
   };
+};
+
+// Export helper functions for use outside of React components
+export const toast = {
+  success: (message: string, title?: string) => addToast({ message, title, type: 'success' }),
+  error: (message: string, title?: string) => addToast({ message, title, type: 'error' }),
+  warning: (message: string, title?: string) => addToast({ message, title, type: 'warning' }),
+  info: (message: string, title?: string) => addToast({ message, title, type: 'info' }),
 };

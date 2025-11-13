@@ -148,7 +148,7 @@ export function useSavedScholarships(userId: string = '1') {
           setSavedScholarships(response.data);
         }
       } catch (error) {
-        console.error('Failed to load saved scholarships:', error);
+        // Failed to load saved scholarships
       } finally {
         setLoading(false);
       }
@@ -169,7 +169,7 @@ export function useSavedScholarships(userId: string = '1') {
         );
       }
     } catch (error) {
-      console.error('Failed to toggle saved scholarship:', error);
+      // Failed to toggle saved scholarship
     } finally {
       setLoading(false);
     }
@@ -205,7 +205,6 @@ export function useScholarships(filters?: any) {
       }
     } catch (err) {
       setError('Failed to load scholarships');
-      console.error('Failed to load scholarships:', err);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { 
   Plus,
   Users,
@@ -26,6 +27,34 @@ import { formatDate } from '@/lib/utils';
 import { ScholarshipStatus } from '@/types';
 import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+
+// Animation variants cho scholarship cards
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5, ease: 'easeOut' }
+  },
+  hover: {
+    y: -8,
+    scale: 1.02,
+    transition: { 
+      duration: 0.3,
+      ease: 'easeInOut'
+    }
+  }
+};
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
 
 export default function ProviderDashboardPage() {
   const { t } = useLanguage();
@@ -130,49 +159,49 @@ export default function ProviderDashboardPage() {
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Overview */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300 h-full">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-brand-blue-100 rounded-lg mr-4">
-                <Award className="h-6 w-6 text-brand-blue-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg mr-4 shadow-sm">
+                <Award className="h-6 w-6 text-blue-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{dashboardData.stats.totalScholarships}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{dashboardData.stats.totalScholarships}</p>
                 <p className="text-xs text-muted-foreground">{t('provider.stats.totalScholarships')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-green-50/30 shadow-lg hover:shadow-2xl transition-all duration-300 h-full">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mr-4">
-                <Target className="h-6 w-6 text-green-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-200 rounded-lg mr-4 shadow-sm">
+                <Target className="h-6 w-6 text-green-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{dashboardData.stats.activeScholarships}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-green-900 bg-clip-text text-transparent">{dashboardData.stats.activeScholarships}</p>
                 <p className="text-xs text-muted-foreground">{t('provider.stats.activeScholarships')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-cyan-50/30 shadow-lg hover:shadow-2xl transition-all duration-300 h-full">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mr-4">
-                <FileText className="h-6 w-6 text-purple-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-lg mr-4 shadow-sm">
+                <FileText className="h-6 w-6 text-cyan-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{dashboardData.stats.totalApplications}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-cyan-900 bg-clip-text text-transparent">{dashboardData.stats.totalApplications}</p>
                 <p className="text-xs text-muted-foreground">{t('provider.stats.totalApplications')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-yellow-50/30 shadow-lg hover:shadow-2xl transition-all duration-300 h-full">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-lg mr-4">
-                <Users className="h-6 w-6 text-yellow-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-yellow-100 to-amber-200 rounded-lg mr-4 shadow-sm">
+                <Users className="h-6 w-6 text-yellow-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{dashboardData.stats.acceptedStudents}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-yellow-900 bg-clip-text text-transparent">{dashboardData.stats.acceptedStudents}</p>
                 <p className="text-xs text-muted-foreground">{t('provider.stats.acceptedStudents')}</p>
               </div>
             </CardContent>
@@ -182,10 +211,10 @@ export default function ProviderDashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Recent Applications */}
           <div className="lg:col-span-2">
-            <Card>
+            <Card className="border-0 bg-gradient-to-br from-white to-blue-50/20 shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>{t('provider.recentApplications.title')}</CardTitle>
-                <Button variant="outline" size="sm" asChild>
+                <CardTitle className="bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{t('provider.recentApplications.title')}</CardTitle>
+                <Button variant="outline" size="sm" className="border-blue-300 hover:bg-blue-50" asChild>
                   <Link href="/provider/applications">
                     {t('provider.recentApplications.viewAll')}
                     <ArrowRight className="h-4 w-4 ml-2" />
@@ -194,8 +223,11 @@ export default function ProviderDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {dashboardData.recentApplications.map((application) => (
-                    <div key={application.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                  {dashboardData.recentApplications.map((application, index) => (
+                    <div
+                      key={application.id}
+                      className="flex items-center justify-between p-4 border border-blue-100 rounded-lg bg-gradient-to-r from-white to-blue-50/30 shadow-sm hover:shadow-md transition-shadow duration-200"
+                    >
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
                           <h4 className="font-semibold text-gray-900">{application.applicantName}</h4>
@@ -214,7 +246,7 @@ export default function ProviderDashboardPage() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" asChild>
+                        <Button variant="outline" size="sm" className="border-blue-300 hover:bg-blue-50" asChild>
                           <Link href={`/provider/applications`}>
                             <Eye className="h-4 w-4" />
                           </Link>
@@ -229,27 +261,27 @@ export default function ProviderDashboardPage() {
 
           {/* Quick Stats */}
           <div>
-            <Card>
+            <Card className="border-0 bg-gradient-to-br from-white to-cyan-50/20 shadow-lg">
               <CardHeader>
-                <CardTitle>{t('provider.quickStats.title')}</CardTitle>
+                <CardTitle className="bg-gradient-to-r from-gray-900 to-cyan-900 bg-clip-text text-transparent">{t('provider.quickStats.title')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-blue-50 to-cyan-50">
                     <span className="text-sm text-gray-600">{t('provider.quickStats.applicationsWeek')}</span>
-                    <span className="font-semibold">24</span>
+                    <span className="font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">24</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50">
                     <span className="text-sm text-gray-600">{t('provider.quickStats.pendingReviews')}</span>
-                    <span className="font-semibold text-yellow-600">8</span>
+                    <span className="font-semibold text-yellow-700">8</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50">
                     <span className="text-sm text-gray-600">{t('provider.quickStats.acceptanceRate')}</span>
-                    <span className="font-semibold text-green-600">15%</span>
+                    <span className="font-semibold text-green-700">15%</span>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
                     <span className="text-sm text-gray-600">{t('provider.quickStats.avgGPA')}</span>
-                    <span className="font-semibold">3.7</span>
+                    <span className="font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">3.7</span>
                   </div>
                 </div>
               </CardContent>
@@ -258,10 +290,10 @@ export default function ProviderDashboardPage() {
         </div>
 
         {/* My Scholarships */}
-        <Card className="mt-8">
+        <Card className="mt-8 border-0 bg-gradient-to-br from-white to-blue-50/20 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>{t('provider.scholarships.title')}</CardTitle>
-            <Button variant="outline" size="sm" asChild>
+            <CardTitle className="bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{t('provider.scholarships.title')}</CardTitle>
+            <Button variant="outline" size="sm" className="border-blue-300 hover:bg-blue-50" asChild>
               <Link href="/provider/scholarships">
                 {t('provider.scholarships.manageAll')}
                 <ArrowRight className="h-4 w-4 ml-2" />
@@ -269,28 +301,40 @@ export default function ProviderDashboardPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {dashboardData.myScholarships.map((scholarship) => (
-                <Card key={scholarship.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-2 gap-6"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {dashboardData.myScholarships.map((scholarship, index) => (
+                <motion.div
+                  key={scholarship.id}
+                  variants={cardVariants}
+                  whileHover="hover"
+                  whileTap={{ scale: 0.98 }}
+                  custom={index}
+                >
+                  <Card className="border-0 bg-gradient-to-br from-white to-cyan-50/30 shadow-lg hover:shadow-2xl transition-all duration-300 h-full">
+                    <CardHeader className="pb-3">
                     <div className="flex items-start justify-between mb-2">
                       <Badge variant={scholarship.status === ScholarshipStatus.PUBLISHED ? 'success' : 'secondary'}>
                         {scholarship.status === ScholarshipStatus.PUBLISHED ? t('provider.scholarships.published') : t('provider.scholarships.draft')}
                       </Badge>
                       <div className="flex items-center space-x-1">
-                        <Button variant="ghost" size="sm" asChild>
+                        <Button variant="ghost" size="sm" className="hover:bg-blue-50" asChild>
                           <Link href={`/provider/scholarships/${scholarship.id}/edit`}>
-                            <Edit className="h-4 w-4" />
+                            <Edit className="h-4 w-4 text-blue-600" />
                           </Link>
                         </Button>
-                        <Button variant="ghost" size="sm" asChild>
+                        <Button variant="ghost" size="sm" className="hover:bg-cyan-50" asChild>
                           <Link href={`/provider/scholarships/${scholarship.id}/applications`}>
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-4 w-4 text-cyan-600" />
                           </Link>
                         </Button>
                       </div>
                     </div>
-                    <CardTitle className="text-lg line-clamp-2">
+                    <CardTitle className="text-lg line-clamp-2 bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">
                       {scholarship.title}
                     </CardTitle>
                   </CardHeader>
@@ -300,61 +344,64 @@ export default function ProviderDashboardPage() {
                     </p>
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center text-sm text-gray-600">
-                        <Users className="h-4 w-4 mr-2" />
+                        <Users className="h-4 w-4 mr-2 text-blue-600" />
                         {scholarship.applicationCount} {t('provider.scholarships.applications')}
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
-                        <Calendar className="h-4 w-4 mr-2" />
+                        <Calendar className="h-4 w-4 mr-2 text-blue-600" />
                         {t('provider.scholarships.deadline')}: {scholarship.deadline ? formatDate(scholarship.deadline) : 'TBA'}
                       </div>
                       {scholarship.stipend && (
-                        <div className="flex items-center text-sm text-green-600">
-                          <DollarSign className="h-4 w-4 mr-2" />
-                          {scholarship.stipend}
+                        <div className="flex items-center text-sm font-medium">
+                          <DollarSign className="h-4 w-4 mr-2 text-green-600" />
+                          <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                            {scholarship.stipend}
+                          </span>
                         </div>
                       )}
                     </div>
-                    <Button variant="outline" size="sm" className="w-full" asChild>
+                    <Button variant="outline" size="sm" className="w-full border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-colors" asChild>
                       <Link href={`/provider/scholarships/${scholarship.id}/applications`}>
                         {t('provider.scholarships.viewApplications').replace('{count}', scholarship.applicationCount.toString())}
                       </Link>
                     </Button>
                   </CardContent>
                 </Card>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </CardContent>
         </Card>
 
         {/* Quick Actions */}
-        <Card className="mt-8">
+        <Card className="mt-8 border-0 bg-gradient-to-br from-white to-cyan-50/20 shadow-lg">
           <CardHeader>
-            <CardTitle>{t('provider.quickActions.title')}</CardTitle>
+            <CardTitle className="bg-gradient-to-r from-gray-900 to-cyan-900 bg-clip-text text-transparent">{t('provider.quickActions.title')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-20 flex-col space-y-2" asChild>
+              <Button variant="outline" className="h-20 flex-col space-y-2 border-blue-200 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:border-blue-400 hover:shadow-md transition-all group" asChild>
                 <Link href="/provider/scholarships/create">
-                  <Plus className="h-6 w-6" />
-                  <span>{t('provider.quickActions.createScholarship')}</span>
+                  <Plus className="h-6 w-6 text-blue-600 group-hover:text-blue-700" />
+                  <span className="text-gray-700 group-hover:text-blue-900 font-medium">{t('provider.quickActions.createScholarship')}</span>
                 </Link>
               </Button>
-              <Button variant="outline" className="h-20 flex-col space-y-2" asChild>
+              <Button variant="outline" className="h-20 flex-col space-y-2 border-blue-200 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:border-blue-400 hover:shadow-md transition-all group" asChild>
                 <Link href="/provider/applications">
-                  <FileText className="h-6 w-6" />
-                  <span>{t('provider.quickActions.reviewApplications')}</span>
+                  <FileText className="h-6 w-6 text-blue-600 group-hover:text-blue-700" />
+                  <span className="text-gray-700 group-hover:text-blue-900 font-medium">{t('provider.quickActions.reviewApplications')}</span>
                 </Link>
               </Button>
-              <Button variant="outline" className="h-20 flex-col space-y-2" asChild>
+              <Button variant="outline" className="h-20 flex-col space-y-2 border-blue-200 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:border-blue-400 hover:shadow-md transition-all group" asChild>
                 <Link href="/provider/scholarships">
-                  <Award className="h-6 w-6" />
-                  <span>{t('provider.quickActions.manageScholarships')}</span>
+                  <Award className="h-6 w-6 text-blue-600 group-hover:text-blue-700" />
+                  <span className="text-gray-700 group-hover:text-blue-900 font-medium">{t('provider.quickActions.manageScholarships')}</span>
                 </Link>
               </Button>
-              <Button variant="outline" className="h-20 flex-col space-y-2" asChild>
+              <Button variant="outline" className="h-20 flex-col space-y-2 border-blue-200 hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:border-blue-400 hover:shadow-md transition-all group" asChild>
                 <Link href="/provider/analytics">
-                  <TrendingUp className="h-6 w-6" />
-                  <span>{t('provider.quickActions.viewAnalytics')}</span>
+                  <TrendingUp className="h-6 w-6 text-blue-600 group-hover:text-blue-700" />
+                  <span className="text-gray-700 group-hover:text-blue-900 font-medium">{t('provider.quickActions.viewAnalytics')}</span>
                 </Link>
               </Button>
             </div>

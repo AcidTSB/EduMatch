@@ -18,7 +18,7 @@ export function middleware(request: NextRequest) {
         userRole = user.role;
       }
     } catch (error) {
-      console.log('Error parsing user data:', error);
+      // Invalid user data in cookies
     }
   }
 

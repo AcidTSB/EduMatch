@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { 
   Search, 
   Filter, 
@@ -35,6 +36,30 @@ import { ScholarshipCard } from '@/components/ScholarshipCard';
 import { useScholarshipsData, useApplicationsData, useNotificationsData } from '@/contexts/AppContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { parseNotification } from '@/lib/notification-templates';
+
+// Animation variants
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5, ease: 'easeOut' }
+  },
+  hover: { 
+    y: -8,
+    transition: { duration: 0.3, ease: 'easeOut' }
+  }
+};
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
 
 export default function DashboardPage() {
   const { t } = useLanguage();
@@ -155,10 +180,10 @@ export default function DashboardPage() {
 
           {/* Notifications */}
           <div>
-            <Card>
+            <Card className="border-0 bg-gradient-to-br from-white to-blue-50/20 shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>{t('dashboard.notifications.title')}</CardTitle>
-                <Button variant="outline" size="sm">
+                <CardTitle className="bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{t('dashboard.notifications.title')}</CardTitle>
+                <Button variant="outline" size="sm" className="border-blue-300 hover:bg-blue-50">
                   <Bell className="h-4 w-4" />
                 </Button>
               </CardHeader>
@@ -167,7 +192,7 @@ export default function DashboardPage() {
                   {dashboardData.notifications.slice(0, 5).map((notification) => {
                     const { templateKey, params } = parseNotification(notification);
                     return (
-                      <div key={notification.id} className={`p-3 rounded-lg border ${!notification.read ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                      <div key={notification.id} className={`p-3 rounded-lg border ${!notification.read ? 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 shadow-sm' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200'}`}>
                         <h5 className="font-medium text-sm text-gray-900">{t(templateKey + '.title', params || {})}</h5>
                         <p className="text-xs text-gray-600 mt-1">{t(templateKey, params || {})}</p>
                         <p className="text-xs text-gray-500 mt-2">{formatDate(notification.createdAt.toString())}</p>
@@ -181,10 +206,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Recommended Scholarships */}
-        <Card className="mt-8">
+        <Card className="mt-8 border-0 bg-gradient-to-br from-white to-cyan-50/20 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>{t('dashboard.recommended.title')}</CardTitle>
-            <Button variant="outline" size="sm" asChild>
+            <CardTitle className="bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{t('dashboard.recommended.title')}</CardTitle>
+            <Button variant="outline" size="sm" className="border-blue-300 hover:bg-blue-50" asChild>
               <Link href="/applicant/scholarships">
                 {t('dashboard.recommended.viewAll')}
                 <ArrowRight className="h-4 w-4 ml-2" />
@@ -192,51 +217,75 @@ export default function DashboardPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-equal-height">
-              {dashboardData.recommendedScholarships.map((scholarship) => (
-                <ScholarshipCard
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-equal-height"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              {dashboardData.recommendedScholarships.map((scholarship, index) => (
+                <motion.div
                   key={scholarship.id}
-                  scholarship={scholarship}
-                  showMatchScore={true}
-                  className="w-full"
-                />
+                  variants={cardVariants}
+                  whileHover="hover"
+                  custom={index}
+                >
+                  <ScholarshipCard
+                    scholarship={scholarship}
+                    showMatchScore={true}
+                    className="w-full h-full"
+                  />
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </CardContent>
         </Card>
 
         {/* Quick Actions */}
-        <Card className="mt-8">
+        <Card className="mt-8 border-0 bg-gradient-to-br from-white to-blue-50/20 shadow-lg">
           <CardHeader>
-            <CardTitle>{t('dashboard.quickActions')}</CardTitle>
+            <CardTitle className="bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{t('dashboard.quickActions')}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-20 flex-col space-y-2" asChild>
+            <motion.div 
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.div variants={cardVariants} whileHover="hover">
+                <Button variant="outline" className="h-20 flex-col space-y-2 border-blue-200 w-full hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:border-blue-400 hover:shadow-md transition-all group" asChild>
                 <Link href="/applicant/profile">
-                  <User className="h-6 w-6" />
-                  <span>{t('dashboard.quickAction.updateProfile')}</span>
+                  <User className="h-6 w-6 text-blue-600 group-hover:text-blue-700" />
+                  <span className="text-gray-700 group-hover:text-blue-900 font-medium">{t('dashboard.quickAction.updateProfile')}</span>
                 </Link>
               </Button>
-              <Button variant="outline" className="h-20 flex-col space-y-2" asChild>
+              </motion.div>
+              <motion.div variants={cardVariants} whileHover="hover">
+                <Button variant="outline" className="h-20 flex-col space-y-2 border-blue-200 w-full hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:border-blue-400 hover:shadow-md transition-all group" asChild>
                 <Link href="/applicant/scholarships">
-                  <Search className="h-6 w-6" />
-                  <span>{t('dashboard.quickAction.browseScholarships')}</span>
+                  <Search className="h-6 w-6 text-blue-600 group-hover:text-blue-700" />
+                  <span className="text-gray-700 group-hover:text-blue-900 font-medium">{t('dashboard.quickAction.browseScholarships')}</span>
                 </Link>
               </Button>
-              <Button variant="outline" className="h-20 flex-col space-y-2" asChild>
+              </motion.div>
+              <motion.div variants={cardVariants} whileHover="hover">
+                <Button variant="outline" className="h-20 flex-col space-y-2 border-blue-200 w-full hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:border-blue-400 hover:shadow-md transition-all group" asChild>
                 <Link href="/applicant/applications">
-                  <FileText className="h-6 w-6" />
-                  <span>{t('dashboard.quickAction.myApplications')}</span>
+                  <FileText className="h-6 w-6 text-blue-600 group-hover:text-blue-700" />
+                  <span className="text-gray-700 group-hover:text-blue-900 font-medium">{t('dashboard.quickAction.myApplications')}</span>
                 </Link>
               </Button>
-              <Button variant="outline" className="h-20 flex-col space-y-2" asChild>
+              </motion.div>
+              <motion.div variants={cardVariants} whileHover="hover">
+                <Button variant="outline" className="h-20 flex-col space-y-2 border-blue-200 w-full hover:bg-gradient-to-br hover:from-blue-50 hover:to-cyan-50 hover:border-blue-400 hover:shadow-md transition-all group" asChild>
                 <Link href="/applicant/settings">
-                  <Target className="h-6 w-6" />
-                  <span>{t('dashboard.quickAction.settings')}</span>
+                  <Target className="h-6 w-6 text-blue-600 group-hover:text-blue-700" />
+                  <span className="text-gray-700 group-hover:text-blue-900 font-medium">{t('dashboard.quickAction.settings')}</span>
                 </Link>
               </Button>
-            </div>
+              </motion.div>
+            </motion.div>
           </CardContent>
         </Card>
       </div>

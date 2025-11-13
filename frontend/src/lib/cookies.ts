@@ -7,11 +7,8 @@ export function setCookie(name: string, value: string, days: number = 7) {
     
     const cookieString = `${name}=${encodeURIComponent(value)}; expires=${expiresString}; path=/; SameSite=Lax`;
     document.cookie = cookieString;
-    
-    console.log('Setting cookie:', cookieString);
-    console.log('Current cookies after set:', document.cookie);
   } catch (error) {
-    console.error('Error setting cookie:', error);
+    // Silent fail for cookie operations
   }
 }
 

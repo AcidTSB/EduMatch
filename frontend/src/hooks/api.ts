@@ -23,7 +23,6 @@ export function useApplications() {
       }
     } catch (err) {
       setError('Failed to fetch applications');
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -59,7 +58,7 @@ export function useApplications() {
   }, [fetchApplications]);
 
   const withdrawApplication = useCallback(async (id: string) => {
-    // TODO: Implement withdraw functionality
+    // Withdraw functionality to be implemented when backend is ready
     return true;
   }, []);
 
@@ -73,7 +72,6 @@ export function useApplications() {
       const response = await mockApi.applications.checkApplicationStatus(scholarshipId, userId);
       return response.data?.application || null;
     } catch (err) {
-      console.error('Error checking application status:', err);
       return null;
     }
   }, []);
@@ -150,7 +148,6 @@ export function useSavedScholarships() {
       }
       return false;
     } catch (err) {
-      console.error(err);
       return false;
     }
   }, [fetchSavedScholarships]);

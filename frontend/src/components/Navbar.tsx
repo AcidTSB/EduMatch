@@ -170,8 +170,8 @@ export function Navbar() {
           </div>
 
           {/* CENTER: Navigation Links - Centered in the middle */}
-          <div className="hidden lg:flex absolute left-1/2 transform -translate-x-1/2">
-            <div className="flex items-center space-x-1">
+          <div className="hidden xl:flex absolute left-1/2 transform -translate-x-1/2">
+            <div className="flex items-center space-x-0.5">
               {/* For authenticated users - show fewer items, prioritize key actions */}
               {isAuthenticated ? (
                 <>
@@ -179,7 +179,7 @@ export function Navbar() {
                   <Link
                     href="/"
                     className={cn(
-                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                       isActive('/')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -194,7 +194,7 @@ export function Navbar() {
                       <Link
                         href="/applicant/dashboard"
                         className={cn(
-                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                           isActive('/applicant/dashboard')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -205,7 +205,7 @@ export function Navbar() {
                       <Link
                         href="/applicant/scholarships"
                         className={cn(
-                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                           isActive('/applicant/scholarships')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -216,7 +216,7 @@ export function Navbar() {
                       <Link
                         href="/applicant/applications"
                         className={cn(
-                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                           isActive('/applicant/applications')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -232,7 +232,7 @@ export function Navbar() {
                       <Link
                         href="/provider/dashboard"
                         className={cn(
-                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                           isActive('/provider/dashboard')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -243,7 +243,7 @@ export function Navbar() {
                       <Link
                         href="/provider/scholarships"
                         className={cn(
-                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                           isActive('/provider/scholarships')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -254,7 +254,7 @@ export function Navbar() {
                       <Link
                         href="/provider/applications"
                         className={cn(
-                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                           isActive('/provider/applications')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -265,7 +265,7 @@ export function Navbar() {
                       <Link
                         href="/provider/analytics"
                         className={cn(
-                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                           isActive('/provider/analytics')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -281,7 +281,7 @@ export function Navbar() {
                       <Link
                         href="/admin"
                         className={cn(
-                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                           pathname === '/admin'
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -292,7 +292,7 @@ export function Navbar() {
                       <Link
                         href="/admin/users"
                         className={cn(
-                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                           isActive('/admin/users')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -303,7 +303,7 @@ export function Navbar() {
                       <Link
                         href="/admin/scholarships"
                         className={cn(
-                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                           isActive('/admin/scholarships')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -314,7 +314,7 @@ export function Navbar() {
                       <Link
                         href="/admin/applications"
                         className={cn(
-                          "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                          "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                           isActive('/admin/applications')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -328,7 +328,7 @@ export function Navbar() {
                   <Link
                     href="/messages"
                     className={cn(
-                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                       isActive('/messages')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -343,7 +343,7 @@ export function Navbar() {
                   <Link
                     href="/"
                     className={cn(
-                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                       isActive('/')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -354,7 +354,7 @@ export function Navbar() {
                   <Link
                     href="/about"
                     className={cn(
-                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                       isActive('/about')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -365,7 +365,7 @@ export function Navbar() {
                   <Link
                     href="/applicant/scholarships"
                     className={cn(
-                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                       isActive('/applicant/scholarships')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -376,7 +376,7 @@ export function Navbar() {
                   <Link
                     href="/pricing"
                     className={cn(
-                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                       isActive('/pricing')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -387,7 +387,7 @@ export function Navbar() {
                   <Link
                     href="/contact"
                     className={cn(
-                      "px-4 py-2.5 rounded-md text-base font-medium transition-colors",
+                      "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
                       isActive('/contact')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
@@ -401,7 +401,7 @@ export function Navbar() {
           </div>
 
           {/* RIGHT: User Actions - Always at the far right */}
-          <div className="hidden lg:flex items-center space-x-3 flex-shrink-0">
+          <div className="hidden xl:flex items-center space-x-2 flex-shrink-0">
             {/* Language Selector */}
             <LanguageSelector />
             
@@ -414,23 +414,33 @@ export function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center space-x-2 px-2 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                   >
-                    <Avatar className="h-8 w-8">
+                    <Avatar className="h-8 w-8 flex-shrink-0">
                       <AvatarImage src={user?.profile?.avatar || ''} alt={user?.name} />
                       <AvatarFallback className="bg-blue-600 text-white text-xs">
                         {getInitials(user?.name || '')}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm font-medium text-gray-900">{user?.name}</span>
+                    <div className="flex items-center space-x-1.5 2xl:flex hidden">
+                      <span className="text-sm font-medium text-gray-900 max-w-[120px] truncate">{user?.name}</span>
                       <span className={cn(
-                        "px-2 py-0.5 rounded-full text-xs font-medium border",
+                        "px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap",
                         getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).color
                       )}>
                         {getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).label}
                       </span>
-                      <ChevronDown className="h-4 w-4 text-gray-500" />
+                      <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                    </div>
+                    {/* Show only badge and chevron from xl to 2xl */}
+                    <div className="flex items-center space-x-1.5 2xl:hidden">
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap",
+                        getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).color
+                      )}>
+                        {getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).label}
+                      </span>
+                      <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     </div>
                   </button>
 
@@ -498,8 +508,9 @@ export function Navbar() {
           </div>
 
           {/* Mobile menu button */}
-          <div className="lg:hidden flex items-center space-x-2">
+          <div className="xl:hidden flex items-center space-x-2">
             <LanguageSelector />
+            {isAuthenticated && <NotificationDropdown />}
             <Button
               variant="ghost"
               size="icon"
@@ -516,7 +527,7 @@ export function Navbar() {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200">
+          <div className="xl:hidden border-t border-gray-200">
             <div className="px-2 pt-2 pb-3 space-y-1">
               {/* Common navigation */}
               {commonNavigation.map((item) => (

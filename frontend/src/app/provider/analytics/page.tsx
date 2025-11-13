@@ -173,12 +173,12 @@ export default function ProviderAnalyticsPage() {
     changeType?: 'positive' | 'negative' | 'neutral';
     description?: string;
   }) => (
-    <Card>
+    <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-bold">{value}</p>
+            <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{value}</p>
             {description && (
               <p className="text-xs text-muted-foreground mt-1">{description}</p>
             )}
@@ -192,12 +192,12 @@ export default function ProviderAnalyticsPage() {
             )}
           </div>
           <div className={`p-3 rounded-lg ${
-            changeType === 'positive' ? 'bg-green-100' : 
-            changeType === 'negative' ? 'bg-red-100' : 'bg-blue-100'
+            changeType === 'positive' ? 'bg-gradient-to-br from-green-100 to-emerald-200' : 
+            changeType === 'negative' ? 'bg-gradient-to-br from-red-100 to-red-200' : 'bg-gradient-to-br from-blue-100 to-blue-200'
           }`}>
             <Icon className={`h-6 w-6 ${
-              changeType === 'positive' ? 'text-green-600' : 
-              changeType === 'negative' ? 'text-red-600' : 'text-blue-600'
+              changeType === 'positive' ? 'text-green-700' : 
+              changeType === 'negative' ? 'text-red-700' : 'text-blue-700'
             }`} />
           </div>
         </div>

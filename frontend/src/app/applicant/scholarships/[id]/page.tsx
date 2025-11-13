@@ -277,24 +277,24 @@ export default function ScholarshipDetailPage() {
 
                 {/* Timeline */}
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                  <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                     <Clock className="h-4 w-4 mr-2" />
                     {t('scholarshipDetail.timeline')}
                   </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t('scholarshipDetail.applicationDeadline')}:</span>
-                      <span className={cn("font-medium", isDeadlinePassed ? "text-red-600" : "text-gray-900")}>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-[auto_1fr] gap-x-3 items-baseline">
+                      <span className="text-sm text-gray-600 whitespace-nowrap">{t('scholarshipDetail.applicationDeadline')}:</span>
+                      <span className={cn("text-sm font-medium", isDeadlinePassed ? "text-red-600" : "text-gray-900")}>
                         {formatDate(scholarship.applicationDeadline)}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t('scholarshipDetail.startDate')}:</span>
-                      <span className="font-medium">{scholarship.startDate ? formatDate(scholarship.startDate) : t('scholarshipDetail.tbd')}</span>
+                    <div className="grid grid-cols-[auto_1fr] gap-x-3 items-baseline">
+                      <span className="text-sm text-gray-600 whitespace-nowrap">{t('scholarshipDetail.startDate')}:</span>
+                      <span className="text-sm font-medium text-gray-900">{scholarship.startDate ? formatDate(scholarship.startDate) : t('scholarshipDetail.tbd')}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">{t('scholarshipDetail.endDate')}:</span>
-                      <span className="font-medium">{scholarship.endDate ? formatDate(scholarship.endDate) : t('scholarshipDetail.tbd')}</span>
+                    <div className="grid grid-cols-[auto_1fr] gap-x-3 items-baseline">
+                      <span className="text-sm text-gray-600 whitespace-nowrap">{t('scholarshipDetail.endDate')}:</span>
+                      <span className="text-sm font-medium text-gray-900">{scholarship.endDate ? formatDate(scholarship.endDate) : t('scholarshipDetail.tbd')}</span>
                     </div>
                   </div>
                 </div>
@@ -303,14 +303,14 @@ export default function ScholarshipDetailPage() {
 
                 {/* Requirements */}
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                  <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                     <CheckCircle className="h-4 w-4 mr-2" />
                     {t('scholarshipDetail.requirements')}
                   </h3>
-                  <div className="space-y-3">
-                    <div>
-                      <span className="text-sm text-gray-600">{t('scholarshipDetail.minGpa')}:</span>
-                      <p className="font-medium">{scholarship.minGpa}/4.0</p>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-[auto_1fr] gap-x-3 items-baseline">
+                      <span className="text-sm text-gray-600 whitespace-nowrap">{t('scholarshipDetail.minGpa')}:</span>
+                      <p className="text-sm font-medium text-gray-900">{scholarship.minGpa}/4.0</p>
                     </div>
                     
                     {scholarship.requiredSkills && scholarship.requiredSkills.length > 0 && (
@@ -345,28 +345,28 @@ export default function ScholarshipDetailPage() {
 
                 {/* Contact Info */}
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center">
+                  <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                     <Mail className="h-4 w-4 mr-2" />
                     {t('scholarshipDetail.contactInfo')}
                   </h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">{t('scholarshipDetail.email')}:</span>
-                      <a href={`mailto:${scholarship.contactEmail}`} className="text-blue-600 hover:underline text-sm">
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-[auto_1fr] gap-x-3 items-baseline">
+                      <span className="text-sm text-gray-600 whitespace-nowrap">Email:</span>
+                      <a href={`mailto:${scholarship.contactEmail}`} className="text-sm text-blue-600 hover:underline break-all">
                         {scholarship.contactEmail}
                       </a>
                     </div>
                     {scholarship.website && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">{t('scholarshipDetail.website')}:</span>
+                      <div className="grid grid-cols-[auto_1fr] gap-x-3 items-baseline">
+                        <span className="text-sm text-gray-600 whitespace-nowrap">Website:</span>
                         <a 
                           href={scholarship.website} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline text-sm flex items-center"
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
                         >
                           {t('scholarshipDetail.visitWebsite')}
-                          <ExternalLink className="h-3 w-3 ml-1" />
+                          <ExternalLink className="h-3 w-3" />
                         </a>
                       </div>
                     )}

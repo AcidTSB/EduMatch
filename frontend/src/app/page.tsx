@@ -40,23 +40,29 @@ export default function HomePage() {
   
   return (
     <div className="min-h-screen">
-      {/* Hero Section */}
-      <section className="relative bg-minimal-hero pt-20 pb-16 min-h-screen flex items-center">
-        {/* Subtle Background Elements */}
+      
+      {/* 1. Hero Section (Sáng) */}
+      <section className="relative bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 pt-20 pb-16 min-h-screen flex items-center overflow-hidden">
+        {/* Animated Background Elements */}
         <div className="absolute inset-0">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-blue-50/60 rounded-full animate-float"></div>
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-50/40 rounded-full animate-float" style={{animationDelay: '2s'}}></div>
+          <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-20 right-10 w-96 h-96 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-3xl animate-float" style={{animationDelay: '2s'}}></div>
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-gradient-to-br from-blue-300/10 to-cyan-300/10 rounded-full blur-3xl animate-float" style={{animationDelay: '4s'}}></div>
         </div>
         
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-4xl mx-auto">
-            <Badge className="mb-6 bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100">
+            <Badge className="mb-6 bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-0 hover:from-blue-700 hover:to-cyan-700 shadow-lg">
               {t('home.hero.badge')}
             </Badge>
             
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 text-balance leading-tight text-gray-900">
-              {t('home.hero.title')}
-              <span className="block text-minimal-primary">{t('home.hero.subtitle')}</span>
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 text-balance leading-tight">
+              <span className="bg-gradient-to-r from-gray-900 via-blue-800 to-cyan-800 bg-clip-text text-transparent">
+                {t('home.hero.title')}
+              </span>
+              <span className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-700 bg-clip-text text-transparent animate-gradient">
+                {t('home.hero.subtitle')}
+              </span>
             </h1>
             
             <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto text-balance leading-relaxed">
@@ -64,14 +70,14 @@ export default function HomePage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Button asChild size="lg" className="bg-blue-600 text-white hover:bg-blue-700 shadow-lg transform hover:scale-105 transition-all duration-300 text-lg">
+              <Button asChild size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-xl transform hover:scale-105 transition-all duration-300 text-lg border-0">
                 <Link href="/applicant/scholarships">
                   {t('home.hero.browseScholarships')}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
               
-              <Button asChild variant="outline" size="lg" className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 shadow-lg text-lg">
+              <Button asChild variant="outline" size="lg" className="border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-700 shadow-xl text-lg transition-all duration-300 bg-white/80 backdrop-blur-sm">
                 <Link href="/provider/scholarships">
                   {t('home.hero.postOpportunities')}
                 </Link>
@@ -97,11 +103,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 bg-minimal-section">
+      {/* 2. Features Section (Sáng) */}
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-semibold text-minimal-primary mb-4">
+            <h2 className="text-3xl font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-4">
               {t('home.features.title')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -110,36 +116,36 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="card-minimal card-hover">
+            <Card className="card-hover border-0 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-lg">
               <CardContent className="p-8 text-center">
-                <div className="bg-icon-minimal w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <div className="bg-gradient-to-br from-blue-500 to-cyan-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl transform hover:scale-110 transition-transform">
                   <Brain className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold mb-4">{t('home.features.ai.title')}</h3>
+                <h3 className="text-xl font-semibold mb-4 text-gray-900">{t('home.features.ai.title')}</h3>
                 <p className="text-muted-foreground">
                   {t('home.features.ai.desc')}
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="card-minimal card-hover">
+            <Card className="card-hover border-0 bg-gradient-to-br from-cyan-50 to-blue-50 shadow-lg">
               <CardContent className="p-8 text-center">
-                <div className="bg-icon-minimal-secondary w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <div className="bg-gradient-to-br from-cyan-500 to-blue-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl transform hover:scale-110 transition-transform">
                   <Zap className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold mb-4">{t('home.features.realtime.title')}</h3>
+                <h3 className="text-xl font-semibold mb-4 text-gray-900">{t('home.features.realtime.title')}</h3>
                 <p className="text-muted-foreground">
                   {t('home.features.realtime.desc')}
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="card-minimal card-hover">
+            <Card className="card-hover border-0 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-lg">
               <CardContent className="p-8 text-center">
-                <div className="bg-icon-minimal-accent w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <div className="bg-gradient-to-br from-blue-600 to-cyan-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl transform hover:scale-110 transition-transform">
                   <BarChart3 className="h-8 w-8 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold mb-4">{t('home.features.analytics.title')}</h3>
+                <h3 className="text-xl font-semibold mb-4 text-gray-900">{t('home.features.analytics.title')}</h3>
                 <p className="text-muted-foreground">
                   {t('home.features.analytics.desc')}
                 </p>
@@ -149,58 +155,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-minimal-light">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8 text-center">
-            <div className="stat-card">
-              <div className="flex justify-center mb-4">
-                <div className="stat-icon bg-icon-minimal">
-                  <Award className="h-8 w-8 text-white" />
-                </div>
-              </div>
-              <div className="stat-number text-minimal-primary">1000+</div>
-              <div className="text-muted-foreground">{t('home.stats.scholarships')}</div>
-            </div>
-            
-            <div className="stat-card">
-              <div className="flex justify-center mb-4">
-                <div className="stat-icon bg-icon-minimal">
-                  <Users className="h-8 w-8 text-white" />
-                </div>
-              </div>
-              <div className="stat-number text-minimal-primary">5000+</div>
-              <div className="text-muted-foreground">{t('home.stats.students')}</div>
-            </div>
-            
-            <div className="stat-card">
-              <div className="flex justify-center mb-4">
-                <div className="stat-icon bg-icon-minimal">
-                  <School className="h-8 w-8 text-white" />
-                </div>
-              </div>
-              <div className="stat-number text-minimal-primary">200+</div>
-              <div className="text-muted-foreground">{t('home.stats.universities')}</div>
-            </div>
-            
-            <div className="stat-card">
-              <div className="flex justify-center mb-4">
-                <div className="stat-icon bg-icon-minimal">
-                  <TrendingUp className="h-8 w-8 text-white" />
-                </div>
-              </div>
-              <div className="stat-number text-minimal-primary">95%</div>
-              <div className="text-muted-foreground">{t('home.stats.successRate')}</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-20 bg-minimal-section">
+      {/* 3. How It Works Section (Sáng) */}
+      <section className="py-20 bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-semibold text-minimal-primary mb-4">
+            <h2 className="text-3xl font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-4">
               {t('home.howItWorks.title')}
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -210,7 +169,7 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center group">
-              <div className="bg-icon-minimal w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-bold text-white shadow-lg">
+              <div className="bg-gradient-to-br from-blue-500 to-cyan-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-bold text-white shadow-xl group-hover:scale-110 transition-transform">
                 1
               </div>
               <h3 className="text-xl font-semibold mb-4 text-gray-800">{t('home.howItWorks.step1.title')}</h3>
@@ -220,7 +179,7 @@ export default function HomePage() {
             </div>
 
             <div className="text-center group">
-              <div className="bg-icon-minimal-secondary w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-bold text-white shadow-lg">
+              <div className="bg-gradient-to-br from-cyan-500 to-blue-500 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-bold text-white shadow-xl group-hover:scale-110 transition-transform">
                 2
               </div>
               <h3 className="text-xl font-semibold mb-4 text-gray-800">{t('home.howItWorks.step2.title')}</h3>
@@ -230,7 +189,7 @@ export default function HomePage() {
             </div>
 
             <div className="text-center group">
-              <div className="bg-icon-minimal-accent w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-bold text-white shadow-lg">
+              <div className="bg-gradient-to-br from-blue-600 to-cyan-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-xl font-bold text-white shadow-xl group-hover:scale-110 transition-transform">
                 3
               </div>
               <h3 className="text-xl font-semibold mb-4 text-gray-800">{t('home.howItWorks.step3.title')}</h3>
@@ -242,25 +201,86 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-minimal-accent">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-semibold text-minimal-primary mb-6">
+      {/* 4. Stats Section (Sáng) - ĐÃ THAY ĐỔI */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-4 gap-8 text-center">
+            
+            {/* Stat 1 */}
+            <div className="stat-card">
+              <div className="flex justify-center mb-4">
+                <div className="bg-gradient-to-br from-blue-500 to-cyan-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-xl transform hover:scale-110 transition-transform">
+                  <Award className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <div className="text-5xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">1000+</div>
+              <div className="text-muted-foreground">{t('home.stats.scholarships')}</div>
+            </div>
+            
+            {/* Stat 2 */}
+            <div className="stat-card">
+              <div className="flex justify-center mb-4">
+                <div className="bg-gradient-to-br from-cyan-500 to-blue-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-xl transform hover:scale-110 transition-transform">
+                  <Users className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <div className="text-5xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">5000+</div>
+              <div className="text-muted-foreground">{t('home.stats.students')}</div>
+            </div>
+            
+            {/* Stat 3 */}
+            <div className="stat-card">
+              <div className="flex justify-center mb-4">
+                <div className="bg-gradient-to-br from-blue-500 to-cyan-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-xl transform hover:scale-110 transition-transform">
+                  <School className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <div className="text-5xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">200+</div>
+              <div className="text-muted-foreground">{t('home.stats.universities')}</div>
+            </div>
+            
+            {/* Stat 4 */}
+            <div className="stat-card">
+              <div className="flex justify-center mb-4">
+                <div className="bg-gradient-to-br from-blue-600 to-cyan-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto shadow-xl transform hover:scale-110 transition-transform">
+                  <TrendingUp className="h-8 w-8 text-white" />
+                </div>
+              </div>
+              <div className="text-5xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">95%</div>
+              <div className="text-muted-foreground">{t('home.stats.successRate')}</div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* 5. CTA Section (Sáng) - ĐÃ THAY ĐỔI */}
+      <section className="py-20 bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 relative overflow-hidden">
+        {/* Background decorations (vẫn giữ để tạo độ sâu) */}
+        <div className="absolute inset-0">
+          <div className="absolute top-10 left-10 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-cyan-400/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-10 right-10 w-80 h-80 bg-gradient-to-br from-cyan-400/10 to-blue-400/10 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8 relative z-10">
+          <h2 className="text-3xl md:text-5xl font-semibold mb-6 bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
             {t('home.cta.title')}
           </h2>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             {t('home.cta.description')}
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-blue-600 text-white hover:bg-blue-700 shadow-lg transform hover:scale-105 transition-all duration-300">
-              <Link href="/signup">
+            {/* Nút CTA chính - Giống hệt nút chính ở Hero */}
+            <Button asChild size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-xl transform hover:scale-105 transition-all duration-300 text-lg border-0">
+              <Link href="/auth/register">
                 {t('home.cta.getStarted')}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             
-            <Button asChild size="lg" variant="outline" className="border-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 shadow-lg">
+            {/* Nút CTA phụ - Giống hệt nút phụ ở Hero */}
+            <Button asChild size="lg" variant="outline" className="border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-700 shadow-xl text-lg transition-all duration-300 bg-white/80 backdrop-blur-sm">
               <Link href="/about">
                 {t('home.cta.learnMore')}
               </Link>

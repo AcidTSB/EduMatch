@@ -6,6 +6,7 @@ export function Toaster() {
   return (
     <Sonner
       position="top-right"
+      offset="80px"
       toastOptions={{
         classNames: {
           toast: 'bg-white border-gray-200',

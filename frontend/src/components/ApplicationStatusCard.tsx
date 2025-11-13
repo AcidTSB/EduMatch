@@ -33,42 +33,42 @@ export function ApplicationStatusCard({
       case 'pending':
         return {
           label: t('applicationStatus.pending'),
-          color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+          color: 'bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border-yellow-300',
           icon: <Clock className="h-4 w-4" />,
           description: t('applicationStatus.pendingDesc')
         };
       case 'interview':
         return {
           label: t('applicationStatus.interview'),
-          color: 'bg-blue-100 text-blue-800 border-blue-200',
+          color: 'bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border-blue-300',
           icon: <Users className="h-4 w-4" />,
           description: t('applicationStatus.interviewDesc')
         };
       case 'accepted':
         return {
           label: t('applicationStatus.accepted'),
-          color: 'bg-green-100 text-green-800 border-green-200',
+          color: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-300',
           icon: <CheckCircle className="h-4 w-4" />,
           description: t('applicationStatus.acceptedDesc')
         };
       case 'rejected':
         return {
           label: t('applicationStatus.rejected'),
-          color: 'bg-red-100 text-red-800 border-red-200',
+          color: 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border-red-300',
           icon: <XCircle className="h-4 w-4" />,
           description: t('applicationStatus.rejectedDesc')
         };
       case 'waitlist':
         return {
           label: t('applicationStatus.waitlist'),
-          color: 'bg-orange-100 text-orange-800 border-orange-200',
+          color: 'bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border-orange-300',
           icon: <AlertCircle className="h-4 w-4" />,
           description: t('applicationStatus.waitlistDesc')
         };
       default:
         return {
           label: t('applicationStatus.pending'),
-          color: 'bg-gray-100 text-gray-800 border-gray-200',
+          color: 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border-gray-300',
           icon: <Clock className="h-4 w-4" />,
           description: t('applicationStatus.processing')
         };
@@ -79,18 +79,18 @@ export function ApplicationStatusCard({
   const lastUpdated = status?.updatedAt || submittedAt;
 
   return (
-    <Card className="w-full hover:shadow-md transition-shadow duration-200">
+    <Card className="w-full border-0 bg-gradient-to-br from-white to-blue-50/20 shadow-lg hover:shadow-xl transition-all duration-300">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg leading-tight mb-1">
+            <CardTitle className="text-lg leading-tight mb-1 bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">
               {scholarshipTitle}
             </CardTitle>
             <p className="text-sm text-gray-600">{t('applicationStatus.by')} {providerName}</p>
           </div>
           <Badge 
             variant="outline" 
-            className={`ml-3 flex-shrink-0 ${statusConfig.color} animate-pulse`}
+            className={`ml-3 flex-shrink-0 ${statusConfig.color} shadow-sm`}
           >
             <span className="flex items-center gap-1">
               {statusConfig.icon}
@@ -130,7 +130,7 @@ export function ApplicationStatusCard({
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-500 animate-pulse" 
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-500 shadow-sm" 
                 style={{ width: '33%' }}
               ></div>
             </div>
@@ -151,7 +151,7 @@ export function ApplicationStatusCard({
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-500" 
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-500 shadow-sm" 
                 style={{ width: '66%' }}
               ></div>
             </div>
@@ -165,7 +165,7 @@ export function ApplicationStatusCard({
 
         {/* Success state */}
         {status?.status === 'accepted' && (
-          <div className="mt-4 p-3 bg-green-50 rounded-md border border-green-200">
+          <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-md border border-green-200">
             <div className="flex items-center gap-2 text-green-800">
               <CheckCircle className="h-4 w-4" />
               <span className="text-sm font-medium">{t('applicationStatus.successful')}</span>

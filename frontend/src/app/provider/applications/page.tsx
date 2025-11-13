@@ -420,61 +420,61 @@ export default function ProviderApplicationsPage() {
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-brand-blue-100 rounded-lg mr-4">
-                <User className="h-6 w-6 text-brand-blue-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg mr-4">
+                <User className="h-6 w-6 text-blue-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{stats.total}</p>
                 <p className="text-xs text-muted-foreground">{t('providerApplications.stats.total')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mr-4">
-                <AlertCircle className="h-6 w-6 text-blue-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-lg mr-4">
+                <AlertCircle className="h-6 w-6 text-cyan-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.submitted}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{stats.submitted}</p>
                 <p className="text-xs text-muted-foreground">{t('providerApplications.stats.new')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-yellow-100 rounded-lg mr-4">
-                <Clock className="h-6 w-6 text-yellow-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-yellow-100 to-amber-200 rounded-lg mr-4">
+                <Clock className="h-6 w-6 text-yellow-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.underReview}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{stats.underReview}</p>
                 <p className="text-xs text-muted-foreground">{t('providerApplications.stats.underReview')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mr-4">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-200 rounded-lg mr-4">
+                <CheckCircle className="h-6 w-6 text-green-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.accepted}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{stats.accepted}</p>
                 <p className="text-xs text-muted-foreground">{t('providerApplications.stats.accepted')}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
             <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-lg mr-4">
-                <XCircle className="h-6 w-6 text-red-600" />
+              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-red-100 to-red-200 rounded-lg mr-4">
+                <XCircle className="h-6 w-6 text-red-700" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats.rejected}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{stats.rejected}</p>
                 <p className="text-xs text-muted-foreground">{t('providerApplications.stats.rejected')}</p>
               </div>
             </CardContent>

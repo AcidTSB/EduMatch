@@ -27,7 +27,8 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
       value: applications.length,
       change: stats?.applicationsChange || '+2',
       icon: FileText,
-      color: 'bg-brand-blue-100 text-brand-blue-600',
+      color: 'bg-gradient-to-br from-blue-100 to-blue-200',
+      iconColor: 'text-blue-700',
       changeColor: 'text-green-600'
     },
     {
@@ -36,7 +37,8 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
       value: applications.filter(a => a.status === 'UNDER_REVIEW').length,
       change: stats?.reviewChange || '+1',
       icon: Clock,
-      color: 'bg-yellow-100 text-yellow-600',
+      color: 'bg-gradient-to-br from-yellow-100 to-amber-200',
+      iconColor: 'text-yellow-700',
       changeColor: 'text-green-600'
     },
     {
@@ -45,7 +47,8 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
       value: applications.filter(a => a.status === 'ACCEPTED').length,
       change: stats?.acceptedChange || '0',
       icon: CheckCircle,
-      color: 'bg-green-100 text-green-600',
+      color: 'bg-gradient-to-br from-green-100 to-emerald-200',
+      iconColor: 'text-green-700',
       changeColor: 'text-green-600'
     },
     {
@@ -54,7 +57,8 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
       value: savedScholarships.length,
       change: stats?.savedChange || '+3',
       icon: Heart,
-      color: 'bg-purple-100 text-purple-600',
+      color: 'bg-gradient-to-br from-purple-100 to-purple-200',
+      iconColor: 'text-purple-700',
       changeColor: 'text-green-600'
     }
   ];
@@ -66,7 +70,8 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
       value: stats?.activeScholarships || 5,
       change: stats?.scholarshipsChange || '+1',
       icon: Award,
-      color: 'bg-brand-blue-100 text-brand-blue-600',
+      color: 'bg-gradient-to-br from-blue-100 to-blue-200',
+      iconColor: 'text-blue-700',
       changeColor: 'text-green-600'
     },
     {
@@ -75,7 +80,8 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
       value: stats?.totalApplications || 45,
       change: stats?.applicationsChange || '+7',
       icon: FileText,
-      color: 'bg-green-100 text-green-600',
+      color: 'bg-gradient-to-br from-green-100 to-emerald-200',
+      iconColor: 'text-green-700',
       changeColor: 'text-green-600'
     },
     {
@@ -84,7 +90,8 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
       value: stats?.pendingReview || 12,
       change: stats?.pendingChange || '+3',
       icon: Clock,
-      color: 'bg-yellow-100 text-yellow-600',
+      color: 'bg-gradient-to-br from-yellow-100 to-amber-200',
+      iconColor: 'text-yellow-700',
       changeColor: 'text-orange-600'
     },
     {
@@ -93,7 +100,8 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
       value: stats?.profileViews || 234,
       change: stats?.viewsChange || '+18',
       icon: TrendingUp,
-      color: 'bg-purple-100 text-purple-600',
+      color: 'bg-gradient-to-br from-purple-100 to-purple-200',
+      iconColor: 'text-purple-700',
       changeColor: 'text-green-600'
     }
   ];
@@ -105,7 +113,8 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
       value: stats?.totalUsers || 1234,
       change: stats?.usersChange || '+23',
       icon: Users,
-      color: 'bg-brand-blue-100 text-brand-blue-600',
+      color: 'bg-gradient-to-br from-blue-100 to-blue-200',
+      iconColor: 'text-blue-700',
       changeColor: 'text-green-600'
     },
     {
@@ -114,7 +123,8 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
       value: stats?.activeScholarships || 89,
       change: stats?.scholarshipsChange || '+5',
       icon: Award,
-      color: 'bg-green-100 text-green-600',
+      color: 'bg-gradient-to-br from-green-100 to-emerald-200',
+      iconColor: 'text-green-700',
       changeColor: 'text-green-600'
     },
     {
@@ -123,7 +133,8 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
       value: stats?.totalApplications || 567,
       change: stats?.applicationsChange || '+34',
       icon: FileText,
-      color: 'bg-purple-100 text-purple-600',
+      color: 'bg-gradient-to-br from-cyan-100 to-cyan-200',
+      iconColor: 'text-cyan-700',
       changeColor: 'text-green-600'
     },
     {
@@ -132,7 +143,8 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
       value: stats?.openIssues || 7,
       change: stats?.issuesChange || '-2',
       icon: AlertTriangle,
-      color: 'bg-orange-100 text-orange-600',
+      color: 'bg-gradient-to-br from-orange-100 to-orange-200',
+      iconColor: 'text-orange-700',
       changeColor: 'text-green-600'
     }
   ];
@@ -154,32 +166,16 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       {statsData.map((stat) => {
         const Icon = stat.icon;
-        const isPositiveChange = stat.change.startsWith('+');
-        const isNegativeChange = stat.change.startsWith('-');
         
         return (
-          <Card key={stat.id} className="relative overflow-hidden">
+          <Card key={stat.id} className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300 h-full relative overflow-hidden">
             <CardContent className="flex items-center p-6">
-              <div className={`flex items-center justify-center w-12 h-12 rounded-lg mr-4 ${stat.color}`}>
+              <div className={`flex items-center justify-center w-12 h-12 rounded-lg mr-4 shadow-sm ${stat.color}`}>
                 <Icon className="h-6 w-6" />
               </div>
               <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-2xl font-bold">{stat.value.toLocaleString()}</p>
-                  {stat.change !== '0' && (
-                    <div className={`flex items-center text-xs px-2 py-1 rounded-full ${
-                      isPositiveChange ? 'bg-green-100 text-green-700' :
-                      isNegativeChange ? 'bg-red-100 text-red-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      <TrendingUp className={`h-3 w-3 mr-1 ${
-                        isNegativeChange ? 'transform rotate-180' : ''
-                      }`} />
-                      {stat.change}
-                    </div>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">{stat.title}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{stat.value.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">{stat.title}</p>
               </div>
             </CardContent>
             
