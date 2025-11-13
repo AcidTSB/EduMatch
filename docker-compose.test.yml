@@ -94,7 +94,7 @@ services:
       - RABBITMQ_USER=guest
       - RABBITMQ_PASS=guest
       - JWT_SECRET=EduMatch_Super_Secret_Key_!@#_DoNotShare_!@#
-      - JWT_ALGORITHM=HS512
+      - JWT_ALGORITHM=HS256
     depends_on:
       matching-db:
         condition: service_healthy
