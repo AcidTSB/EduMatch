@@ -238,20 +238,6 @@ export default function ScholarshipsManagement() {
               <option value="Expired">{t('adminScholarships.statusExpired')}</option>
             </select>
 
-            {/* Type Filter */}
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">{t('adminScholarships.allTypes')}</option>
-              <option value="Research">{t('adminScholarships.typeResearch')}</option>
-              <option value="Full Scholarship">{t('adminScholarships.typeFull')}</option>
-              <option value="Merit-based">{t('adminScholarships.typeMerit')}</option>
-              <option value="Need-based">{t('adminScholarships.typeNeed')}</option>
-              <option value="Fellowship">{t('adminScholarships.typeFellowship')}</option>
-              <option value="Field-specific">{t('adminScholarships.typeFieldSpecific')}</option>
-            </select>
           </div>
         </CardContent>
       </Card>

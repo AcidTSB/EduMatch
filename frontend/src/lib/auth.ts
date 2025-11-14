@@ -140,9 +140,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           if (user.role === 'admin') {
             window.location.href = '/admin';
           } else if (user.role === 'provider') {
-            window.location.href = '/provider/dashboard';
+            window.location.href = '/employer/dashboard';
           } else {
-            window.location.href = '/applicant/dashboard';
+            window.location.href = '/user/dashboard';
           }
         }, 100);
       } else {

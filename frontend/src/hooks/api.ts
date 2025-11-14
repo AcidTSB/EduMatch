@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { mockApi } from '@/lib/mock-api';
+import { mockApi } from '@/lib/mock-data';
 
 // Real API hooks using mockApi
 

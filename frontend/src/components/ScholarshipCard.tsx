@@ -9,7 +9,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ApplyButton } from '@/components/ApplyButton';
-import { formatDate, getDaysUntilDeadline, truncateText, getMatchScoreColor } from '@/lib/utils';
+// Thêm formatCurrency vào import nếu chưa có
+import { formatDate, getDaysUntilDeadline, truncateText, getMatchScoreColor, formatCurrency } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useApplications } from '@/hooks/api';
 import { scholarshipCardVariants } from '@/lib/animations';
@@ -29,7 +30,8 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
   React.useEffect(() => {
     const checkStatus = async () => {
       try {
-        const status = await checkApplicationStatus(scholarship.id);
+        // Chuyển ID sang string nếu cần
+        const status = await checkApplicationStatus(scholarship.id.toString());
         setHasApplied(!!status);
       } catch (error) {
         // Failed to check application status
@@ -41,7 +43,8 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
     checkStatus();
   }, [scholarship.id, checkApplicationStatus]);
   
-  const daysUntilDeadline = getDaysUntilDeadline(scholarship.deadline || scholarship.applicationDeadline);
+  // SỬA: Dùng applicationDeadline thay vì deadline (đã bị xóa)
+  const daysUntilDeadline = getDaysUntilDeadline(scholarship.applicationDeadline);
   const isDeadlineSoon = daysUntilDeadline <= 7 && daysUntilDeadline >= 0;
   const isExpired = daysUntilDeadline < 0;
 
@@ -52,7 +55,8 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
     if (isDeadlineSoon) {
       return { text: t('scholarshipCard.daysLeft').replace('{days}', daysUntilDeadline.toString()), variant: 'warning' as const, color: 'text-warning-600' };
     }
-    return { text: formatDate(scholarship.deadline || scholarship.applicationDeadline), variant: 'outline' as const, color: 'text-muted-foreground' };
+    // SỬA: Dùng applicationDeadline
+    return { text: formatDate(scholarship.applicationDeadline), variant: 'outline' as const, color: 'text-muted-foreground' };
   };
 
   const deadlineStatus = getDeadlineStatus();
@@ -72,6 +76,7 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
           <CardTitle className="text-lg font-semibold line-clamp-2 text-balance bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">
             {scholarship.title}
           </CardTitle>
+          {/* Match Score (Giữ nguyên logic, trường này đã được thêm lại vào type) */}
           {showMatchScore && scholarship.matchScore && (
             <div className="flex flex-col items-center flex-shrink-0 min-w-[50px]">
               <div className={`text-lg font-bold ${getMatchScoreColor(scholarship.matchScore)}`}>
@@ -83,11 +88,13 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
         </div>
         
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="font-medium">{scholarship.providerName || scholarship.university}</span>
+          {/* SỬA: Dùng university hoặc organizationId (nếu university null) */}
+          <span className="font-medium">{scholarship.university || `Org #${scholarship.organizationId}`}</span>
           <span>•</span>
           <div className="flex items-center gap-1">
             <MapPin className="h-3 w-3" />
-            <span>{scholarship.country || scholarship.location}</span>
+            {/* SỬA: Dùng location */}
+            <span>{scholarship.location || "Remote"}</span>
           </div>
         </div>
       </CardHeader>
@@ -99,41 +106,41 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
         </p>
 
         <div className="flex flex-wrap gap-2 min-h-[32px]">
-          {scholarship.field && scholarship.field.slice(0, 3).map((field, index) => (
-            <Badge key={index} variant="secondary" className="text-xs">
-              {field}
-            </Badge>
-          ))}
-          {scholarship.field && scholarship.field.length > 3 && (
-            <Badge variant="outline" className="text-xs">
-              {t('scholarshipCard.more').replace('{count}', (scholarship.field.length - 3).toString())}
-            </Badge>
-          )}
-          {!scholarship.field && scholarship.tags && scholarship.tags.slice(0, 3).map((tag, index) => (
+          {/* SỬA: field đã bị xóa, chuyển sang dùng tags */}
+          {scholarship.tags && scholarship.tags.slice(0, 3).map((tag, index) => (
             <Badge key={index} variant="secondary" className="text-xs">
               {tag}
             </Badge>
           ))}
+          {scholarship.tags && scholarship.tags.length > 3 && (
+            <Badge variant="outline" className="text-xs">
+              {t('scholarshipCard.more').replace('{count}', (scholarship.tags.length - 3).toString())}
+            </Badge>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="flex items-center gap-2">
             <GraduationCap className="h-4 w-4 text-muted-foreground" />
-            <span>{scholarship.level || scholarship.type}</span>
+            {/* SỬA: Dùng level */}
+            <span>{scholarship.level}</span>
           </div>
           
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <span>{scholarship.studyMode || (scholarship.isRemote ? t('scholarshipCard.remote') : t('scholarshipCard.onsite'))}</span>
+            {/* SỬA: Dùng studyMode */}
+            <span>{scholarship.studyMode.replace('_', ' ')}</span>
           </div>
           
-          {(scholarship.stipend || scholarship.amount) && (
+          {/* SỬA: Dùng scholarshipAmount */}
+          {(scholarship.scholarshipAmount > 0) && (
             <div className="flex items-center gap-2 col-span-2">
               <div className="w-4 h-4 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
                 <DollarSign className="h-3 w-3 text-white" />
               </div>
               <span className="font-semibold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                {scholarship.stipend || (scholarship.amount ? `$${scholarship.amount.toLocaleString()}` : '')}
+                {/* SỬA: Format scholarshipAmount */}
+                {formatCurrency(scholarship.scholarshipAmount)}
               </span>
             </div>
           )}
@@ -158,7 +165,7 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
       {/* Footer */}
       <CardFooter className="pt-0 flex gap-2">
         <Button asChild variant="outline" className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700">
-          <Link href={`/applicant/scholarships/${scholarship.id}`}>
+          <Link href={`/user/scholarships/${scholarship.id}`}>
             {t('scholarshipCard.viewDetails')}
           </Link>
         </Button>
