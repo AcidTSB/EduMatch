@@ -205,31 +205,34 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8081
-      - NEXT_PUBLIC_AUTH_API=http://localhost:8081
-      - NEXT_PUBLIC_SCHOLARSHIP_API=http://localhost:8082
-      - NEXT_PUBLIC_MATCHING_API=http://localhost:8000
+      # All APIs now go through API Gateway at port 8080
+      - NEXT_PUBLIC_API_URL=http://localhost:8080/api
+      - NEXT_PUBLIC_AUTH_API=http://localhost:8080/api/auth
+      - NEXT_PUBLIC_SCHOLARSHIP_API=http://localhost:8080/api/scholarships
+      - NEXT_PUBLIC_MATCHING_API=http://localhost:8080/api/matching
       - NEXT_PUBLIC_SOCKET_URL=http://localhost:3003
+    networks:
+      - test-network
+    depends_on:
+      - api-gateway
+
+  # === API GATEWAY (Nginx) ===
+  api-gateway:
+    image: nginx:alpine
+    container_name: api-gateway-test
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx-gateway/nginx-test.conf:/etc/nginx/nginx.conf:ro
     networks:
       - test-network
     depends_on:
       - auth-service
       - scholarship-service
       - matching-service
+    restart: unless-stopped
 
   # ==================== COMMENTED OUT - NOT NEEDED FOR TESTING ====================
-  
-  # # === API GATEWAY (Nginx) ===
-  # api-gateway:
-  #   build: ./nginx-gateway
-  #   container_name: api-gateway
-  #   ports:
-  #     - "80:80"
-  #   networks:
-  #     - test-network
-  #   depends_on:
-  #     - auth-service
-  #     - matching-service
 
   # # === OTHER BACKEND SERVICES ===
   # # user-service:
