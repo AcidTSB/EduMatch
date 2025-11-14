@@ -70,6 +70,32 @@ public class Opportunity {
     @Column(name = "is_public") // MỚI
     private Boolean isPublic = false;
 
+<<<<<<< Updated upstream
+=======
+    @Column(name = "scholarship_amount", precision = 10, scale = 2)
+    private BigDecimal scholarshipAmount;
+
+    @Column(name = "study_mode", length = 50)
+    private String studyMode; // FULL_TIME, PART_TIME, REMOTE
+
+    @Column(name = "level", length = 50)
+    private String level; // HIGH_SCHOOL, UNDERGRADUATE, GRADUATE, MASTER, PHD, POSTDOCTORAL
+
+    @Column(name = "is_public")
+    private Boolean isPublic = true;
+
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
+    @Column(name = "end_date")
+    private LocalDate endDate;
+
+    @Column(name = "contact_email", length = 255)
+    private String contactEmail;
+
+    @Column(name = "website", length = 500)
+    private String website;
+>>>>>>> Stashed changes
 
     @Column(name = "moderation_status", length = 50)
     private String moderationStatus = "PENDING";

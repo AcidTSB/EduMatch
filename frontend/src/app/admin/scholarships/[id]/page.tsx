@@ -253,7 +253,7 @@ export default function AdminScholarshipDetailPage() {
                       ))}
                     </div>
                   </div>
-                  {scholarship.preferredSkills.length > 0 && (
+                  {scholarship.preferredSkills && scholarship.preferredSkills.length > 0 && (
                     <div>
                       <p className="text-sm font-medium text-gray-700 mb-2">Preferred Skills</p>
                       <div className="flex flex-wrap gap-2">
