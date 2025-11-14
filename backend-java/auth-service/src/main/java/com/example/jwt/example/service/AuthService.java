@@ -198,6 +198,18 @@ public class AuthService {
     }
 
     /**
+     * Get user by username
+     * 
+     * @param username Username to find
+     * @return User entity
+     * @throws ResourceNotFoundException if user not found
+     */
+    public User getUserByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
+    }
+
+    /**
      * Publish user.profile.updated event to RabbitMQ
      * Matching Service will consume this event to create applicant features
      * 

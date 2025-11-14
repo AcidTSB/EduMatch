@@ -40,7 +40,7 @@ export default function RealTimeDemoPage() {
   const [selectedChat, setSelectedChat] = useState<ChatUser | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   
-  const { socket } = useRealTime();
+  const { socket, onlineUsers, isConnected } = useRealTime();
   const { user, isAuthenticated, login } = useAuth();
   
   // Request notification permission
@@ -193,7 +193,7 @@ export default function RealTimeDemoPage() {
             <div className="flex items-center gap-4">
               {/* Connection Status */}
               <div className="flex items-center gap-2">
-                {socket.isConnected ? (
+                {isConnected ? (
                   <>
                     <Wifi className="h-4 w-4 text-green-600" />
                     <Badge variant="outline" className="text-green-700 border-green-300">
@@ -239,8 +239,8 @@ export default function RealTimeDemoPage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span>Socket Status:</span>
-                    <Badge variant={socket.isConnected ? "default" : "destructive"}>
-                      {socket.isConnected ? "Connected" : "Disconnected"}
+                    <Badge variant={isConnected ? "default" : "destructive"}>
+                      {isConnected ? "Connected" : "Disconnected"}
                     </Badge>
                   </div>
                   <div className="flex justify-between">
@@ -249,7 +249,7 @@ export default function RealTimeDemoPage() {
                   </div>
                   <div className="flex justify-between">
                     <span>Online Users:</span>
-                    <span>{socket.onlineUsers.length + 1}</span>
+                    <span>{(onlineUsers?.length || 0) + 1}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Server:</span>

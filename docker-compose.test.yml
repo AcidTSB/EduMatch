@@ -196,6 +196,27 @@ services:
       timeout: 5s
       retries: 5
 
+  # === FRONTEND (Next.js) ===
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-test
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8081
+      - NEXT_PUBLIC_AUTH_API=http://localhost:8081
+      - NEXT_PUBLIC_SCHOLARSHIP_API=http://localhost:8082
+      - NEXT_PUBLIC_MATCHING_API=http://localhost:8000
+      - NEXT_PUBLIC_SOCKET_URL=http://localhost:3003
+    networks:
+      - test-network
+    depends_on:
+      - auth-service
+      - scholarship-service
+      - matching-service
+
   # ==================== COMMENTED OUT - NOT NEEDED FOR TESTING ====================
   
   # # === API GATEWAY (Nginx) ===
@@ -209,15 +230,6 @@ services:
   #   depends_on:
   #     - auth-service
   #     - matching-service
-
-  # # === FRONTEND (React) ===
-  # frontend:
-  #   container_name: frontend
-  #   build: ./fE
-  #   ports:
-  #     - "3000:3000"
-  #   networks:
-  #     - test-network
 
   # # === OTHER BACKEND SERVICES ===
   # # user-service:

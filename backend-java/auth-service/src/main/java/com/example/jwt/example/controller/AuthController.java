@@ -12,6 +12,7 @@ import com.example.jwt.example.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -82,5 +83,38 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody SignUpRequest signUpRequest) {
         return registerUser(signUpRequest);
+    }
+
+    @GetMapping("/verify")
+    public ResponseEntity<?> verifyToken() {
+        // If the request reaches here, token is valid (passed through JWT filter)
+        return ResponseEntity.ok(new ApiResponse(true, "Token is valid"));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser() {
+        try {
+            org.springframework.security.core.Authentication authentication = 
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.status(401)
+                    .body(new ApiResponse(false, "Not authenticated"));
+            }
+            
+            String username = authentication.getName();
+            User user = authService.getUserByUsername(username);
+            
+            com.example.jwt.example.dto.UserSummary userSummary = com.example.jwt.example.dto.UserSummary.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .name(user.getFirstName() + " " + user.getLastName())
+                .build();
+            
+            return ResponseEntity.ok(userSummary);
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                .body(new ApiResponse(false, "Error fetching user: " + e.getMessage()));
+        }
     }
 }

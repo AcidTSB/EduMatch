@@ -6,8 +6,7 @@ import { useRealTime } from '@/providers/RealTimeProvider';
 import { cn } from '@/lib/utils';
 
 export function RealTimeIndicator() {
-  const { socket } = useRealTime();
-  const isConnected = socket?.isConnected || false;
+  const { isConnected } = useRealTime();
 
   return (
     <div className={cn(
