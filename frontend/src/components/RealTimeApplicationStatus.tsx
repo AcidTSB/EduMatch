@@ -86,7 +86,7 @@ export function RealTimeApplicationStatus() {
         <div className="flex items-center space-x-2">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Real-time updates"></div>
           <Button variant="outline" size="sm" asChild>
-            <Link href="/applicant/applications">
+            <Link href="/user/applications">
               {t('dashboard.recentApplications.viewAll')}
               <ArrowRight className="h-4 w-4 ml-2" />
             </Link>
@@ -124,7 +124,7 @@ export function RealTimeApplicationStatus() {
               <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>{t('dashboard.recentApplications.noApplications')}</p>
               <Button asChild className="mt-4">
-                <Link href="/applicant/scholarships">{t('dashboard.recentApplications.browse')}</Link>
+                <Link href="/user/scholarships">{t('dashboard.recentApplications.browse')}</Link>
               </Button>
             </div>
           )}

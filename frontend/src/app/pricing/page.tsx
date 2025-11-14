@@ -320,7 +320,7 @@ export default function PricingPage() {
               variant="outline" 
               className="bg-transparent border-white text-white hover:bg-white hover:text-brand-blue-600"
             >
-              <Link href="/applicant/scholarships">
+              <Link href="/user/scholarships">
                 {t('pricing.cta.browse')}
               </Link>
             </Button>

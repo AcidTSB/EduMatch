@@ -107,7 +107,7 @@ export function ApplyButton({
 
   const handleClick = () => {
     if (!showDialog) {
-      router.push(`/applicant/scholarships/${scholarship.id}`);
+      router.push(`/user/scholarships/${scholarship.id}`);
       return;
     }
   };

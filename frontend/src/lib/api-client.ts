@@ -1,6 +1,8 @@
+// src/lib/api-client.ts
+
 'use client';
 
-import { mockApi } from './mock-api';
+import { mockApi } from './mock-data';
 import { 
   AuthUser, 
   LoginCredentials, 
@@ -109,14 +111,14 @@ export const apiClient = {
     }
   },
 
-  // Profile
-  profiles: {
+  // Profile (ĐÃ SỬA LỖI)
+  profile: { // SỬA: profile (số ít)
     async getById(userId: string): Promise<ApiResponse<UserProfile>> {
-      return mockApi.profiles.getById(userId);
+      return mockApi.profile.getById(userId); // SỬA: profile (số ít)
     },
 
     async update(userId: string, profileData: Partial<UserProfile>): Promise<ApiResponse<UserProfile>> {
-      return mockApi.profiles.update(userId, profileData);
+      return mockApi.profile.update(userId, profileData); // SỬA: profile (số ít)
     }
   },
 
@@ -134,7 +136,8 @@ export const apiClient = {
 
 import { useState, useEffect, useCallback } from 'react';
 
-// Hook for managing saved scholarships
+// (Giữ nguyên toàn bộ phần code React Hooks)
+// ... (useSavedScholarships, useScholarships, useApplications, useNotifications)
 export function useSavedScholarships(userId: string = '1') {
   const [savedScholarships, setSavedScholarships] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -187,7 +190,6 @@ export function useSavedScholarships(userId: string = '1') {
   };
 }
 
-// Hook for managing scholarships
 export function useScholarships(filters?: any) {
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
   const [loading, setLoading] = useState(false);
@@ -222,7 +224,6 @@ export function useScholarships(filters?: any) {
   };
 }
 
-// Hook for managing applications
 export function useApplications(userId: string = '1') {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(false);
@@ -269,17 +270,27 @@ export function useApplications(userId: string = '1') {
       setLoading(false);
     }
   }, [loadApplications]);
+  
+  // Thêm lại checkApplicationStatus vào return
+  const checkApplicationStatus = useCallback(async (scholarshipId: string) => {
+    try {
+      const response = await apiClient.applications.checkApplicationStatus(scholarshipId, userId);
+      return response.data?.application || null;
+    } catch (err) {
+      return null;
+    }
+  }, [userId]);
 
   return {
     applications,
     loading,
     error,
     refetch: loadApplications,
-    submitApplication
+    submitApplication,
+    checkApplicationStatus // Thêm dòng này
   };
 }
 
-// Hook for managing notifications
 export function useNotifications(userId: string = '1') {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
@@ -341,4 +352,4 @@ export function useNotifications(userId: string = '1') {
 }
 
 // Export the mock data for components that need direct access
-export { mockScholarships, mockApplications, mockNotifications } from './mock-api';
+export { mockScholarships, mockApplications, mockNotifications } from './mock-data';

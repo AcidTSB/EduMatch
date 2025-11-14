@@ -30,8 +30,8 @@ export function GlobalChatWidget() {
   const isMessagesPage = pathname === '/messages' || pathname?.startsWith('/messages/');
                        
   // Only show on authenticated user areas (dashboard, profile, etc.)
-  const isUserArea = pathname?.startsWith('/applicant/') || 
-                     pathname?.startsWith('/provider/') || 
+  const isUserArea = pathname?.startsWith('/user/') || 
+                     pathname?.startsWith('/employer/') || 
                      pathname?.startsWith('/admin/');
   
   // Only show chat widget when user is logged in AND in user areas AND not on messages page

@@ -6,7 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -15,11 +21,13 @@ import { toast } from 'sonner';
 export default function RegisterPage() {
   const { t } = useLanguage();
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: '' as 'applicant' | 'provider' | '',
+    sex: '' as 'MALE' | 'FEMALE' | 'OTHER' | '',
+    // Đã xóa 'role' khỏi state
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -31,10 +39,16 @@ export default function RegisterPage() {
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = t('register.errors.nameRequired');
-    } else if (formData.name.trim().length < 2) {
-      newErrors.name = t('register.errors.nameLength');
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = t('register.errors.firstNameRequired');
+    } else if (formData.firstName.trim().length < 2) {
+      newErrors.firstName = t('register.errors.nameLength');
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = t('register.errors.lastNameRequired');
+    } else if (formData.lastName.trim().length < 2) {
+      newErrors.lastName = t('register.errors.nameLength');
     }
 
     if (!formData.email.trim()) {
@@ -57,9 +71,11 @@ export default function RegisterPage() {
       newErrors.confirmPassword = t('register.errors.passwordMismatch');
     }
 
-    if (!formData.role) {
-      newErrors.role = t('register.errors.roleRequired');
+    if (!formData.sex) {
+      newErrors.sex = t('register.errors.sexRequired');
     }
+
+    // Đã xóa validate cho 'role'
 
     if (!agreeToTerms) {
       newErrors.terms = t('register.errors.termsRequired');
@@ -71,44 +87,41 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast.error('Thông tin không hợp lệ', {
-        description: 'Vui lòng kiểm tra lại các trường thông tin'
+        description: 'Vui lòng kiểm tra lại các trường thông tin',
       });
       return;
     }
 
     setIsLoading(true);
     const toastId = toast.loading('Đang tạo tài khoản...');
-    
+
     try {
       // Mock API call - replace with actual registration
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Mock successful registration
       localStorage.setItem('auth_token', 'mock-jwt-token');
-      localStorage.setItem('user_role', formData.role);
-      
+      // Mặc định vai trò là 'user' vì trường chọn đã bị xóa
+      localStorage.setItem('user_role', 'user');
+
       toast.success('Đăng ký thành công!', {
         id: toastId,
-        description: `Chào mừng ${formData.name} đến với EduMatch!`
+        description: `Chào mừng ${formData.firstName} ${formData.lastName} đến với EduMatch!`,
       });
-      
-      // Redirect based on role
+
+      // Chuyển hướng đến dashboard của user
       setTimeout(() => {
-        if (formData.role === 'provider') {
-          router.push('/provider/dashboard');
-        } else {
-          router.push('/applicant/dashboard');
-        }
+        router.push('/user/dashboard');
       }, 1000);
     } catch (error) {
       console.error('Registration failed:', error);
       const errorMessage = t('register.errors.submitFailed');
       toast.error('Đăng ký thất bại', {
         id: toastId,
-        description: errorMessage
+        description: errorMessage,
       });
       setErrors({ submit: errorMessage });
     } finally {
@@ -117,16 +130,16 @@ export default function RegisterPage() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
-    
+
     // Clear error when user starts editing
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [field]: ''
+        [field]: '',
       }));
     }
   };
@@ -140,7 +153,9 @@ export default function RegisterPage() {
               <span className="text-white font-bold text-xl">E</span>
             </div>
           </div>
-          <CardTitle className="text-2xl text-center">{t('register.title')}</CardTitle>
+          <CardTitle className="text-2xl text-center">
+            {t('register.title')}
+          </CardTitle>
           <p className="text-muted-foreground text-center">
             {t('register.subtitle')}
           </p>
@@ -153,19 +168,49 @@ export default function RegisterPage() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input
-                  type="text"
-                  placeholder={t('register.fullName')}
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="pl-10"
-                  error={errors.name}
-                />
+            {/* --- THAY ĐỔI: Gộp First Name và Last Name --- */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    type="text"
+                    placeholder={t('register.firstName')}
+                    value={formData.firstName}
+                    onChange={(e) =>
+                      handleInputChange('firstName', e.target.value)
+                    }
+                    className="pl-10"
+                    error={errors.firstName}
+                  />
+                </div>
+                {/* THÊM: Hiển thị lỗi */}
+                {errors.firstName && (
+                  <p className="text-xs text-danger-500">{errors.firstName}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                  <Input
+                    type="text"
+                    placeholder={t('register.lastName')}
+                    value={formData.lastName}
+                    onChange={(e) =>
+                      handleInputChange('lastName', e.target.value)
+                    }
+                    className="pl-10"
+                    error={errors.lastName}
+                  />
+                </div>
+                {/* THÊM: Hiển thị lỗi */}
+                {errors.lastName && (
+                  <p className="text-xs text-danger-500">{errors.lastName}</p>
+                )}
               </div>
             </div>
+            {/* --- KẾT THÚC THAY ĐỔI --- */}
 
             <div className="space-y-2">
               <div className="relative">
@@ -179,25 +224,34 @@ export default function RegisterPage() {
                   error={errors.email}
                 />
               </div>
+              {/* THÊM: Hiển thị lỗi */}
+              {errors.email && (
+                <p className="text-xs text-danger-500">{errors.email}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Select
-                value={formData.role}
-                onValueChange={(value) => handleInputChange('role', value)}
+                value={formData.sex}
+                onValueChange={(value) => handleInputChange('sex', value)}
               >
-                <SelectTrigger className={errors.role ? 'border-danger-500' : ''}>
-                  <SelectValue placeholder={t('register.role')} />
+                <SelectTrigger className={errors.sex ? 'border-danger-500' : ''}>
+                  <SelectValue placeholder={t('register.sex')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="applicant">{t('register.roleApplicant')}</SelectItem>
-                  <SelectItem value="provider">{t('register.roleProvider')}</SelectItem>
+                  <SelectItem value="MALE">{t('register.sexMale')}</SelectItem>
+                  <SelectItem value="FEMALE">
+                    {t('register.sexFemale')}
+                  </SelectItem>
+                  <SelectItem value="OTHER">{t('register.sexOther')}</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.role && (
-                <p className="text-xs text-danger-500">{errors.role}</p>
+              {errors.sex && (
+                <p className="text-xs text-danger-500">{errors.sex}</p>
               )}
             </div>
+
+            {/* --- THAY ĐỔI: Đã xóa trường chọn Role --- */}
 
             <div className="space-y-2">
               <div className="relative">
@@ -206,7 +260,9 @@ export default function RegisterPage() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder={t('register.password')}
                   value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange('password', e.target.value)
+                  }
                   className="pl-10 pr-10"
                   error={errors.password}
                 />
@@ -224,6 +280,10 @@ export default function RegisterPage() {
                   )}
                 </Button>
               </div>
+              {/* THÊM: Hiển thị lỗi */}
+              {errors.password && (
+                <p className="text-xs text-danger-500">{errors.password}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -233,7 +293,9 @@ export default function RegisterPage() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder={t('register.confirmPassword')}
                   value={formData.confirmPassword}
-                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange('confirmPassword', e.target.value)
+                  }
                   className="pl-10 pr-10"
                   error={errors.confirmPassword}
                 />
@@ -251,6 +313,12 @@ export default function RegisterPage() {
                   )}
                 </Button>
               </div>
+              {/* THÊM: Hiển thị lỗi */}
+              {errors.confirmPassword && (
+                <p className="text-xs text-danger-500">
+                  {errors.confirmPassword}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -258,7 +326,9 @@ export default function RegisterPage() {
                 <Checkbox
                   id="terms"
                   checked={agreeToTerms}
-                  onCheckedChange={(checked) => setAgreeToTerms(checked === true)}
+                  onCheckedChange={(checked) =>
+                    setAgreeToTerms(checked === true)
+                  }
                   className="mt-1"
                 />
                 <label

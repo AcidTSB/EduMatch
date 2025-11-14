@@ -15,7 +15,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 const publicNavigation = [
   { name: 'Home', href: '/' },
   { name: 'About', href: '/about' },
-  { name: 'Scholarships', href: '/applicant/scholarships' },
+  { name: 'Scholarships', href: '/user/scholarships' },
   { name: 'Pricing', href: '/pricing' },
   { name: 'Contact', href: '/contact' },
 ];
@@ -39,17 +39,17 @@ const getPricingNavigation = (isAuthenticated: boolean, hasPaidSubscription: boo
 
 // Role-specific pages - streamlined
 const applicantSpecificNavigation = [
-  { name: 'Dashboard', href: '/applicant/dashboard' },
-  { name: 'Scholarships', href: '/applicant/scholarships' },
-  { name: 'Applications', href: '/applicant/applications' },
+  { name: 'Dashboard', href: '/user/dashboard' },
+  { name: 'Scholarships', href: '/user/scholarships' },
+  { name: 'Applications', href: '/user/applications' },
   { name: 'Messages', href: '/messages' },
 ];
 
 const providerSpecificNavigation = [
-  { name: 'Dashboard', href: '/provider/dashboard' },
-  { name: 'My Scholarships', href: '/provider/scholarships' },
-  { name: 'Applications', href: '/provider/applications' },
-  { name: 'Analytics', href: '/provider/analytics' },
+  { name: 'Dashboard', href: '/employer/dashboard' },
+  { name: 'My Scholarships', href: '/employer/scholarships' },
+  { name: 'Applications', href: '/employer/applications' },
+  { name: 'Analytics', href: '/employer/analytics' },
   { name: 'Messages', href: '/messages' },
 ];
 
@@ -192,10 +192,10 @@ export function Navbar() {
                   {user?.role === 'applicant' && (
                     <>
                       <Link
-                        href="/applicant/dashboard"
+                        href="/user/dashboard"
                         className={cn(
                           "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
-                          isActive('/applicant/dashboard')
+                          isActive('/user/dashboard')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
@@ -203,10 +203,10 @@ export function Navbar() {
                         {t('nav.dashboard')}
                       </Link>
                       <Link
-                        href="/applicant/scholarships"
+                        href="/user/scholarships"
                         className={cn(
                           "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
-                          isActive('/applicant/scholarships')
+                          isActive('/user/scholarships')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
@@ -214,10 +214,10 @@ export function Navbar() {
                         {t('nav.scholarships')}
                       </Link>
                       <Link
-                        href="/applicant/applications"
+                        href="/user/applications"
                         className={cn(
                           "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
-                          isActive('/applicant/applications')
+                          isActive('/user/applications')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
@@ -230,10 +230,10 @@ export function Navbar() {
                   {user?.role === 'provider' && (
                     <>
                       <Link
-                        href="/provider/dashboard"
+                        href="/employer/dashboard"
                         className={cn(
                           "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
-                          isActive('/provider/dashboard')
+                          isActive('/employer/dashboard')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
@@ -241,10 +241,10 @@ export function Navbar() {
                         {t('nav.dashboard')}
                       </Link>
                       <Link
-                        href="/provider/scholarships"
+                        href="/employer/scholarships"
                         className={cn(
                           "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
-                          isActive('/provider/scholarships')
+                          isActive('/employer/scholarships')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
@@ -252,10 +252,10 @@ export function Navbar() {
                         {t('nav.myScholarships')}
                       </Link>
                       <Link
-                        href="/provider/applications"
+                        href="/employer/applications"
                         className={cn(
                           "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
-                          isActive('/provider/applications')
+                          isActive('/employer/applications')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
@@ -263,10 +263,10 @@ export function Navbar() {
                         {t('nav.applications')}
                       </Link>
                       <Link
-                        href="/provider/analytics"
+                        href="/employer/analytics"
                         className={cn(
                           "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
-                          isActive('/provider/analytics')
+                          isActive('/employer/analytics')
                             ? "bg-blue-50 text-blue-700"
                             : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                         )}
@@ -363,10 +363,10 @@ export function Navbar() {
                     {t('nav.about')}
                   </Link>
                   <Link
-                    href="/applicant/scholarships"
+                    href="/user/scholarships"
                     className={cn(
                       "px-3 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap",
-                      isActive('/applicant/scholarships')
+                      isActive('/user/scholarships')
                         ? "bg-blue-50 text-blue-700"
                         : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
                     )}

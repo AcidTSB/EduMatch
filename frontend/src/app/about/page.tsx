@@ -276,7 +276,7 @@ export default function AboutPage() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-2 border-blue-300 text-blue-700 hover:bg-blue-50 hover:border-blue-400 shadow-lg">
-              <Link href="/applicant/scholarships">
+              <Link href="/user/scholarships">
                 {t('about.cta.browse')}
               </Link>
             </Button>

@@ -71,14 +71,14 @@ export default function HomePage() {
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Button asChild size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700 shadow-xl transform hover:scale-105 transition-all duration-300 text-lg border-0">
-                <Link href="/applicant/scholarships">
+                <Link href="/user/scholarships">
                   {t('home.hero.browseScholarships')}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
               
               <Button asChild variant="outline" size="lg" className="border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-700 shadow-xl text-lg transition-all duration-300 bg-white/80 backdrop-blur-sm">
-                <Link href="/provider/scholarships">
+                <Link href="/employer/scholarships">
                   {t('home.hero.postOpportunities')}
                 </Link>
               </Button>
