@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScholarshipType } from '@/types';
+import { ScholarshipLevel} from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface CreateScholarshipModalProps {
@@ -13,7 +13,7 @@ interface CreateScholarshipModalProps {
   onSubmit: (scholarshipData: {
     title: string;
     amount: number;
-    type: ScholarshipType;
+    type: ScholarshipLevel;
     deadline: string;
     university: string;
     location: string;
@@ -26,7 +26,7 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
   const [formData, setFormData] = useState({
     title: '',
     amount: '',
-    type: ScholarshipType.UNDERGRADUATE,
+    type: ScholarshipLevel.UNDERGRADUATE,
     deadline: '',
     university: '',
     location: '',
