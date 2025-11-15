@@ -11,6 +11,7 @@ import { ToastProvider } from '@/providers/ToastProvider'
 import { MessagingWidget } from '@/components/messaging/MessagingWidget'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as HotToaster } from 'react-hot-toast'
+import {QueryProvider} from '@/providers/QueryProvider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -29,46 +30,48 @@ export default function RootLayout({
       <body className={inter.className}>
         <LanguageProvider>
           <AppProvider>
-            <AuthProvider>
-              <RealTimeProvider>
-                <ToastProvider>
-                  <div className="min-h-screen bg-background flex flex-col">
-                    <Navbar />
-                    <main className="flex-1">
-                      {children}
-                    </main>
-                    <Footer />
-                    <MessagingWidget />
-                  </div>
-                  {/* Toast Notifications */}
-                  <Toaster />
-                  <HotToaster 
-                    position="top-right"
-                    toastOptions={{
-                      duration: 5000,
-                      style: {
-                        background: '#fff',
-                        color: '#333',
-                        border: '1px solid #e5e7eb',
-                        marginTop: '80px',
-                      },
-                      success: {
-                        iconTheme: {
-                          primary: '#10b981',
-                          secondary: '#fff',
+            <QueryProvider>
+              <AuthProvider>
+                <RealTimeProvider>
+                  <ToastProvider>
+                    <div className="min-h-screen bg-background flex flex-col">
+                      <Navbar />
+                      <main className="flex-1">
+                        {children}
+                      </main>
+                      <Footer />
+                      <MessagingWidget />
+                    </div>
+                    {/* Toast Notifications */}
+                    <Toaster />
+                    <HotToaster 
+                      position="top-right"
+                      toastOptions={{
+                        duration: 5000,
+                        style: {
+                          background: '#fff',
+                          color: '#333',
+                          border: '1px solid #e5e7eb',
+                          marginTop: '80px',
                         },
-                      },
-                      error: {
-                        iconTheme: {
-                          primary: '#ef4444',
-                          secondary: '#fff',
+                        success: {
+                          iconTheme: {
+                            primary: '#10b981',
+                            secondary: '#fff',
+                          },
                         },
-                      },
-                    }}
-                  />
-                </ToastProvider>
-              </RealTimeProvider>
-            </AuthProvider>
+                        error: {
+                          iconTheme: {
+                            primary: '#ef4444',
+                            secondary: '#fff',
+                          },
+                        },
+                      }}
+                    />
+                  </ToastProvider>
+                </RealTimeProvider>
+              </AuthProvider>
+            </QueryProvider>
           </AppProvider>
         </LanguageProvider>
       </body>

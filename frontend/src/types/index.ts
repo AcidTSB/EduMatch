@@ -6,8 +6,8 @@
  * Vai trò của người dùng trong hệ thống.
  */
 export enum UserRole {
-  STUDENT = 'STUDENT',
-  PROVIDER = 'PROVIDER',
+  USER = 'USER',
+  EMPLOYER = 'EMPLOYER',
   ADMIN = 'ADMIN',
 }
 
@@ -27,11 +27,13 @@ export enum ScholarshipStatus {
  * Cấp độ/Loại học bổng.
  * (Thay thế cho ScholarshipLevel)
  */
+// Sửa 'ScholarshipType' enum của bạn để bao gồm các bậc học này
 export enum ScholarshipType {
-  UNDERGRADUATE = 'UNDERGRADUATE', // Cử nhân
-  GRADUATE = 'GRADUATE',         // Cao học (Thạc sĩ, Tiến sĩ)
-  RESEARCH = 'RESEARCH',         // Nghiên cứu
-  OTHER = 'OTHER',               // Khác
+  UNDERGRADUATE = 'UNDERGRADUATE',
+  MASTER = 'MASTER',
+  PHD = 'PHD',
+  POSTDOC = 'POSTDOC',
+  RESEARCH = 'RESEARCH',
 }
 
 /**
@@ -64,6 +66,13 @@ export enum StudyMode {
   HYBRID = 'HYBRID',
 }
 
+export enum ModerationStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+}
+
+
 // =============================================================================
 // INTERFACES (Các cấu trúc dữ liệu)
 // =============================================================================
@@ -89,6 +98,8 @@ export interface AuthUser {
 export interface UserProfile {
   id: string;
   userId: string; // Khóa ngoại liên kết với AuthUser
+  email: string;
+  role: UserRole;
   firstName: string;
   lastName: string;
   avatar?: string;
@@ -136,7 +147,7 @@ export interface Scholarship {
   requiredSkills: string[];
   preferredSkills?: string[];
 
-  viewCount: number; // Đổi tên từ viewsCnt
+  viewCount: number; 
   createdAt: Date;
 
   // Các trường tùy chọn/cũ (vẫn giữ để linh hoạt)
@@ -147,13 +158,11 @@ export interface Scholarship {
   matchScore?: number;
   startDate?: string; // 'YYYY-MM-DD'
   endDate?: string; // 'YYYY-MM-DD'
-
-  // Các trường cũ đã được thay thế (để ở đây cho dễ đối chiếu)
-  // organizationId?: string; // (Đã đổi thành providerId)
-  // level?: any; // (Đã đổi thành type)
-  // moderationStatus?: any; // (Đã đổi thành status)
-  // viewsCnt?: number; // (Đã đổi thành viewCount)
-  // scholarshipAmount?: number; // (Đã đổi thành amount)
+  level: ScholarshipType | string; // (string nếu API trả về string)
+  studyMode: StudyMode | string; // (string nếu API trả về string)
+  moderationStatus: ModerationStatus | string; // (string nếu API trả về string)
+  scholarshipAmount?: number;
+  currency?: string;
 }
 
 /**
@@ -241,4 +250,75 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+// Dùng cho authApi.login
+export interface LoginForm {
+  email: string;
+  password: string;
+}
+
+// Dùng cho authApi.register
+export interface SignupForm {
+  email: string;
+  password: string;
+  fullName: string; // Thêm các trường khác nếu cần
+  role: 'STUDENT' | 'PROVIDER';
+}
+
+// Dùng cho usersApi.updateProfile
+export interface ProfileForm {
+  fullName?: string;
+  bio?: string;
+  education?: string;
+  // Thêm các trường khác trong UserProfile mà bạn cho phép cập nhật
+}
+
+// Dùng cho scholarshipsApi.createScholarship
+export interface ScholarshipForm {
+  title: string;
+  description: string;
+  amount: number;
+  deadline: string; // (hoặc Date)
+  educationLevel: string;
+  // Thêm các trường khác để tạo học bổng
+}
+
+// Dùng cho scholarshipsApi.getScholarships
+export interface ScholarshipFilters {
+  keyword?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  educationLevel?: string[];
+  deadlineBefore?: string;
+  // Thêm các trường filter khác
+}
+
+// Dùng cho messagesApi
+export interface Message {
+  id: string;
+  content: string;
+  senderId: string;
+  conversationId: string;
+  createdAt: Date;
+  attachments?: { url: string; type: string }[];
+}
+
+// Dùng cho messagesApi
+export interface Conversation {
+  id: string;
+  participants: UserProfile[]; // Giả sử bạn đã có UserProfile
+  lastMessage: Message | null;
+  unreadCount: number;
+  updatedAt: Date
 }

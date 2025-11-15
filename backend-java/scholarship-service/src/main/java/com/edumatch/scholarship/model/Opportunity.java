@@ -30,72 +30,47 @@ public class Opportunity {
     // --- Tham chiếu logic tới Auth-Service (Giữ nguyên) ---
     @Column(name = "creator_user_id", nullable = false)
     private Long creatorUserId;
+
     @Column(name = "organization_id", nullable = false)
     private Long organizationId;
-    // --- --------------------------------- ---
+    // ------------------------------------------------------
 
-    // --- TIMELINE (Đã sửa) ---
+    // --- TIMELINE ---
     @Column(name = "application_deadline")
     private LocalDate applicationDeadline;
-
-    @Column(name = "start_date") // MỚI
-    private LocalDate startDate;
-
-    @Column(name = "end_date") // MỚI
-    private LocalDate endDate;
-    // --- ----------------- ---
-
-    // --- TÀI CHÍNH & YÊU CẦU ---
-    @Column(name = "scholarship_amount", precision = 10, scale = 2) // MỚI: Tiền học bổng
-    private BigDecimal scholarshipAmount;
-
-    @Column(name = "min_gpa", precision = 3, scale = 2)
-    private BigDecimal minGpa;
-
-    // --- THÔNG TIN LIÊN HỆ (MỚI) ---
-    @Column(name = "contact_email", length = 255)
-    private String contactEmail;
-
-    @Column(name = "website", length = 255)
-    private String website;
-    // --- ------------------------- ---
-
-    // --- CẤU TRÚC MỚI (Đã thêm) ---
-    @Column(name = "study_mode", length = 50) // MỚI
-    private String studyMode;
-
-    @Column(name = "level", length = 50) // MỚI
-    private String level;
-
-    @Column(name = "is_public") // MỚI
-    private Boolean isPublic = false;
-
-<<<<<<< Updated upstream
-=======
-    @Column(name = "scholarship_amount", precision = 10, scale = 2)
-    private BigDecimal scholarshipAmount;
-
-    @Column(name = "study_mode", length = 50)
-    private String studyMode; // FULL_TIME, PART_TIME, REMOTE
-
-    @Column(name = "level", length = 50)
-    private String level; // HIGH_SCHOOL, UNDERGRADUATE, GRADUATE, MASTER, PHD, POSTDOCTORAL
-
-    @Column(name = "is_public")
-    private Boolean isPublic = true;
 
     @Column(name = "start_date")
     private LocalDate startDate;
 
     @Column(name = "end_date")
     private LocalDate endDate;
+    // ----------------
 
+    // --- TÀI CHÍNH & YÊU CẦU ---
+    @Column(name = "scholarship_amount", precision = 10, scale = 2)
+    private BigDecimal scholarshipAmount;
+
+    @Column(name = "min_gpa", precision = 3, scale = 2)
+    private BigDecimal minGpa;
+
+    // --- THÔNG TIN LIÊN HỆ ---
     @Column(name = "contact_email", length = 255)
     private String contactEmail;
 
     @Column(name = "website", length = 500)
     private String website;
->>>>>>> Stashed changes
+    // --------------------------
+
+    // --- CẤU TRÚC MỚI ---
+    @Column(name = "study_mode", length = 50)
+    private String studyMode;
+
+    @Column(name = "level", length = 50)
+    private String level;
+
+    @Column(name = "is_public")
+    private Boolean isPublic = false;
+    // ---------------------
 
     @Column(name = "moderation_status", length = 50)
     private String moderationStatus = "PENDING";
@@ -103,7 +78,7 @@ public class Opportunity {
     @Column(name = "views_cnt")
     private Integer viewsCnt = 0;
 
-    // ... (Mối quan hệ Nhiều-Nhiều giữ nguyên) ...
+    // --- Many-to-Many ---
     @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinTable(
             name = "opportunity_to_tags",
