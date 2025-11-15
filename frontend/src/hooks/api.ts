@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { mockApi } from '@/lib/mock-data';
 
-// Real API hooks using mockApi
+// TODO: Integrate with real backend API
+// For now, these hooks return empty data - NO MOCK DATA!
 
 export function useApplications() {
   const [applications, setApplications] = useState<any[]>([]);
@@ -12,15 +12,9 @@ export function useApplications() {
     setLoading(true);
     setError(null);
     try {
-      // Get current user from mockApi or localStorage
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const currentUserId = userId || userData?.id || '1';
-      
-      const response = await mockApi.applications.getByUser(currentUserId);
-      if (response.success) {
-        setApplications(response.data || []);
-      }
+      // TODO: Call real backend API here
+      console.log('TODO: Fetch applications from backend API');
+      setApplications([]);
     } catch (err) {
       setError('Failed to fetch applications');
     } finally {
@@ -32,48 +26,27 @@ export function useApplications() {
     setLoading(true);
     setError(null);
     try {
-      // Get current user ID
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const applicantId = userData?.id || '1';
-      
-      const response = await mockApi.applications.submit({
-        ...data,
-        applicantId
-      });
-      
-      if (response.success) {
-        // Refresh applications list
-        await fetchApplications(applicantId);
-        return response;
-      } else {
-        throw new Error(response.error || 'Failed to submit application');
-      }
+      // TODO: Call real backend API here
+      console.log('TODO: Submit application to backend API', data);
+      throw new Error('Backend API not yet integrated');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit application');
       throw err;
     } finally {
       setLoading(false);
     }
-  }, [fetchApplications]);
+  }, []);
 
   const withdrawApplication = useCallback(async (id: string) => {
-    // Withdraw functionality to be implemented when backend is ready
-    return true;
+    // TODO: Implement backend integration
+    console.log('TODO: Withdraw application via backend API', id);
+    return false;
   }, []);
 
   const checkApplicationStatus = useCallback(async (scholarshipId: string) => {
-    try {
-      // Get current user ID
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const userId = userData?.id || '1';
-      
-      const response = await mockApi.applications.checkApplicationStatus(scholarshipId, userId);
-      return response.data?.application || null;
-    } catch (err) {
-      return null;
-    }
+    // TODO: Call real backend API here
+    console.log('TODO: Check application status via backend API', scholarshipId);
+    return null;
   }, []);
 
   return {
@@ -118,15 +91,9 @@ export function useSavedScholarships() {
   const fetchSavedScholarships = useCallback(async () => {
     setLoading(true);
     try {
-      // Get current user ID
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const userId = userData?.id || '1';
-      
-      const response = await mockApi.savedScholarships.getByUser(userId);
-      if (response.success) {
-        setSavedScholarships(response.data || []);
-      }
+      // TODO: Call real backend API here
+      console.log('TODO: Fetch saved scholarships from backend API');
+      setSavedScholarships([]);
     } catch (err) {
       setError('Failed to fetch saved scholarships');
       console.error(err);
@@ -136,33 +103,26 @@ export function useSavedScholarships() {
   }, []);
 
   const saveScholarship = useCallback(async (scholarshipId: string) => {
-    try {
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const userId = userData?.id || '1';
-      
-      const response = await mockApi.savedScholarships.toggle(userId, scholarshipId);
-      if (response.success) {
-        await fetchSavedScholarships();
-        return true;
-      }
-      return false;
-    } catch (err) {
-      return false;
-    }
-  }, [fetchSavedScholarships]);
+    // TODO: Call real backend API here
+    console.log('TODO: Save scholarship via backend API', scholarshipId);
+    return false;
+  }, []);
 
   const unsaveScholarship = useCallback(async (scholarshipId: string) => {
-    return await saveScholarship(scholarshipId); // Toggle works for both
-  }, [saveScholarship]);
+    // TODO: Call real backend API here
+    console.log('TODO: Unsave scholarship via backend API', scholarshipId);
+    return false;
+  }, []);
 
   const isScholarshipSaved = useCallback((scholarshipId: string) => {
     return savedScholarships.includes(scholarshipId);
   }, [savedScholarships]);
 
   const toggleSaved = useCallback(async (scholarshipId: string) => {
-    return await saveScholarship(scholarshipId);
-  }, [saveScholarship]);
+    // TODO: Call real backend API here
+    console.log('TODO: Toggle saved scholarship via backend API', scholarshipId);
+    return false;
+  }, []);
 
   useEffect(() => {
     fetchSavedScholarships();

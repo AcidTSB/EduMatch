@@ -20,7 +20,7 @@ import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { mockApplications, mockUsers, mockScholarships, mockUserProfiles } from '@/lib/mock-data';
+// MOCK DATA REMOVED - TODO: Integrate with real backend API
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { RejectModal } from '@/components/ui/reject-modal';
 import { ViewApplicationModal } from '@/components/ui/view-application-modal';

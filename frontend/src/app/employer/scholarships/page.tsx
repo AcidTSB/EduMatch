@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { mockScholarships } from '@/lib/mock-data';
+// MOCK DATA REMOVED - TODO: Integrate with real backend API
 import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext';
 import { Scholarship, ScholarshipStatus } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils';

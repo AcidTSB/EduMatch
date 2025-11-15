@@ -30,6 +30,16 @@ public class SecurityConfig {
         http
                 // Tắt CSRF
                 .csrf(AbstractHttpConfigurer::disable)
+                // Enable CORS cho Frontend
+                .cors(cors -> cors.configurationSource(request -> {
+                    var corsConfig = new org.springframework.web.cors.CorsConfiguration();
+                    corsConfig.addAllowedOrigin("http://localhost:3000"); // Frontend URL
+                    corsConfig.addAllowedOrigin("http://localhost:8080"); // Gateway URL
+                    corsConfig.addAllowedMethod("*"); // Allow all methods
+                    corsConfig.addAllowedHeader("*"); // Allow all headers
+                    corsConfig.setAllowCredentials(true); // Allow cookies
+                    return corsConfig;
+                }))
                 // Báo lỗi 401 khi user chưa xác thực, 403 khi không đủ quyền
                 .exceptionHandling(exception -> exception
                         .authenticationEntryPoint(unauthorizedHandler)

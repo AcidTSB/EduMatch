@@ -11,6 +11,7 @@ import { ToastProvider } from '@/providers/ToastProvider'
 import { MessagingWidget } from '@/components/messaging/MessagingWidget'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as HotToaster } from 'react-hot-toast'
+import { LoggedInBanner } from '@/components/LoggedInBanner'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -34,6 +35,7 @@ export default function RootLayout({
                 <ToastProvider>
                   <div className="min-h-screen bg-background flex flex-col">
                     <Navbar />
+                    <LoggedInBanner />
                     <main className="flex-1">
                       {children}
                     </main>

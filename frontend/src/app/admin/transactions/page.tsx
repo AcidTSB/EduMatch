@@ -11,7 +11,7 @@ import FilterPanel, { FilterConfig } from '@/components/admin/FilterPanel';
 import ModalConfirm from '@/components/admin/ModalConfirm';
 import StatCard from '@/components/admin/StatCard';
 import CSVExportButton from '@/components/admin/CSVExportButton';
-import { TRANSACTIONS, Transaction } from '@/lib/mock-data';
+// MOCK DATA REMOVED - TODO: Integrate with real backend API
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AdminTransactionsPage() {

@@ -35,38 +35,37 @@ export function middleware(request: NextRequest) {
     pathname.startsWith(route) && !pathname.includes('/applications')
   );
 
-  // Protect provider/employer routes (always require login)
+  // Protect employer routes (always require login)
+  // Support legacy '/provider' path for backward compatibility
   if (pathname.startsWith('/provider') || pathname.startsWith('/employer')) {
     if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
-    // Accept legacy and new role names: 'provider' or 'employer'
-    if (userRole !== 'provider' && userRole !== 'employer') {
+    // Backend only returns 'employer' role (from ROLE_EMPLOYER)
+    if (userRole !== 'employer') {
       // Redirect wrong role to their own dashboard
       if (userRole === 'admin') {
         return NextResponse.redirect(new URL('/admin', request.url));
-      } else if (userRole === 'applicant' || userRole === 'user') {
-        // send applicant/user to applicant/user area
-        const dest = (userRole === 'user') ? '/user/dashboard' : '/applicant/dashboard';
-        return NextResponse.redirect(new URL(dest, request.url));
+      } else if (userRole === 'user') {
+        return NextResponse.redirect(new URL('/user/dashboard', request.url));
       }
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
-  // Protect applicant/user routes (except public scholarship browsing)
+  // Protect user routes (except public scholarship browsing)
+  // Support legacy '/applicant' path for backward compatibility
   if ((pathname.startsWith('/applicant') || pathname.startsWith('/user')) && !isPublicScholarshipRoute) {
     if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
-    // Accept legacy and new role names: 'applicant' or 'user'
-    if (userRole !== 'applicant' && userRole !== 'user') {
+    // Backend only returns 'user' role (from ROLE_USER)
+    if (userRole !== 'user') {
       // Redirect wrong role to their own dashboard
       if (userRole === 'admin') {
         return NextResponse.redirect(new URL('/admin', request.url));
-      } else if (userRole === 'provider' || userRole === 'employer') {
-        const dest = (userRole === 'employer') ? '/employer/dashboard' : '/provider/dashboard';
-        return NextResponse.redirect(new URL(dest, request.url));
+      } else if (userRole === 'employer') {
+        return NextResponse.redirect(new URL('/employer/dashboard', request.url));
       }
       return NextResponse.redirect(new URL('/', request.url));
     }
@@ -79,12 +78,10 @@ export function middleware(request: NextRequest) {
     }
     if (userRole !== 'admin') {
       // Redirect wrong role to their own dashboard
-      if (userRole === 'provider' || userRole === 'employer') {
-        const dest = (userRole === 'employer') ? '/employer/dashboard' : '/provider/dashboard';
-        return NextResponse.redirect(new URL(dest, request.url));
-      } else if (userRole === 'applicant' || userRole === 'user') {
-        const dest = (userRole === 'user') ? '/user/dashboard' : '/applicant/dashboard';
-        return NextResponse.redirect(new URL(dest, request.url));
+      if (userRole === 'employer') {
+        return NextResponse.redirect(new URL('/employer/dashboard', request.url));
+      } else if (userRole === 'user') {
+        return NextResponse.redirect(new URL('/user/dashboard', request.url));
       }
       return NextResponse.redirect(new URL('/', request.url));
     }

@@ -11,7 +11,7 @@ import DataTable, { Column } from '@/components/admin/DataTable';
 import FilterPanel, { FilterConfig } from '@/components/admin/FilterPanel';
 import ModalForm, { FormField } from '@/components/admin/ModalForm';
 import StatCard from '@/components/admin/StatCard';
-import { REPORTS, Report } from '@/lib/mock-data';
+// MOCK DATA REMOVED - TODO: Integrate with real backend API
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AdminReportsPage() {

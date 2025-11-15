@@ -1,35 +1,19 @@
-# Frontend Dockerfile
-FROM node:18-alpine AS builder
+# Frontend Dockerfile - Development Mode
+FROM node:18-alpine
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install ALL dependencies (dev + prod)
 RUN npm install
 
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
-
-# Production stage
-FROM node:18-alpine AS runner
-
-WORKDIR /app
-
-# Copy package files and install production dependencies
-COPY package*.json ./
-RUN npm install --only=production
-
-# Copy built application
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/next.config.js ./next.config.js
-
 # Expose port
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"]
+# Start in development mode (hot reload)
+CMD ["npm", "run", "dev"]

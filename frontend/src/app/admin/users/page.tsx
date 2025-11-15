@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { mockUsers } from '@/lib/mock-data';
+// MOCK DATA REMOVED - TODO: Integrate with real backend API
 import { UserRole } from '@/types';
 import { AddUserModal } from '@/components/admin/AddUserModal';
 import { ConfirmModal } from '@/components/ui/confirm-modal';

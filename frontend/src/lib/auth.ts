@@ -2,8 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { AuthUser, AuthState, LoginCredentials, RegisterCredentials } from '@/types';
-// import { api } from '@/lib/api';
-import { mockApi, shouldUseMockApi } from '@/lib/mock-data';
+import { authService } from '@/services/auth.service';
 import { getFromLocalStorage, setToLocalStorage, removeFromLocalStorage } from '@/lib/utils';
 import { setCookie, getCookie, deleteCookie } from '@/lib/cookies';
 
@@ -119,41 +118,51 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       setAuthState(prev => ({ ...prev, isLoading: true }));
 
-      const response = await mockApi.auth.login(credentials);
+      // Sử dụng authService thật thay vì mock
+      const response = await authService.login({
+        email: credentials.email,
+        password: credentials.password,
+      });
 
-      if (response.success && response.data) {
-        const { user, token } = response.data;
+      // Convert backend user format to frontend format
+      const user: any = {
+        id: response.user.id.toString(),
+        username: response.user.username,
+        email: response.user.email,
+        firstName: response.user.firstName || '',
+        lastName: response.user.lastName || '',
+        role: authService.getUserRole() || 'student',
+        profile: {
+          bio: '',
+          avatar: '',
+        },
+      };
 
-        // Store in localStorage
-        setToLocalStorage('auth_token', token);
-        setToLocalStorage('auth_user', JSON.stringify(user));
+      const token = response.accessToken;
 
-        // Set cookies for middleware using utility function
-        setCookie('auth_token', token, 7);
-        setCookie('auth_user', JSON.stringify(user), 7);
+      // Store in localStorage (đã được lưu trong authService)
+      setToLocalStorage('auth_user', JSON.stringify(user));
 
-        setAuthState(createAuthenticatedState(user));
+      // Set cookies for middleware
+      setCookie('auth_token', token, 7);
+      setCookie('auth_user', JSON.stringify(user), 7);
 
-        // Wait a bit then redirect to let cookies set
-        setTimeout(() => {
-          // Redirect based on user role
-          if (user.role === 'admin') {
-            window.location.href = '/admin';
-          } else if (user.role === 'provider') {
-            window.location.href = '/employer/dashboard';
-          } else {
-            window.location.href = '/user/dashboard';
-          }
-        }, 100);
-      } else {
-        // Handle failed login response
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-        const errorMessage = response.error || 'Login failed';
-        setError(errorMessage);
-        throw new Error(errorMessage);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      setAuthState(createAuthenticatedState(user));
+
+      // Wait a bit then redirect to let cookies set
+      setTimeout(() => {
+        // Redirect based on user role
+        if (user.role === 'admin') {
+          window.location.href = '/admin';
+        } else if (user.role === 'employer') {
+          window.location.href = '/employer/dashboard';
+        } else {
+          // Default: user/student role
+          window.location.href = '/user/dashboard';
+        }
+      }, 100);
+    } catch (err: any) {
+      const errorMessage = err.message || 'Đăng nhập thất bại';
       setError(errorMessage);
       setAuthState(resetAuthState());
       throw err;
@@ -165,26 +174,46 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       setAuthState(prev => ({ ...prev, isLoading: true }));
 
-      const response = await mockApi.auth.register(credentials);
+      // Sử dụng authService thật
+      const response = await authService.register({
+        firstName: credentials.firstName,
+        lastName: credentials.lastName,
+        email: credentials.email,
+        password: credentials.password,
+        sex: (credentials as any).sex,
+      });
 
-      if (response.success && response.data) {
-        const { user, token } = response.data;
+      // Convert backend user format to frontend format
+      const user: any = {
+        id: response.user.id.toString(),
+        username: response.user.username,
+        email: response.user.email,
+        firstName: response.user.firstName || '',
+        lastName: response.user.lastName || '',
+        role: authService.getUserRole() || 'student',
+        profile: {
+          bio: '',
+          avatar: '',
+        },
+      };
 
-        // Store in localStorage
-        setToLocalStorage('auth_token', token);
-        setToLocalStorage('auth_user', JSON.stringify(user));
+      const token = response.accessToken;
 
-        // Set cookies for middleware using utility function
-        setCookie('auth_token', token, 7);
-        setCookie('auth_user', JSON.stringify(user), 7);
+      // Store in localStorage
+      setToLocalStorage('auth_user', JSON.stringify(user));
 
-        setAuthState(createAuthenticatedState(user));
+      // Set cookies for middleware
+      setCookie('auth_token', token, 7);
+      setCookie('auth_user', JSON.stringify(user), 7);
 
-        // Redirect to home page after successful registration
-        window.location.href = '/';
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
+      setAuthState(createAuthenticatedState(user));
+
+      // Redirect to user dashboard
+      setTimeout(() => {
+        window.location.href = '/user/dashboard';
+      }, 100);
+    } catch (err: any) {
+      const errorMessage = err.message || 'Đăng ký thất bại';
       setError(errorMessage);
       setAuthState(resetAuthState());
       throw err;
@@ -193,14 +222,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async () => {
     try {
-      // Call logout API
-      await mockApi.auth.logout();
+      // Call logout API - real backend
+      await authService.logout();
     } catch (error) {
+      console.error('Logout API call failed:', error);
       // Continue with logout even if API call fails
     } finally {
       // Clear localStorage
       removeFromLocalStorage('auth_token');
       removeFromLocalStorage('auth_user');
+      removeFromLocalStorage('refresh_token');
+      removeFromLocalStorage('user');
 
       // Clear cookies using utility function
       deleteCookie('auth_token');
@@ -217,11 +249,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshToken = async () => {
     try {
-      const response = await mockApi.auth.refreshToken();
-
-      if (response.success && response.data) {
-        setToLocalStorage('auth_token', response.data.token);
-      }
+      const newToken = await authService.refreshToken();
+      
+      // Token đã được lưu trong authService
+      setCookie('auth_token', newToken, 7);
     } catch (err) {
       // If refresh fails, logout user
       await logout();
