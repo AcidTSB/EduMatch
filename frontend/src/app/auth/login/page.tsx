@@ -105,25 +105,37 @@ export default function LoginPage() {
         profile: profile, // Gắn profile vào user
       };
 
-      // 8. GỌI HÀM setAuthState với object 'User' đầy đủ
-      setAuthState(token, userToAuth); // Lỗi 1 đã được sửa
+      // 8. Lưu token và user vào localStorage và cookies
+      localStorage.setItem('auth_token', token);
+      
+      // Lưu vào cookies để middleware có thể đọc
+      document.cookie = `auth_token=${token}; path=/; max-age=86400`; // 24 hours
+      document.cookie = `auth_user=${encodeURIComponent(JSON.stringify({ 
+        id: userToAuth.id,
+        email: userToAuth.email,
+        role: userToAuth.role 
+      }))}; path=/; max-age=86400`;
 
-      // 9. ✅ SỬA LỖI 2: Cập nhật cache với 'profile' (là UserProfile)
-      queryClient.setQueryData(['currentUser'], { data: profile }); // Lỗi 2 đã được sửa
+      // 9. GỌI HÀM setAuthState với object 'User' đầy đủ
+      setAuthState(token, userToAuth);
+
+      // 10. Cập nhật cache với 'profile'
+      queryClient.setQueryData(['currentUser'], { data: profile });
 
       toast.success('Đăng nhập thành công!', {
         id: toastId,
         description: `Chào mừng bạn trở lại, ${email}`
       });
 
-      // 10. TỰ CHUYỂN HƯỚNG (dùng userToAuth)
-      if (userToAuth.role === 'ADMIN') {
-        router.push('/admin/dashboard');
-      } else if (userToAuth.role === 'EMPLOYER') {
-        router.push('/employer/dashboard');
-      } else {
-        router.push('/user/dashboard'); 
-      }
+      // 11. CHUYỂN HƯỚNG - dùng window.location để force reload và trigger middleware
+      const dashboardUrl = userToAuth.role === 'ADMIN' 
+        ? '/admin/dashboard'
+        : userToAuth.role === 'EMPLOYER'
+        ? '/employer/dashboard'
+        : '/user/dashboard';
+      
+      window.location.href = dashboardUrl;
+      
 
     } catch (error: any) {
       console.error('Login failed:', error);

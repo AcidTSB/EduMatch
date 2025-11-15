@@ -120,7 +120,10 @@ export const useAuth = (): UseAuthReturn => {
    * Đăng xuất người dùng.
    */
   const logout = () => {
+    // Xóa token và cookies
     localStorage.removeItem('auth_token');
+    document.cookie = 'auth_token=; path=/; max-age=0';
+    document.cookie = 'auth_user=; path=/; max-age=0';
     
     api.auth.logout().catch(err => {
       console.warn("Lỗi khi gọi API logout:", err);
@@ -135,6 +138,9 @@ export const useAuth = (): UseAuthReturn => {
     });
 
     queryClient.removeQueries({ queryKey: ['currentUser'] });
+    
+    // Redirect về trang chủ
+    window.location.href = '/';
   };
 
   /**

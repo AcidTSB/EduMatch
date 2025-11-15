@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/lib/auth';
+import { useAuth } from '@/hooks/useAuth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { UserRole } from '@/types';
 
@@ -100,12 +100,12 @@ export function Navbar() {
 
   const getRoleBadge = (role: string, subscription?: any) => {
     const roleConfig = {
-      applicant: { label: t('role.student'), color: 'bg-blue-100 text-blue-700 border-blue-200' },
-      provider: { label: t('role.provider'), color: 'bg-green-100 text-green-700 border-green-200' },
-      admin: { label: t('role.admin'), color: 'bg-purple-100 text-purple-700 border-purple-200' }
+      USER: { label: t('role.student'), color: 'bg-blue-100 text-blue-700 border-blue-200' },
+      EMPLOYER: { label: t('role.provider'), color: 'bg-green-100 text-green-700 border-green-200' },
+      ADMIN: { label: t('role.admin'), color: 'bg-purple-100 text-purple-700 border-purple-200' }
     };
     
-    const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.applicant;
+    const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.USER;
     
     let label = config.label;
     if (subscription?.plan === 'premium') {
@@ -119,9 +119,9 @@ export function Navbar() {
 
   const getRoleDisplayName = (role: string) => {
     const roleKeys = {
-      applicant: 'role.student',
-      provider: 'role.provider', 
-      admin: 'role.admin'
+      USER: 'role.student',
+      EMPLOYER: 'role.provider', 
+      ADMIN: 'role.admin'
     };
     return t(roleKeys[role as keyof typeof roleKeys] || 'role.student');
   };
@@ -147,13 +147,16 @@ export function Navbar() {
     return pathname.startsWith(href);
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+  const getInitials = () => {
+    if (!user?.profile) return 'U';
+    const firstName = user.profile.firstName || '';
+    const lastName = user.profile.lastName || '';
+    return (firstName[0] || '') + (lastName[0] || '');
+  };
+
+  const getUserFullName = () => {
+    if (!user?.profile) return user?.email || 'User';
+    return `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim() || user.email;
   };
 
   return (
@@ -418,18 +421,20 @@ export function Navbar() {
                     className="flex items-center space-x-2 px-2 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Avatar className="h-8 w-8 flex-shrink-0">
-                      {/* AuthUser không có profile.avatar, chỉ dùng AvatarFallback */}
+                      {user?.profile?.avatar && (
+                        <AvatarImage src={user.profile.avatar} alt={getUserFullName()} />
+                      )}
                       <AvatarFallback className="bg-blue-600 text-white text-xs">
-                        {getInitials(user?.name || '')}
+                        {getInitials()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex items-center space-x-1.5 2xl:flex hidden">
-                      <span className="text-sm font-medium text-gray-900 max-w-[120px] truncate">{user?.name}</span>
+                      <span className="text-sm font-medium text-gray-900 max-w-[120px] truncate">{getUserFullName()}</span>
                       <span className={cn(
                         "px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap",
-                        getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).color
+                        getRoleBadge(user?.role || 'USER', { plan: user?.subscriptionType?.toLowerCase() }).color
                       )}>
-                        {getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).label}
+                        {getRoleBadge(user?.role || 'USER', { plan: user?.subscriptionType?.toLowerCase() }).label}
                       </span>
                       <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     </div>
@@ -437,9 +442,9 @@ export function Navbar() {
                     <div className="flex items-center space-x-1.5 2xl:hidden">
                       <span className={cn(
                         "px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap",
-                        getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).color
+                        getRoleBadge(user?.role || 'USER', { plan: user?.subscriptionType?.toLowerCase() }).color
                       )}>
-                        {getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).label}
+                        {getRoleBadge(user?.role || 'USER', { plan: user?.subscriptionType?.toLowerCase() }).label}
                       </span>
                       <ChevronDown className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     </div>
@@ -454,15 +459,15 @@ export function Navbar() {
                       />
                       <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
                         <div className="px-4 py-3 border-b border-gray-200">
-                          <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                          <p className="text-sm font-medium text-gray-900">{getUserFullName()}</p>
                           <p className="text-xs text-gray-500 mt-0.5">{user?.email}</p>
                           <p className="text-xs text-gray-500 mt-1">
-                            {getRoleDisplayName(user?.role || 'applicant')}
+                            {getRoleDisplayName(user?.role || 'USER')}
                           </p>
                         </div>
                         
                         <Link
-                          href={`/${user?.role}/profile`}
+                          href={user?.role === 'ADMIN' ? '/admin/profile' : user?.role === 'EMPLOYER' ? '/employer/profile' : '/user/profile'}
                           className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
@@ -471,7 +476,7 @@ export function Navbar() {
                         </Link>
                         
                         <Link
-                          href={`/${user?.role}/settings`}
+                          href={user?.role === 'ADMIN' ? '/admin/settings' : user?.role === 'EMPLOYER' ? '/employer/settings' : '/user/settings'}
                           className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
@@ -584,7 +589,7 @@ export function Navbar() {
                   <div className="border-t border-gray-200 my-2" />
                   <div className="px-3 py-2">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      {getRoleDisplayName(user?.role || 'applicant')}
+                      {getRoleDisplayName(user?.role || 'USER')}
                     </p>
                   </div>
                   {getRoleSpecificNavigation().map((item) => (
@@ -625,20 +630,22 @@ export function Navbar() {
               {isAuthenticated && (
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex items-center px-3 py-2 mb-2">
-                    <Avatar className="h-10 w-10 mr-3">
-                      {/* AuthUser không có profile.avatar, chỉ dùng AvatarFallback */}
+                    <Avatar className="h-10 w-10">
+                      {user?.profile?.avatar && (
+                        <AvatarImage src={user.profile.avatar} alt={getUserFullName()} />
+                      )}
                       <AvatarFallback className="bg-blue-600 text-white">
-                        {getInitials(user?.name || '')}
+                        {getInitials()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                        <p className="text-sm font-medium text-gray-900">{getUserFullName()}</p>
                         <span className={cn(
                           "px-2 py-0.5 rounded-full text-xs font-medium border",
-                          getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).color
+                          getRoleBadge(user?.role || 'USER', { plan: user?.subscriptionType?.toLowerCase() }).color
                         )}>
-                          {getRoleBadge(user?.role || 'applicant', { plan: user?.subscriptionType?.toLowerCase() }).label}
+                          {getRoleBadge(user?.role || 'USER', { plan: user?.subscriptionType?.toLowerCase() }).label}
                         </span>
                       </div>
                       <p className="text-xs text-gray-500">{user?.email}</p>
@@ -646,7 +653,7 @@ export function Navbar() {
                   </div>
                   
                   <Link
-                    href={`/${user?.role}/profile`}
+                    href={user?.role === 'ADMIN' ? '/admin/profile' : user?.role === 'EMPLOYER' ? '/employer/profile' : '/user/profile'}
                     className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -655,7 +662,7 @@ export function Navbar() {
                   </Link>
                   
                   <Link
-                    href={`/${user?.role}/settings`}
+                    href={user?.role === 'ADMIN' ? '/admin/settings' : user?.role === 'EMPLOYER' ? '/employer/settings' : '/user/settings'}
                     className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
