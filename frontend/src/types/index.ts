@@ -120,35 +120,30 @@ export interface UserProfile {
  */
 export interface Scholarship {
   id: string;
-  providerId: string;       // ID của provider
-  providerName: string;     // Tên của provider
+  providerId: string;
+  providerName: string;
   title: string;
   description: string;
-  amount: number;           // Số tiền học bổng
-  type: ScholarshipType;    // Loại học bổng (Undergrad, Grad...)
-  status: ScholarshipStatus;// Trạng thái (Published, Pending...)
-
-  applicationDeadline: string; // 'YYYY-MM-DD'
+  amount: number; // ✅ Dùng 'amount', không phải 'scholarshipAmount'
+  type: ScholarshipType | string; // ✅ Đã thay thế 'level'
+  status: ScholarshipStatus | string; // ✅ Đã thay thế 'moderationStatus'
+  applicationDeadline: string;
   location: string;
   university: string;
-  
-  department?: string;
-  duration?: number; // (Tính bằng tháng)
-  isRemote?: boolean;
-  minGpa?: number;
-  
-  // Yêu cầu chi tiết
-  requirements?: {
+  department: string;
+  duration: number;
+  isRemote: boolean; // ✅ Đã thay thế 'studyMode'
+  minGpa: number;
+  requirements: {
     minGpa?: number;
     englishProficiency?: string;
     documents?: string[];
   };
-
   requiredSkills: string[];
   preferredSkills?: string[];
-
-  viewCount: number; 
+  viewCount: number;
   createdAt: Date;
+ 
 
   // Các trường tùy chọn/cũ (vẫn giữ để linh hoạt)
   tags?: string[];
@@ -187,6 +182,8 @@ export interface Report {
   targetType: 'SCHOLARSHIP' | 'USER';
   reporterId: string; // ID của người báo cáo
   reporterName: string; // Tên của người báo cáo (để hiển thị)
+  reporterEmail?: string; // Email của người báo cáo
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'; // Mức độ ưu tiên
   category: string; // Ví dụ: 'Spam', 'Misleading Information', 'Broken Link'
   description: string;
   status: ReportStatus;

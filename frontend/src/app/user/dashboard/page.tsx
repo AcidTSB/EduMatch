@@ -72,18 +72,21 @@ export default function DashboardPage() {
   const dashboardData = React.useMemo(() => ({
     stats: {
       applications: applications.length,
-      inReview: applications.filter(a => a.status === 'UNDER_REVIEW').length,
+      inReview: applications.filter(a => a.status === 'VIEWED').length,
       accepted: applications.filter(a => a.status === 'ACCEPTED').length,
       saved: 8
     },
-    recentApplications: applications.slice(0, 3).map(app => ({
-      id: app.id,
-      scholarshipTitle: app.scholarship?.title || 'Unknown Scholarship',
-      provider: app.scholarship?.providerName || 'Unknown Provider',
-      status: app.status.toLowerCase(),
-      appliedDate: app.submittedAt?.toISOString().split('T')[0] || '',
-      deadline: app.scholarship?.deadline || ''
-    })),
+    recentApplications: applications.slice(0, 3).map(app => {
+      const scholarship = scholarships.find(s => s.id === app.scholarshipId);
+      return {
+        id: app.id,
+        scholarshipTitle: scholarship?.title || 'Unknown Scholarship',
+        provider: scholarship?.providerName || 'Unknown Provider',
+        status: app.status.toLowerCase(),
+        appliedDate: app.createdAt ? app.createdAt.toISOString().split('T')[0] : '',
+        deadline: scholarship?.applicationDeadline || ''
+      };
+    }),
     notifications: notifications.slice(0, 5),
     recommendedScholarships: scholarships.slice(0, 3)
   }), [scholarships, applications, notifications]);

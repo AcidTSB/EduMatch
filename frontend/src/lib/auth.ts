@@ -139,7 +139,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           // Redirect based on user role
           if (user.role === 'admin') {
             window.location.href = '/admin';
-          } else if (user.role === 'provider') {
+          } else if (user.role === 'employer') {
             window.location.href = '/employer/dashboard';
           } else {
             window.location.href = '/user/dashboard';

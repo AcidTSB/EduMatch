@@ -11,6 +11,7 @@ import { LanguageSelector } from '@/components/LanguageSelector';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { UserRole } from '@/types';
 
 const publicNavigation = [
   { name: 'Home', href: '/' },
@@ -130,9 +131,9 @@ export function Navbar() {
     if (!isAuthenticated) return [];
     
     switch (user?.role) {
-      case 'provider':
+      case 'EMPLOYER':
         return providerSpecificNavigation;
-      case 'admin':
+      case 'ADMIN':
         return adminSpecificNavigation;
       default:
         return applicantSpecificNavigation;
@@ -189,7 +190,7 @@ export function Navbar() {
                   </Link>
                   
                   {/* Role-specific key items */}
-                  {user?.role === 'applicant' && (
+                  {user?.role === UserRole.USER && (
                     <>
                       <Link
                         href="/user/dashboard"
@@ -227,7 +228,7 @@ export function Navbar() {
                     </>
                   )}
                   
-                  {user?.role === 'provider' && (
+                  {user?.role === UserRole.EMPLOYER && (
                     <>
                       <Link
                         href="/employer/dashboard"
@@ -276,7 +277,7 @@ export function Navbar() {
                     </>
                   )}
                   
-                  {user?.role === 'admin' && (
+                  {user?.role === UserRole.ADMIN && (
                     <>
                       <Link
                         href="/admin"
@@ -417,7 +418,7 @@ export function Navbar() {
                     className="flex items-center space-x-2 px-2 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarImage src={user?.profile?.avatar || ''} alt={user?.name} />
+                      {/* AuthUser không có profile.avatar, chỉ dùng AvatarFallback */}
                       <AvatarFallback className="bg-blue-600 text-white text-xs">
                         {getInitials(user?.name || '')}
                       </AvatarFallback>
@@ -625,7 +626,7 @@ export function Navbar() {
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex items-center px-3 py-2 mb-2">
                     <Avatar className="h-10 w-10 mr-3">
-                      <AvatarImage src={user?.profile?.avatar || ''} alt={user?.name} />
+                      {/* AuthUser không có profile.avatar, chỉ dùng AvatarFallback */}
                       <AvatarFallback className="bg-blue-600 text-white">
                         {getInitials(user?.name || '')}
                       </AvatarFallback>
