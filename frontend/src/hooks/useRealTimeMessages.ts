@@ -7,7 +7,7 @@ import { Message, ChatRoom } from '@/types/realtime';
 import { toast } from 'react-hot-toast';
 
 // Polling interval in milliseconds (3 seconds)
-const POLLING_INTERVAL = 3000;
+const POLLING_INTERVAL = 30000; // 30s - reduced from 3s to prevent lag
 
 interface UseRealTimeMessagesOptions {
   enabled?: boolean;
