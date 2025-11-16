@@ -1,231 +1,121 @@
- Tổng quan về các file liên quanAPI Gateway (nginx.conf): Định tuyến tất cả yêu cầu (request) từ /api/auth/... đến auth-service (backend).Backend Controller (AuthController.java): Cung cấp 2 endpoint chính tại /api/auth:POST /signin: Nhận LoginRequest (gồm username và password).POST /signup: Nhận SignUpRequest (gồm username, email, password, v.v.).Frontend Service (src/services/auth.service.ts): Đây là file "hợp đồng" phía frontend, chứa các hàm login và register gọi API bằng axios (thông qua authApi). File này đã được viết chính xác.Frontend Context (src/lib/auth.ts): Đây là AuthProvider quản lý state (trạng thái) đăng nhập. File này hiện đang dùng mockApi và cần được cập nhật.Frontend UI (src/app/auth/login/page.tsx, src/app/auth/register/page.tsx): Các trang React nơi người dùng nhập thông tin.1. 🚀 Tích hợp Luồng Đăng nhập (Login Flow)Đây là các bước từ khi người dùng nhấn nút "Đăng nhập" cho đến khi được chuyển hướng:Bước 1: Cập nhật AuthProvider (File: src/lib/auth.ts)Đây là bước quan trọng nhất. Bạn cần sửa hàm login trong AuthProvider để nó gọi đến authService thật thay vì mockApi.QUAN TRỌNG: Mở file src/lib/auth.ts và thay thế code cũ.Code cũ (đang dùng mock):TypeScript// src/lib/auth.ts (CŨ)
-// ...
-import { mockApi } from '@/lib/mock-data';
-// ...
-  const login = async (credentials: LoginCredentials) => {
-    try {
-      // ...
-      const response = await mockApi.auth.login(credentials); // <-- Đang dùng MOCK
-      // ...
-    } // ...
-  };
-// ...
-Code mới (sử dụng authService thật):TypeScript// src/lib/auth.ts (MỚI)
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { AuthUser, AuthState, LoginCredentials, RegisterCredentials } from '@/types';
-// THAY ĐỔI: Import authService thật
-import { authService } from '@/services/auth.service'; 
-import { getFromLocalStorage, setToLocalStorage, removeFromLocalStorage } from '@/lib/utils';
-import { setCookie, getCookie, deleteCookie } from '@/lib/cookies';
+Chào bạn,Chuẩn rồi! Việc bạn nhận ra sự khác biệt này là mấu chốt của tích hợp. Như chúng ta đã thảo luận, giải pháp tối ưu nhất (ít sửa code nhất và an toàn nhất) là áp dụng "Lớp Phiên Dịch" (Adapter Pattern) ở Frontend.Đây là tài liệu hướng dẫn kỹ thuật chi tiết để thực hiện giải pháp này.📄 Tài liệu: Tích hợp API Học bổng (Optimal Adapter Pattern)1. Mục tiêuTài liệu này hướng dẫn cách "phiên dịch" dữ liệu trả về từ scholarship-service (Backend) sang cấu trúc dữ liệu mà React Components (Frontend) mong đợi.Mục tiêu là chỉ sửa 1 file duy nhất ở Frontend (src/services/scholarship.service.ts) mà không cần thay đổi bất kỳ Component React hay API Backend nào.2. Phân tích Vấn đề: Tên trường không khớpĐây là bảng so sánh mâu thuẫn giữa Backend (DB) và Frontend (React) mà chúng ta cần "phiên dịch":Tên trường Backend (DB/API)Tên trường Frontend (React)Ví dụ BackendVí dụ Frontend mong muốnscholarshipAmountamount50000.0050000leveltype"UNDERGRADUATE""UNDERGRADUATE" (dùng chung)moderationStatusstatus"APPROVED""PUBLISHED" (hoặc "APPROVED")studyModeisRemote"REMOTE"truefullDescriptiondescription"Long text...""Long text..."creatorUserIdproviderId123"123" (string)viewsCntviewCount1251253. Giải pháp Tối ưu: Cập nhật Lớp Service (Adapter)Chúng ta sẽ tập trung toàn bộ logic "phiên dịch" vào file src/services/scholarship.service.ts.Chúng ta sẽ tạo một hàm helper riêng gọi là _transformOpportunity để "dịch" một đối tượng học bổng. Sau đó, chúng ta sẽ dùng hàm này trong mọi hàm gọi API (như searchScholarships và getScholarshipById).4. Hướng dẫn Tích hợp (Step-by-Step)File cần chỉnh sửa: src/services/scholarship.service.tsBước 1: Thêm hàm _transformOpportunity (Hàm Phiên Dịch)Đầu tiên, hãy thêm hàm private này vào bên trong class ScholarshipService. Hàm này sẽ nhận dữ liệu thô từ API (item: any) và trả về dữ liệu đã được chuẩn hóa theo types/index.ts.TypeScript// src/services/scholarship.service.ts
 
-// ... (Giữ nguyên các interface và state) ...
+import { scholarshipApi } from '@/lib/api';
+// 1. Import Scholarship type để đảm bảo kiểu trả về chính xác
+import { Scholarship, ScholarshipSearchResponse, ScholarshipSearchParams } from '@/types';
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  // ... (Giữ nguyên state và useEffect) ...
+class ScholarshipService {
 
-  const login = async (credentials: LoginCredentials) => {
-    try {
-      setError(null);
-      setAuthState(prev => ({ ...prev, isLoading: true }));
+    /**
+     * HÀM MỚI: Hàm "phiên dịch" private
+     * Dịch dữ liệu thô từ API (Backend) sang cấu trúc dữ liệu của Frontend (types/index.ts)
+     */
+    private _transformOpportunity(item: any): Scholarship {
+        
+        // Xử lý logic cho studyMode -> isRemote
+        const isRemote = (item.studyMode === 'REMOTE' || item.studyMode === 'ONLINE');
 
-      // THAY ĐỔI: Gọi đến authService thật
-      // authService đã bao gồm cả việc gọi /signin và /me
-      const response = await authService.login(credentials);
+        return {
+            ...item, // Giữ lại các trường không mâu thuẫn (như title, location...)
+            
+            // --- BẮT ĐẦU PHIÊN DỊCH ---
+            
+            // Đảm bảo ID luôn là string
+            id: String(item.id),
 
-      if (response.user && response.accessToken) {
-        const { user, accessToken } = response;
+            // 1. Dịch Amount
+            // (Backend: scholarshipAmount, Frontend: amount)
+            amount: item.scholarshipAmount || item.amount || 0,
+            
+            // 2. Dịch Status
+            // (Backend: moderationStatus, Frontend: status)
+            status: item.moderationStatus || item.status,
+            
+            // 3. Dịch Level
+            // (Backend: level, Frontend: type)
+            type: item.level || item.type,
+            
+            // 4. Dịch StudyMode
+            // (Backend: studyMode, Frontend: isRemote)
+            isRemote: isRemote,
+            studyMode: item.studyMode, // (Vẫn giữ studyMode nếu component nào đó cần)
 
-        // Service đã tự lưu token vào localStorage/cookie
-        // Chỉ cần cập nhật state
-        setAuthState(createAuthenticatedState(user));
+            // 5. Dịch Description
+            // (Backend: fullDescription, Frontend: description)
+            description: item.fullDescription || item.description,
+            
+            // 6. Dịch Provider ID
+            // (Backend: creatorUserId, Frontend: providerId)
+            providerId: String(item.creatorUserId || item.providerId),
 
-        // Wait a bit then redirect to let cookies set
-        setTimeout(() => {
-          // Redirect based on user role
-          if (user.roles.includes('ROLE_ADMIN')) { // Chú ý: role từ backend là "ROLE_ADMIN"
-            window.location.href = '/admin/dashboard';
-          } else if (user.roles.includes('ROLE_EMPLOYER')) {
-            window.location.href = '/employer/dashboard';
-          } else {
-            window.location.href = '/user/dashboard';
-          }
-        }, 100);
-      } else {
-        // Handle failed login response
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-        const errorMessage = 'Login failed';
-        setError(errorMessage);
-        throw new Error(errorMessage);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
-      setError(errorMessage);
-      setAuthState(resetAuthState());
-      throw err;
+            // 7. Dịch View Count
+            // (Backend: viewsCnt, Frontend: viewCount)
+            viewCount: item.viewsCnt || item.viewCount || 0,
+
+            // 8. Dịch Duration
+            // (Backend: durationMonths, Frontend: duration)
+            duration: item.durationMonths || item.duration || 0,
+
+            // --- KẾT THÚC PHIÊN DỊCH ---
+            
+            // Đảm bảo các trường luôn tồn tại (tránh lỗi undefined)
+            providerName: item.providerName || `Organization #${item.organizationId}`,
+            requirements: item.requirements || {},
+            requiredSkills: item.requiredSkills || [],
+            preferredSkills: item.preferredSkills || [],
+            tags: item.tags || [],
+            createdAt: new Date(item.createdAt), // Chuyển sang Date object
+        };
     }
-  };
 
-  // ... (Giữ nguyên các hàm còn lại, chúng ta sẽ sửa register ở bước sau) ...
-  
-  // (Hàm register, logout, refreshToken, v.v.)
+    // ... (Các hàm khác) ...
 }
 
-// ... (Giữ nguyên useAuth) ...
-Bước 2: Phân tích luồng dữ liệu (Không cần code)Khi AuthProvider đã được cập nhật, luồng đăng nhập của bạn sẽ như sau:UI (login/page.tsx): Người dùng nhấn "Sign in". Component gọi login({ email, password }) từ useAuth().Context (lib/auth.ts): Hàm login (đã sửa ở Bước 1) gọi authService.login(credentials).Service (auth.service.ts):Hàm login gửi yêu cầu POST đến endpoint signin (tức là /api/auth/signin).Payload Mapping: Nó gửi { username: data.email, password: data.password } để khớp với LoginRequest.java của backend.Backend (AuthService.java):Xác thực người dùng, tạo accessToken và refreshToken.Trả về JwtAuthenticationResponse (chỉ chứa token).Service (auth.service.ts):Nhận token, lưu vào localStorage và document.cookie (để middleware.ts có thể đọc).Thực hiện cuộc gọi thứ hai: Gửi yêu cầu GET đến endpoint me (tức là /api/auth/me) để lấy thông tin user.Lưu thông tin user vào localStorage (auth_user) và document.cookie (auth_user).Trả về object user cho Context.Context (lib/auth.ts):Nhận object user, gọi setAuthState để cập nhật trạng thái toàn cục.Thực hiện chuyển hướng (redirect) người dùng đến trang dashboard tương ứng.2. 🚀 Tích hợp Luồng Đăng ký (Register Flow)Tương tự như login, bạn cần cập nhật hàm register trong AuthProvider.Bước 1: Cập nhật AuthProvider (File: src/lib/auth.ts)Mở lại file src/lib/auth.ts và cập nhật hàm register.Code cũ (đang dùng mock):TypeScript// src/lib/auth.ts (CŨ)
-// ...
-import { mockApi } from '@/lib/mock-data';
-// ...
-  const register = async (credentials: RegisterCredentials) => {
+export const scholarshipService = new ScholarshipService();
+
+Bước 2: Sử dụng hàm _transformOpportunity trong searchScholarshipsBây giờ, hãy cập nhật hàm searchScholarships của bạn để sử dụng hàm phiên dịch này.TypeScript// src/services/scholarship.service.ts (bên trong class ScholarshipService)
+
+  /**
+   * Tìm kiếm học bổng với các tham số filter/sort
+   */
+  async searchScholarships(params: ScholarshipSearchParams = {}): Promise<ScholarshipSearchResponse> {
     try {
-      // ...
-      const response = await mockApi.auth.register(credentials); // <-- Đang dùng MOCK
-      // ...
-    } // ...
-  };
-// ...
-Code mới (sử dụng authService thật):TypeScript// src/lib/auth.ts (SỬA HÀM REGISTER)
-
-// ... (Giữ nguyên các import và hàm login đã sửa ở trên) ...
-
-export function AuthProvider({ children }: AuthProviderProps) {
-  // ... (Giữ nguyên state, useEffect, và hàm login) ...
-
-  const register = async (credentials: RegisterCredentials) => {
-    try {
-      setError(null);
-      setAuthState(prev => ({ ...prev, isLoading: true }));
-
-      // THAY ĐỔI: Gọi đến authService thật
-      // Backend (AuthController.java) tự động login sau khi register
-      // nên service này trả về cả token và user
-      const response = await authService.register(credentials);
-
-      if (response.user && response.accessToken) {
-        const { user } = response;
-
-        // Service đã tự lưu token và user
-        // Chỉ cần cập nhật state
-        setAuthState(createAuthenticatedState(user));
-
-        // Chuyển hướng đến trang chủ (hoặc dashboard)
-        setTimeout(() => {
-          window.location.href = '/user/dashboard'; // Hoặc '/'
-        }, 100);
-      } else {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-        const errorMessage = 'Registration failed';
-        setError(errorMessage);
-        throw new Error(errorMessage);
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
-      setError(errorMessage);
-      setAuthState(resetAuthState());
-      throw err;
-    }
-  };
-
-  // ... (Giữ nguyên các hàm còn lại) ...
-}
-
-// ... (Giữ nguyên useAuth) ...
-Bước 2: Cập nhật UI (File: src/app/auth/register/page.tsx)Trang đăng ký của bạn đang tự xử lý logic mock. Bạn cần cập nhật nó để gọi hàm register từ useAuth().Code cũ (đang dùng mock):TypeScript// src/app/auth/register/page.tsx (CŨ)
-// ...
-  const handleSubmit = async (e: React.FormEvent) => {
-    // ... (validateForm) ...
-    setIsLoading(true);
-    // ...
-    try {
-      // Mock API call - BỎ ĐI
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      localStorage.setItem('auth_token', 'mock-jwt-token');
-      localStorage.setItem('user_role', 'user');
-      // ...
-      router.push('/user/dashboard');
-    } // ...
-  };
-// ...
-Code mới (sử dụng useAuth):TypeScript// src/app/auth/register/page.tsx (MỚI)
-// ...
-import { useAuth } from '@/lib/auth'; // 1. Import useAuth
-import { RegisterCredentials } from '@/services/auth.service'; // 2. Import RegisterCredentials
-
-export default function RegisterPage() {
-  const { t } = useLanguage();
-  const { register, isLoading, error: authError } = useAuth(); // 3. Lấy hàm register từ context
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    // 'sex' không được dùng trong auth.service.ts, nhưng backend có
-    // Tạm thời bỏ qua 'sex' để khớp với auth.service.ts
-  });
-  // ... (Giữ nguyên các state khác: showPassword, agreeToTerms, errors)
-  const router = useRouter();
-
-  // ... (Giữ nguyên hàm validateForm, nhưng XÓA validate cho 'role') ...
-  // ... (Giữ nguyên hàm handleInputChange) ...
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) {
-      toast.error('Thông tin không hợp lệ', {
-        description: 'Vui lòng kiểm tra lại các trường thông tin',
-      });
-      return;
-    }
-
-    // 4. Gọi hàm register từ context
-    try {
-      const credentials: RegisterCredentials = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        password: formData.password,
+      // ... (Phần code gọi API giữ nguyên) ...
+      
+      console.log('✅ [ScholarshipService] Found scholarships:', response.data.content.length);
+      
+      // SỬA ĐỔI Ở ĐÂY:
+      const transformed = {
+        ...response.data,
+        // Chỉ cần gọi hàm _transformOpportunity cho mỗi item
+        content: response.data.content.map(this._transformOpportunity)
       };
-
-      await register(credentials);
       
-      // Không cần làm gì thêm, AuthProvider sẽ tự động
-      // cập nhật state và chuyển hướng
-      
+      return transformed;
     } catch (error: any) {
-      // Lỗi đã được xử lý trong AuthProvider và hiển thị toast
-      // Chỉ cần cập nhật state lỗi cục bộ nếu muốn
-      setErrors({ submit: error.message || t('register.errors.submitFailed') });
-      toast.error('Đăng ký thất bại', {
-        description: error.message || t('register.errors.submitFailed'),
-      });
+      // ... (Phần code catch lỗi giữ nguyên) ...
     }
-    // AuthProvider đã xử lý isLoading, không cần setIsLoading(false) ở đây
-  };
+  }
+Bước 3: Sử dụng hàm _transformOpportunity trong getScholarshipByIdBạn cũng phải làm điều tương tự cho trang chi tiết học bổng, nếu không trang đó cũng sẽ bị lỗi.TypeScript// src/services/scholarship.service.ts (bên trong class ScholarshipService)
 
-  return (
-    // ... (Phần JSX giữ nguyên) ...
-    // Nhớ cập nhật state lỗi nếu có
-    // Ví dụ: hiển thị authError hoặc errors.submit
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {(errors.submit || authError) && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-          {errors.submit || authError}
-        </div>
-      )}
-    {/* ... (Các trường input còn lại) ... */}
-    {/* Nút submit bây giờ sẽ dùng isLoading từ useAuth() */}
-     <Button
-        type="submit"
-        className="w-full"
-        loading={isLoading} // 5. Dùng isLoading từ useAuth
-        disabled={isLoading}
-      >
-        {isLoading ? t('register.creating') : t('register.button')}
-        {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
-      </Button>
-    {/* ... (Phần JSX còn lại) ... */}
-    </form>
-  );
-}
-3. 📝 Tổng kết Endpoint và FileLuồngComponent Giao diện (UI)Context (Quản lý State)Service (Gọi API)Endpoint (Nginx)Backend (Controller)Đăng nhậplogin/page.tsxlib/auth.tsauth.service.tsPOST /api/auth/signinAuthController.javaLấy User(Sau khi login)lib/auth.tsauth.service.tsGET /api/auth/meAuthController.javaĐăng kýregister/page.tsxlib/auth.tsauth.service.tsPOST /api/auth/signup
+  /**
+   * Lấy chi tiết 1 học bổng theo ID
+   */
+  async getScholarshipById(id: string): Promise<Scholarship> {
+    try {
+      console.log('🔍 [ScholarshipService] Fetching scholarship:', id);
+      const response = await scholarshipApi.get<any>(`/${id}`); // Dùng <any> để nhận dữ liệu thô
+      console.log('✅ [ScholarshipService] Fetched scholarship:', response.data.title);
+      
+      // SỬA ĐỔI Ở ĐÂY:
+      // Dịch dữ liệu thô trước khi trả về
+      return this._transformOpportunity(response.data);
+
+    } catch (error: any) {
+      console.error('❌ [ScholarshipService] Failed to fetch scholarship:', error);
+      throw error;
+    }
+  }
+
+// ... (Các hàm khác giữ nguyên)
+5. Kết quảSau khi hoàn thành 3 bước trên và chỉ sửa duy nhất file src/services/scholarship.service.ts:Backend (scholarship-service): Được giữ nguyên. API ổn định.Frontend Components (React): Giữ nguyên. Các file như ScholarshipCard.tsx và [id]/page.tsx/page.tsx] sẽ nhận được đúng dữ liệu chúng mong đợi (amount, type, status, isRemote) và hiển thị chính xác.Lớp Service (Adapter): Mọi logic "dịch" dữ liệu lộn xộn đều được gom về một nơi duy nhất, giúp code dễ bảo trì.6. Bảng tra cứu API (Tham khảo)Luồng tích hợp này sẽ dựa trên các API sau từ scholarship-service:Tính năng FEMethodEndpoint (Sau Nginx)Controller (Backend)DTO (Backend)Tìm kiếm/Lọc (Trang List)GET/api/scholarshipsScholarshipPublicController.javaPage<OpportunityDto>Xem Chi tiếtGET/api/scholarships/{id}ScholarshipPublicController.javaOpportunityDetailDtoNộp đơnPOST/api/applicationsApplicationController.javaCreateApplicationRequestLưu/Bỏ lưu (Bookmark)POST/api/bookmarks/{id}BookmarkController.java
