@@ -32,25 +32,53 @@ export function useApplications() {
     setLoading(true);
     setError(null);
     try {
-      // Get current user ID
+      // Import scholarship service
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      
+      // Convert scholarshipId to opportunityId (BE uses opportunityId)
+      const opportunityId = parseInt(data.scholarshipId || data.opportunityId);
+      
+      // Handle file upload - create document entry
+      const documents: Array<{ documentName: string; documentUrl: string }> = [];
+      if (data.cvFile) {
+        // TODO: Implement actual file upload to storage service
+        // For now, create a placeholder URL
+        // In production, upload file to S3/MinIO and get URL
+        const fileUrl = data.cvFileUrl || `placeholder://cv/${data.cvFile}`;
+        documents.push({
+          documentName: data.cvFile,
+          documentUrl: fileUrl
+        });
+      }
+      
+      // Prepare request matching BE DTO
+      const request = {
+        opportunityId,
+        documents: documents.length > 0 ? documents : undefined,
+        applicantUserName: data.applicantUserName,
+        applicantEmail: data.applicantEmail,
+        phone: data.phone,
+        gpa: data.gpa,
+        coverLetter: data.coverLetter,
+        motivation: data.motivation,
+        additionalInfo: data.additionalInfo,
+        portfolioUrl: data.portfolioUrl,
+        linkedinUrl: data.linkedinUrl,
+        githubUrl: data.githubUrl,
+      };
+      
+      const response = await scholarshipServiceApi.createApplication(request);
+      
+      // Refresh applications list
       const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       const applicantId = userData?.id || '1';
+      await fetchApplications(applicantId);
       
-      const response = await mockApi.applications.submit({
-        ...data,
-        applicantId
-      });
-      
-      if (response.success) {
-        // Refresh applications list
-        await fetchApplications(applicantId);
-        return response;
-      } else {
-        throw new Error(response.error || 'Failed to submit application');
-      }
+      return { success: true, data: response };
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit application');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to submit application';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -64,15 +92,19 @@ export function useApplications() {
 
   const checkApplicationStatus = useCallback(async (scholarshipId: string) => {
     try {
-      // Get current user ID
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const userId = userData?.id || '1';
+      // Get my applications and check if any match this scholarship
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      const applications = await scholarshipServiceApi.getMyApplications();
       
-      const response = await mockApi.applications.checkApplicationStatus(scholarshipId, userId);
-      return response.data?.application || null;
+      const matchingApp = applications.find(
+        (app: any) => app.opportunityId?.toString() === scholarshipId.toString() || 
+                     app.scholarshipId?.toString() === scholarshipId.toString()
+      );
+      
+      return matchingApp ? { hasApplied: true, application: matchingApp } : { hasApplied: false };
     } catch (err) {
-      return null;
+      console.error('Error checking application status:', err);
+      return { hasApplied: false };
     }
   }, []);
 
@@ -118,15 +150,15 @@ export function useSavedScholarships() {
   const fetchSavedScholarships = useCallback(async () => {
     setLoading(true);
     try {
-      // Get current user ID
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const userId = userData?.id || '1';
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      const bookmarks = await scholarshipServiceApi.getMyBookmarks();
       
-      const response = await mockApi.savedScholarships.getByUser(userId);
-      if (response.success) {
-        setSavedScholarships(response.data || []);
-      }
+      // Extract opportunity IDs from bookmarks
+      const opportunityIds = bookmarks.map((bookmark: any) => 
+        bookmark.opportunity?.id?.toString() || bookmark.opportunityId?.toString()
+      ).filter(Boolean);
+      
+      setSavedScholarships(opportunityIds);
     } catch (err) {
       setError('Failed to fetch saved scholarships');
       console.error(err);
@@ -137,17 +169,16 @@ export function useSavedScholarships() {
 
   const saveScholarship = useCallback(async (scholarshipId: string) => {
     try {
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const userId = userData?.id || '1';
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      const response = await scholarshipServiceApi.toggleBookmark(scholarshipId);
       
-      const response = await mockApi.savedScholarships.toggle(userId, scholarshipId);
-      if (response.success) {
+      if (response.bookmarked !== undefined) {
         await fetchSavedScholarships();
         return true;
       }
       return false;
     } catch (err) {
+      console.error('Error toggling bookmark:', err);
       return false;
     }
   }, [fetchSavedScholarships]);
@@ -157,7 +188,7 @@ export function useSavedScholarships() {
   }, [saveScholarship]);
 
   const isScholarshipSaved = useCallback((scholarshipId: string) => {
-    return savedScholarships.includes(scholarshipId);
+    return savedScholarships.includes(scholarshipId.toString());
   }, [savedScholarships]);
 
   const toggleSaved = useCallback(async (scholarshipId: string) => {

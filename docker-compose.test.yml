@@ -219,6 +219,9 @@ services:
     networks:
       - test-network
     # NO DEPENDS_ON - Frontend can start independently
+    depends_on:
+      - api-gateway
+    command: npm run dev
 
   # === API GATEWAY (Nginx) ===
   api-gateway:

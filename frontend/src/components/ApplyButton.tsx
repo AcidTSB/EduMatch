@@ -78,10 +78,25 @@ export function ApplyButton({
     if (!canApply) return;
 
     try {
+      // Upload CV file if exists (TODO: implement actual file upload service)
+      let cvFileUrl: string | undefined;
+      if (cvFile) {
+        // For now, create a placeholder URL
+        // In production, upload to S3/MinIO and get actual URL
+        cvFileUrl = `placeholder://cv/${cvFile.name}`;
+        // TODO: Implement actual file upload
+        // const formData = new FormData();
+        // formData.append('file', cvFile);
+        // const uploadResponse = await uploadFile(formData);
+        // cvFileUrl = uploadResponse.url;
+      }
+
       await submitApplication({
         scholarshipId: scholarship.id,
+        opportunityId: scholarship.id, // BE uses opportunityId
         ...applicationData,
-        cvFile: cvFile?.name, // In real app, would upload file to server
+        cvFile: cvFile?.name,
+        cvFileUrl: cvFileUrl,
       });
 
       setIsDialogOpen(false);
@@ -101,6 +116,7 @@ export function ApplyButton({
       // Refresh the page or redirect
       router.refresh();
     } catch (error) {
+      console.error('Application error:', error);
       toast.error(t('applyButton.submitError') || 'Failed to submit application. Please try again.');
     }
   };
