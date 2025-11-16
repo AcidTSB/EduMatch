@@ -7,39 +7,53 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
-import { authService } from '@/services/auth.service';
+import { useRouter } from 'next/navigation'; // 1. Import router
+import { useQueryClient } from '@tanstack/react-query'; // 2. Import query client
+
+// 3. Import ĐÚNG hook useAuth và file api
+import { useAuth, User } from '@/hooks/useAuth'; // ✅ SỬA LỖI 1: Import 'User' type
+import api from '@/lib/api';
+import { UserRole } from '@/types'; // ✅ SỬA LỖI 1: Import 'UserRole'
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const router = useRouter();
-  const { t } = useLanguage();
 
-  // 🔥 XÓA TẤT CẢ AUTH DATA CŨ KHI LOAD TRANG LOGIN
-  React.useEffect(() => {
-    // Clear all possible auth storage
-    if (typeof window !== 'undefined') {
-      console.log('🧹 Clearing all auth data on login page load...');
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('auth_user');
-      // Clear cookies (set expired date)
-      document.cookie = 'auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      document.cookie = 'auth_user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-      console.log('✅ All auth data cleared!');
+  // 4. Lấy các hàm và state
+  // ✅ SỬA LỖI 1: Xóa 'error: authError' vì useAuth không cung cấp nó.
+  const { login: setAuthState } = useAuth(); 
+  const { t } = useLanguage();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  // validateForm() và handleInputChange() giữ nguyên
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!email.trim()) {
+      newErrors.email = t('login.emailRequired');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = t('login.emailInvalid');
     }
-  }, []);
+
+    if (!password.trim()) {
+      newErrors.password = t('login.passwordRequired');
+    } else if (password.length < 6) {
+      newErrors.password = t('login.passwordLength');
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleInputChange = (field: string, value: string) => {
-    if (field === 'username') setUsername(value);
+    if (field === 'email') setEmail(value);
     if (field === 'password') setPassword(value);
     
     if (errors[field]) {
@@ -53,66 +67,72 @@ export default function LoginPage() {
   // 5. SỬA LẠI HOÀN TOÀN handleSubmit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!username || !password) {
-      toast.error('Vui lòng nhập đầy đủ thông tin');
+    
+    if (!validateForm()) {
+      toast.error(t('login.invalidCredentials'), {
+        description: 'Vui lòng kiểm tra lại thông tin đăng nhập'
+      });
       return;
     }
 
-    // 🔥 CLEAR TOKEN CŨ TRƯỚC KHI ĐĂNG NHẬP - Tránh lỗi 401
-    console.log('🧹 Clearing old tokens before login...');
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('auth_user');
-
     setIsLoading(true);
-    const toastId = toast.loading('🔐 Đang đăng nhập...');
+    const toastId = toast.loading('Đang đăng nhập...');
     
     try {
-      console.log('🚀 Calling authService.login with:', { username, password: '***' });
+      // 6. TỰ GỌI API login
+      const response = await api.auth.login({ email, password });
       
-      // Gọi trực tiếp authService - KHÔNG qua useAuth
-      const response = await authService.login({
-        email: username,
-        password: password,
-      });
-
-      console.log('✅ Login success! Response:', response);
-      
-      toast.success('✅ Đăng nhập thành công!', {
-        id: toastId,
-        description: `Chào mừng ${response.user.firstName || response.user.username}!`,
-        duration: 2000,
-      });
-
-      // Lưu thông tin vào localStorage
-      localStorage.setItem('auth_token', response.accessToken);
-      localStorage.setItem('auth_user', JSON.stringify(response.user));
-      if (response.refreshToken) {
-        localStorage.setItem('refresh_token', response.refreshToken);
+      // ✅ SỬA LỖI 2 & 3: Thêm kiểm tra 'response.data'
+      // Lỗi này xảy ra vì 'data' có thể là optional (data?: T)
+      if (!response.data) {
+        throw new Error('Không nhận được dữ liệu từ server');
       }
 
-      // Redirect dựa trên role - NGAY LẬP TỨC
-      const role = response.user.roles[0]?.toLowerCase();
-      console.log('🔄 Redirecting to dashboard for role:', role);
-      
-      setTimeout(() => {
-        if (role === 'admin') {
-          router.push('/admin');
-        } else if (role === 'employer') {
-          router.push('/employer/dashboard');
-        } else {
-          router.push('/user/dashboard');
-        }
-      }, 500);
-      
-    } catch (error: any) {
-      console.error('❌ Login failed:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Sai username hoặc password';
-      toast.error('❌ Đăng nhập thất bại', {
+      // 'user' từ API trả về thực chất là 'UserProfile'
+      const { token, user: profile } = response.data; // Đổi tên 'user' thành 'profile'
+
+      // 7. ✅ SỬA LỖI 1: Xây dựng object 'User' đầy đủ
+      // Object này khớp với định nghĩa 'User' trong useAuth.ts
+      const userToAuth: User = {
+        id: profile.id,
+        email: profile.email || '',
+        role: profile.role || UserRole.USER,
+        status: 'ACTIVE' as any,
+        subscriptionType: 'FREE' as any,
+        emailVerified: profile.verified || false,
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt,
+        profile: profile, // Gắn profile vào user
+      };
+
+      // 8. GỌI HÀM setAuthState với object 'User' đầy đủ
+      setAuthState(token, userToAuth); // Lỗi 1 đã được sửa
+
+      // 9. ✅ SỬA LỖI 2: Cập nhật cache với 'profile' (là UserProfile)
+      queryClient.setQueryData(['currentUser'], { data: profile }); // Lỗi 2 đã được sửa
+
+      toast.success('Đăng nhập thành công!', {
         id: toastId,
-        description: errorMessage,
+        description: `Chào mừng bạn trở lại, ${email}`
+      });
+
+      // 10. TỰ CHUYỂN HƯỚNG (dùng userToAuth)
+      if (userToAuth.role === 'ADMIN') {
+        router.push('/admin/dashboard');
+      } else if (userToAuth.role === 'EMPLOYER') {
+        router.push('/employer/dashboard');
+      } else {
+        router.push('/user/dashboard'); 
+      }
+
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      // Lấy message lỗi từ API response nếu có
+      // ✅ SỬA LỖI 1: Xóa 'authError' và lấy lỗi trực tiếp
+      const errorMessage = error.message || t('login.invalidCredentials');
+      toast.error('Đăng nhập thất bại', {
+        id: toastId,
+        description: errorMessage
       });
       setErrors({ submit: errorMessage });
     } finally {
@@ -146,18 +166,14 @@ export default function LoginPage() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  type="text"
-                  placeholder="Nhập username (ví dụ: admin, testuser)"
-                  value={username}
-                  onChange={(e) => handleInputChange('username', e.target.value)}
+                  type="email"
+                  placeholder={t('login.emailPlaceholder')}
+                  value={email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
                   className="pl-10"
-                  error={errors.username}
-                  autoComplete="username"
+                  error={errors.email}
                 />
               </div>
-              {errors.username && (
-                <p className="text-xs text-danger-500 ml-1">{errors.username}</p>
-              )}
             </div>
 
             <div className="space-y-2">
@@ -230,6 +246,29 @@ export default function LoginPage() {
             </div>
           </form>
 
+          {/* Demo accounts */}
+          <div className="mt-6 pt-6 border-t">
+            <p className="text-xs text-muted-foreground text-center mb-3">
+              {t('login.demoAccounts')}
+            </p>
+            <div className="space-y-2 text-xs">
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <p className="font-medium text-blue-900">{t('login.adminAccount')}</p>
+                <p className="text-blue-700">Email: admin@edumatch.com</p>
+                <p className="text-blue-700">Password: any password</p>
+              </div>
+              <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                <p className="font-medium text-green-900">{t('login.studentAccount')}</p>
+                <p className="text-green-700">Email: john.doe@student.edu</p>
+                <p className="text-green-700">Password: any password</p>
+              </div>
+              <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
+                <p className="font-medium text-purple-900">{t('login.providerAccount')}</p>
+                <p className="text-purple-700">Email: mit@scholarships.edu</p>
+                <p className="text-purple-700">Password: any password</p>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

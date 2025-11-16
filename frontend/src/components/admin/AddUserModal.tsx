@@ -23,7 +23,7 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: UserRole.USER,
+    role: UserRole.STUDENT,
     password: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -61,7 +61,7 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
       setFormData({
         name: '',
         email: '',
-        role: UserRole.USER,
+        role: UserRole.STUDENT,
         password: '',
       });
       setErrors({});
@@ -73,7 +73,7 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
     setFormData({
       name: '',
       email: '',
-      role: UserRole.USER,
+      role: UserRole.STUDENT,
       password: '',
     });
     setErrors({});
@@ -140,8 +140,8 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
               onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value={UserRole.USER}>{t('addUserModal.roleStudent')}</option>
-              <option value={UserRole.EMPLOYER}>{t('addUserModal.roleProvider')}</option>
+              <option value={UserRole.STUDENT}>{t('addUserModal.roleStudent')}</option>
+              <option value={UserRole.PROVIDER}>{t('addUserModal.roleProvider')}</option>
               <option value={UserRole.ADMIN}>{t('addUserModal.roleAdmin')}</option>
             </select>
           </div>

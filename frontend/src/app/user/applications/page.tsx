@@ -92,8 +92,8 @@ export default function ApplicationsPage() {
 
   const stats = {
     total: applications.length,
-    submitted: applications.filter(a => a.status === 'PENDING').length,
-    underReview: applications.filter(a => a.status === 'VIEWED').length,
+    submitted: applications.filter(a => a.status === 'SUBMITTED').length,
+    underReview: applications.filter(a => a.status === 'UNDER_REVIEW').length,
     accepted: applications.filter(a => a.status === 'ACCEPTED').length,
     rejected: applications.filter(a => a.status === 'REJECTED').length
   };
@@ -261,7 +261,7 @@ export default function ApplicationsPage() {
                         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                           <div className="flex items-center">
                             <Calendar className="h-4 w-4 mr-1" />
-                            {t('applicantApplications.labels.applied')}: {application.createdAt ? formatDate(application.createdAt) : 'N/A'}
+                            {t('applicantApplications.labels.applied')}: {application.submittedAt ? formatDate(application.submittedAt) : 'N/A'}
                           </div>
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 mr-1" />

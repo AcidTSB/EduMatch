@@ -82,14 +82,14 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
     
     // Student can chat with Provider and vice versa
     if (
-      (userRole === 'USER' && otherUserRole === 'EMPLOYER') ||
-      (userRole === 'EMPLOYER' && otherUserRole === 'USER')
+      (userRole === 'applicant' && otherUserRole === 'provider') ||
+      (userRole === 'provider' && otherUserRole === 'applicant')
     ) {
       return true;
     }
     
     // Admin can chat with everyone
-    if (userRole === 'ADMIN') return true;
+    if (userRole === 'admin') return true;
     
     return false;
   };

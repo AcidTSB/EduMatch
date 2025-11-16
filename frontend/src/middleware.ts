@@ -25,8 +25,8 @@ export function middleware(request: NextRequest) {
   // Allow public access to scholarships list and details for browsing
   // Support both legacy and new route names (applicant -> user)
   const publicScholarshipRoutes = [
-    '/applicant/scholarships', // Legacy support
-    '/applicant/scholarships/', // Legacy support
+    '/applicant/scholarships',
+    '/applicant/scholarships/',
     '/user/scholarships',
     '/user/scholarships/'
   ];
@@ -35,37 +35,38 @@ export function middleware(request: NextRequest) {
     pathname.startsWith(route) && !pathname.includes('/applications')
   );
 
-  // Protect employer routes (always require login)
-  // Support legacy '/provider' path for backward compatibility
+  // Protect provider/employer routes (always require login)
   if (pathname.startsWith('/provider') || pathname.startsWith('/employer')) {
     if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
-    // Backend only returns 'employer' role (from ROLE_EMPLOYER)
-    if (userRole !== 'employer') {
+    // Accept legacy and new role names: 'provider' or 'employer'
+    if (userRole !== 'provider' && userRole !== 'employer') {
       // Redirect wrong role to their own dashboard
-      if (userRole === 'admin' || userRole === 'ADMIN') {
+      if (userRole === 'admin') {
         return NextResponse.redirect(new URL('/admin', request.url));
-      } else if (userRole === 'user') {
-        return NextResponse.redirect(new URL('/user/dashboard', request.url));
+      } else if (userRole === 'applicant' || userRole === 'user') {
+        // send applicant/user to applicant/user area
+        const dest = (userRole === 'user') ? '/user/dashboard' : '/applicant/dashboard';
+        return NextResponse.redirect(new URL(dest, request.url));
       }
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
-  // Protect user routes (except public scholarship browsing)
-  // Support legacy '/applicant' path for backward compatibility
+  // Protect applicant/user routes (except public scholarship browsing)
   if ((pathname.startsWith('/applicant') || pathname.startsWith('/user')) && !isPublicScholarshipRoute) {
     if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
-    // Backend only returns 'user' role (from ROLE_USER)
-    if (userRole !== 'user') {
+    // Accept legacy and new role names: 'applicant' or 'user'
+    if (userRole !== 'applicant' && userRole !== 'user') {
       // Redirect wrong role to their own dashboard
-      if (userRole === 'admin' || userRole === 'ADMIN') {
+      if (userRole === 'admin') {
         return NextResponse.redirect(new URL('/admin', request.url));
-      } else if (userRole === 'employer') {
-        return NextResponse.redirect(new URL('/employer/dashboard', request.url));
+      } else if (userRole === 'provider' || userRole === 'employer') {
+        const dest = (userRole === 'employer') ? '/employer/dashboard' : '/provider/dashboard';
+        return NextResponse.redirect(new URL(dest, request.url));
       }
       return NextResponse.redirect(new URL('/', request.url));
     }
@@ -76,12 +77,14 @@ export function middleware(request: NextRequest) {
     if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
-    if (userRole !== 'admin' && userRole !== 'ADMIN') {
+    if (userRole !== 'admin') {
       // Redirect wrong role to their own dashboard
-      if (userRole === 'employer') {
-        return NextResponse.redirect(new URL('/employer/dashboard', request.url));
-      } else if (userRole === 'user') {
-        return NextResponse.redirect(new URL('/user/dashboard', request.url));
+      if (userRole === 'provider' || userRole === 'employer') {
+        const dest = (userRole === 'employer') ? '/employer/dashboard' : '/provider/dashboard';
+        return NextResponse.redirect(new URL(dest, request.url));
+      } else if (userRole === 'applicant' || userRole === 'user') {
+        const dest = (userRole === 'user') ? '/user/dashboard' : '/applicant/dashboard';
+        return NextResponse.redirect(new URL(dest, request.url));
       }
       return NextResponse.redirect(new URL('/', request.url));
     }

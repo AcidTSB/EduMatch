@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { AuthUser, Scholarship, Application, Notification } from '@/types';
-import { authService } from '@/services/auth.service';
+import { apiClient } from '@/lib/api-client';
 
 // =============================================================================
 // APP STATE TYPES
@@ -193,16 +193,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_LOADING', payload: true });
       
       try {
-        // KHÔNG tự động load user - để login page xử lý
-        console.log('🔧 [AppContext] Skipping auto-login check');
-        
-        // Chỉ check xem có stored user không
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          console.log('✅ [AppContext] Found stored user');
-          // Có thể parse và set user nếu cần
+        // Try to get current user (check if logged in)
+        const userResponse = await apiClient.auth.getCurrentUser();
+        if (userResponse.success && userResponse.data) {
+          dispatch({ type: 'SET_USER', payload: userResponse.data });
+          
+          // Load user data
+          await loadInitialData(userResponse.data.id);
         } else {
-          console.log('ℹ️ [AppContext] No stored user found');
+          // Not logged in, set default user for demo
+          const demoUser: AuthUser = {
+            id: '1',
+            email: 'student@demo.com',
+            name: 'John Student',
+            role: 'STUDENT' as any,
+            emailVerified: true,
+            status: 'ACTIVE' as any,
+            subscriptionType: 'FREE' as any,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+          dispatch({ type: 'SET_USER', payload: demoUser });
+          await loadInitialData(demoUser.id);
         }
       } catch (error) {
         console.error('Failed to initialize app:', error);
@@ -213,20 +225,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     initializeApp();
   }, []);
 
-  const loadInitialData = async (_userId: string) => {
-    // Legacy data prefetch disabled to avoid random 401s from unfinished endpoints
-    console.log('ℹ️ [AppContext] Skipping legacy data prefetch (scholarships/applications/notifications)');
-    dispatch({ type: 'SET_LOADING', payload: false });
+  const loadInitialData = async (userId: string) => {
+    try {
+      const [scholarshipsRes, applicationsRes, notificationsRes, savedRes] = await Promise.all([
+        apiClient.scholarships.getAll(),
+        apiClient.applications.getByUser(userId),
+        apiClient.notifications.getByUser(userId),
+        apiClient.savedScholarships.getByUser(userId)
+      ]);
+
+      if (scholarshipsRes.success && scholarshipsRes.data) {
+        dispatch({ type: 'SET_SCHOLARSHIPS', payload: scholarshipsRes.data });
+      }
+
+      if (applicationsRes.success && applicationsRes.data) {
+        dispatch({ type: 'SET_APPLICATIONS', payload: applicationsRes.data });
+      }
+
+      if (notificationsRes.success && notificationsRes.data) {
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: notificationsRes.data });
+      }
+
+      if (savedRes.success && savedRes.data) {
+        dispatch({ type: 'SET_SAVED_SCHOLARSHIPS', payload: savedRes.data });
+      }
+
+      dispatch({ type: 'SET_LOADING', payload: false });
+    } catch (error) {
+      console.error('Failed to load initial data:', error);
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
   };
 
   // Actions
   const login = async (email: string, password: string): Promise<boolean> => {
     dispatch({ type: 'SET_LOADING', payload: true });
+    
     try {
-      const { user } = await authService.login({ email, password });
-      dispatch({ type: 'SET_USER', payload: user as unknown as AuthUser });
-      await loadInitialData(String(user.id));
-      return true;
+      const response = await apiClient.auth.login({ email, password });
+      if (response.success && response.data) {
+        dispatch({ type: 'SET_USER', payload: response.data.user });
+        await loadInitialData(response.data.user.id);
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Login failed:', error);
       return false;
@@ -237,53 +279,109 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async (): Promise<void> => {
     try {
-      await authService.logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-    } finally {
+      await apiClient.auth.logout();
       dispatch({ type: 'SET_USER', payload: null });
       dispatch({ type: 'SET_SCHOLARSHIPS', payload: [] });
       dispatch({ type: 'SET_APPLICATIONS', payload: [] });
       dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
       dispatch({ type: 'SET_SAVED_SCHOLARSHIPS', payload: [] });
+    } catch (error) {
+      console.error('Logout failed:', error);
     }
   };
 
   const loadScholarships = async (): Promise<void> => {
-    console.log('ℹ️ [AppContext] loadScholarships skipped (legacy API not wired)');
+    try {
+      const response = await apiClient.scholarships.getAll();
+      if (response.success && response.data) {
+        dispatch({ type: 'SET_SCHOLARSHIPS', payload: response.data });
+      }
+    } catch (error) {
+      console.error('Failed to load scholarships:', error);
+    }
   };
 
   const loadApplications = async (): Promise<void> => {
     if (!state.user) return;
-    console.log('ℹ️ [AppContext] loadApplications skipped (legacy API not wired)');
+    
+    try {
+      const response = await apiClient.applications.getByUser(state.user.id);
+      if (response.success && response.data) {
+        dispatch({ type: 'SET_APPLICATIONS', payload: response.data });
+      }
+    } catch (error) {
+      console.error('Failed to load applications:', error);
+    }
   };
 
   const loadNotifications = async (): Promise<void> => {
     if (!state.user) return;
-    console.log('ℹ️ [AppContext] loadNotifications skipped (legacy API not wired)');
+    
+    try {
+      const response = await apiClient.notifications.getByUser(state.user.id);
+      if (response.success && response.data) {
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: response.data });
+      }
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    }
   };
 
   const loadSavedScholarships = async (): Promise<void> => {
     if (!state.user) return;
-    console.log('ℹ️ [AppContext] loadSavedScholarships skipped (legacy API not wired)');
+    
+    try {
+      const response = await apiClient.savedScholarships.getByUser(state.user.id);
+      if (response.success && response.data) {
+        dispatch({ type: 'SET_SAVED_SCHOLARSHIPS', payload: response.data });
+      }
+    } catch (error) {
+      console.error('Failed to load saved scholarships:', error);
+    }
   };
 
   const toggleSavedScholarship = async (scholarshipId: string): Promise<void> => {
     if (!state.user) return;
-    console.log('ℹ️ [AppContext] toggleSavedScholarship skipped (legacy API not wired)');
-    // Optimistically toggle UI state only
-    dispatch({ type: 'TOGGLE_SAVED_SCHOLARSHIP', payload: scholarshipId });
+    
+    try {
+      const response = await apiClient.savedScholarships.toggle(state.user.id, scholarshipId);
+      if (response.success) {
+        dispatch({ type: 'TOGGLE_SAVED_SCHOLARSHIP', payload: scholarshipId });
+      }
+    } catch (error) {
+      console.error('Failed to toggle saved scholarship:', error);
+    }
   };
 
-  const submitApplication = async (_applicationData: any): Promise<boolean> => {
+  const submitApplication = async (applicationData: any): Promise<boolean> => {
     if (!state.user) return false;
-    console.log('ℹ️ [AppContext] submitApplication skipped (legacy API not wired)');
-    return false;
+    
+    try {
+      const response = await apiClient.applications.submit({
+        ...applicationData,
+        applicantId: state.user.id
+      });
+      
+      if (response.success && response.data) {
+        dispatch({ type: 'ADD_APPLICATION', payload: response.data });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to submit application:', error);
+      return false;
+    }
   };
 
   const markNotificationAsRead = async (notificationId: string): Promise<void> => {
-    console.log('ℹ️ [AppContext] markNotificationAsRead skipped (legacy API not wired)');
-    dispatch({ type: 'MARK_NOTIFICATION_READ', payload: notificationId });
+    try {
+      const response = await apiClient.notifications.markAsRead(notificationId);
+      if (response.success) {
+        dispatch({ type: 'MARK_NOTIFICATION_READ', payload: notificationId });
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
   };
 
   const addNotification = async (notification: Omit<Notification, 'id' | 'createdAt'>): Promise<void> => {

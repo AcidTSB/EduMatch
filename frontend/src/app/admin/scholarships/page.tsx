@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-// MOCK DATA REMOVED - TODO: Integrate with real backend API
+import { mockScholarships, mockApplications } from '@/lib/mock-data';
 import { ScholarshipStatus } from '@/types';
 import { CreateScholarshipModal } from '@/components/admin/CreateScholarshipModal';
 import { EditScholarshipModal } from '@/components/admin/EditScholarshipModal';

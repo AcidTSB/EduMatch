@@ -12,13 +12,11 @@ import {
   LoginCredentials,
   RegisterCredentials,
   ApiResponse,
-  ScholarshipType,   
-  ScholarshipStatus,
-  ReportStatus,     
-  StudyMode,
-  ModerationStatus,
-  Transaction,
-  AuditLog,
+  // === CÁC ENUM QUAN TRỌNG TỪ @/types ===
+  // (Hãy chắc chắn rằng bạn đã định nghĩa và export chúng từ @/types/index.ts)
+  ScholarshipType,   // Thay thế cho ScholarshipLevel
+  ScholarshipStatus, // Thay thế cho ModerationStatus
+  ReportStatus,      // Dùng cho mảng REPORTS
 } from '@/types';
 
 // Helper để format Date thành 'YYYY-MM-DD'
@@ -36,37 +34,37 @@ export const USERS: AuthUser[] = [
     createdAt: new Date('2023-01-01'), updatedAt: new Date('2025-01-01'),
   },
   {
-    id: 'provider-1', email: 'mit@scholarships.edu', name: 'MIT Research Lab', role: UserRole.EMPLOYER,
+    id: 'provider-1', email: 'mit@scholarships.edu', name: 'MIT Research Lab', role: UserRole.PROVIDER,
     emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'PREMIUM' as any,
     createdAt: new Date('2023-06-15'), updatedAt: new Date('2025-01-10'),
   },
   {
-    id: 'provider-2', email: 'stanford@scholarships.edu', name: 'Stanford University', role: UserRole.EMPLOYER,
+    id: 'provider-2', email: 'stanford@scholarships.edu', name: 'Stanford University', role: UserRole.PROVIDER,
     emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'PREMIUM' as any,
     createdAt: new Date('2023-07-01'), updatedAt: new Date('2025-01-09'),
   },
   {
-    id: 'provider-3', email: 'google@scholarships.com', name: 'Google Education', role: UserRole.EMPLOYER,
+    id: 'provider-3', email: 'google@scholarships.com', name: 'Google Education', role: UserRole.PROVIDER,
     emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'ENTERPRISE' as any,
     createdAt: new Date('2023-08-10'), updatedAt: new Date('2025-01-08'),
   },
   {
-    id: 'student-1', email: 'john.doe@student.edu', name: 'John Doe', role: UserRole.USER,
+    id: 'student-1', email: 'john.doe@student.edu', name: 'John Doe', role: UserRole.STUDENT,
     emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'FREE' as any,
     createdAt: new Date('2024-09-01'), updatedAt: new Date('2025-01-12'),
   },
   {
-    id: 'student-2', email: 'jane.smith@student.edu', name: 'Jane Smith', role: UserRole.USER,
+    id: 'student-2', email: 'jane.smith@student.edu', name: 'Jane Smith', role: UserRole.STUDENT,
     emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'PREMIUM' as any,
     createdAt: new Date('2024-08-15'), updatedAt: new Date('2025-01-11'),
   },
   {
-    id: 'student-3', email: 'alex.chen@student.edu', name: 'Alex Chen', role: UserRole.USER,
+    id: 'student-3', email: 'alex.chen@student.edu', name: 'Alex Chen', role: UserRole.STUDENT,
     emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'FREE' as any,
     createdAt: new Date('2024-10-01'), updatedAt: new Date('2025-01-10'),
   },
   {
-    id: 'student-4', email: 'maria.g@student.edu', name: 'Maria Garcia', role: UserRole.USER,
+    id: 'student-4', email: 'maria.g@student.edu', name: 'Maria Garcia', role: UserRole.STUDENT,
     emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'FREE' as any,
     createdAt: new Date('2024-11-05'), updatedAt: new Date('2025-01-09'),
   },
@@ -77,9 +75,7 @@ export const USERS: AuthUser[] = [
 // =============================================================================
 export const USER_PROFILES: UserProfile[] = [
   {
-    id: 'profile-student-1', userId: 'student-1', 
-    email: 'john.doe@student.edu', role: UserRole.USER, // <-- THÊM VÀO
-    firstName: 'John', lastName: 'Doe',
+    id: 'profile-student-1', userId: 'student-1', firstName: 'John', lastName: 'Doe',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
     bio: 'Computer Science student passionate about AI',
     gpa: 3.8, skills: ['Python', 'React', 'TensorFlow'],
@@ -89,9 +85,7 @@ export const USER_PROFILES: UserProfile[] = [
     createdAt: new Date('2024-09-01'), updatedAt: new Date('2025-01-12'),
   },
   {
-    id: 'profile-student-2', userId: 'student-2',
-    email: 'jane.smith@student.edu', role: UserRole.USER, // <-- THÊM VÀO
-    firstName: 'Jane', lastName: 'Smith',
+    id: 'profile-student-2', userId: 'student-2', firstName: 'Jane', lastName: 'Smith',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jane',
     bio: 'UX Designer & Frontend Developer.',
     gpa: 3.9, skills: ['Figma', 'React', 'TypeScript'],
@@ -101,9 +95,7 @@ export const USER_PROFILES: UserProfile[] = [
     createdAt: new Date('2024-08-15'), updatedAt: new Date('2025-01-11'),
   },
   {
-    id: 'profile-student-3', userId: 'student-3',
-    email: 'alex.chen@student.edu', role: UserRole.USER, // <-- THÊM VÀO
-    firstName: 'Alex', lastName: 'Chen',
+    id: 'profile-student-3', userId: 'student-3', firstName: 'Alex', lastName: 'Chen',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
     bio: 'Data Science major.',
     gpa: 3.7, skills: ['Python', 'SQL', 'Tableau'],
@@ -113,9 +105,7 @@ export const USER_PROFILES: UserProfile[] = [
     createdAt: new Date('2024-10-01'), updatedAt: new Date('2025-01-10'),
   },
   {
-    id: 'profile-student-4', userId: 'student-4',
-    email: 'maria.g@student.edu', role: UserRole.USER, // <-- THÊM VÀO
-    firstName: 'Maria', lastName: 'Garcia',
+    id: 'profile-student-4', userId: 'student-4', firstName: 'Maria', lastName: 'Garcia',
     avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria',
     bio: 'Biomedical Engineering student.',
     gpa: 3.85, skills: ['MATLAB', 'Biomedical Devices', 'Research'],
@@ -133,41 +123,34 @@ export const SCHOLARSHIPS: Scholarship[] = [
   // 1. Published Scholarship
   {
     id: 'scholarship-1',
-    providerId: 'provider-1', 
-    providerName: 'MIT Research Lab', 
+    providerId: 'provider-1', // Chuẩn hóa
+    providerName: 'MIT Research Lab', // Thêm
     title: 'MIT AI Research Fellowship 2025',
     description: 'Full scholarship for graduate students pursuing AI and Machine Learning research at MIT',
-    amount: 50000,
-    type: ScholarshipType.RESEARCH,
-    status: ScholarshipStatus.PUBLISHED,
-    isRemote: false,
-
+    amount: 50000, // Chuẩn hóa
+    type: ScholarshipType.GRADUATE, // Chuẩn hóa
+    status: ScholarshipStatus.PUBLISHED, // Chuẩn hóa
     applicationDeadline: formatDateString(new Date('2025-03-31')),
     location: 'Cambridge, MA, USA',
     university: 'Massachusetts Institute of Technology',
-    department: 'CSAIL', 
-    duration: 24, 
+    department: 'CSAIL', // Thêm
+    duration: 24, // Thêm
+    isRemote: false, // Thêm
     minGpa: 3.5,
-    requirements: { 
+    requirements: { // Thêm
       minGpa: 3.5,
       englishProficiency: 'TOEFL 100+',
       documents: ['CV', 'Transcript', '3 Letters of Recommendation']
     },
     requiredSkills: ['Python', 'TensorFlow', 'Research'],
-    preferredSkills: ['PyTorch', 'NLP'], 
-    viewCount: 1250, 
-    createdAt: new Date('2024-11-01'), 
+    preferredSkills: ['PyTorch', 'NLP'], // Thêm
+    viewCount: 1250, // Chuẩn hóa
+    createdAt: new Date('2024-11-01'), // Thêm
     tags: ['AI', 'Machine Learning', 'Research'],
     website: 'https://web.mit.edu/fellowships',
     contactEmail: 'fellowships@mit.edu',
     isPublic: true,
     matchScore: 98,
-    // Optional legacy fields for backward compatibility
-    level: ScholarshipType.RESEARCH,
-    studyMode: StudyMode.FULL_TIME,
-    moderationStatus: ModerationStatus.APPROVED,
-    scholarshipAmount: 50000,
-    currency: 'USD',
   },
   // 2. Pending Scholarship (cho admin duyệt)
   {
@@ -176,17 +159,15 @@ export const SCHOLARSHIPS: Scholarship[] = [
     providerName: 'Stanford University',
     title: 'Stanford Cybersecurity Excellence Program',
     description: 'Comprehensive scholarship for outstanding students in cybersecurity and network security',
-    
     amount: 45000,
-    type: ScholarshipType.RESEARCH,
-    status: ScholarshipStatus.PENDING,
-    isRemote: false,
-
+    type: ScholarshipType.GRADUATE,
+    status: ScholarshipStatus.PENDING, // Đang chờ duyệt
     applicationDeadline: formatDateString(new Date('2025-04-15')),
     location: 'Stanford, CA, USA',
     university: 'Stanford University',
     department: 'Computer Science',
     duration: 24,
+    isRemote: false,
     minGpa: 3.6,
     requirements: {
       minGpa: 3.6,
@@ -201,12 +182,6 @@ export const SCHOLARSHIPS: Scholarship[] = [
     contactEmail: 'cybersec@stanford.edu',
     isPublic: false,
     matchScore: 85,
-    // Optional legacy fields for backward compatibility
-    level: ScholarshipType.RESEARCH,
-    studyMode: StudyMode.FULL_TIME,
-    moderationStatus: ModerationStatus.PENDING,
-    scholarshipAmount: 45000,
-    currency: 'USD',
   },
   // 3. Draft Scholarship (Provider chưa submit)
   {
@@ -215,17 +190,15 @@ export const SCHOLARSHIPS: Scholarship[] = [
     providerName: 'Google Education',
     title: 'Google UX Design Scholarship',
     description: 'Supporting the next generation of UX designers with full tuition coverage',
-
     amount: 30000,
     type: ScholarshipType.UNDERGRADUATE,
-    status: ScholarshipStatus.DRAFT,
-    isRemote: true,
-    
+    status: ScholarshipStatus.DRAFT, // Bản nháp
     applicationDeadline: formatDateString(new Date('2025-05-01')),
     location: 'Remote / Online',
     university: 'Google Education',
     department: 'Design',
     duration: 12,
+    isRemote: true,
     minGpa: 3.3,
     requirements: {
       documents: ['Portfolio', 'Essay']
@@ -239,12 +212,6 @@ export const SCHOLARSHIPS: Scholarship[] = [
     contactEmail: 'scholarships@google.com',
     isPublic: false,
     matchScore: 72,
-    // Optional legacy fields for backward compatibility
-    level: ScholarshipType.UNDERGRADUATE,
-    studyMode: StudyMode.ONLINE,
-    moderationStatus: ModerationStatus.PENDING,
-    scholarshipAmount: 30000,
-    currency: 'USD',
   },
   // 4. Rejected Scholarship (Admin đã từ chối)
   {
@@ -253,17 +220,15 @@ export const SCHOLARSHIPS: Scholarship[] = [
     providerName: 'MIT Research Lab',
     title: 'Quantum Computing Grant',
     description: 'Funding for PhD candidates.',
-
     amount: 75000,
-    type: ScholarshipType.PHD,
-    status: ScholarshipStatus.REJECTED,
-    isRemote: false,
-
+    type: ScholarshipType.RESEARCH,
+    status: ScholarshipStatus.REJECTED, // Bị từ chối
     applicationDeadline: formatDateString(new Date('2025-02-01')),
     location: 'Cambridge, MA, USA',
     university: 'Massachusetts Institute of Technology',
     department: 'Physics',
     duration: 36,
+    isRemote: false,
     minGpa: 3.8,
     requirements: {
       minGpa: 3.8,
@@ -278,12 +243,6 @@ export const SCHOLARSHIPS: Scholarship[] = [
     contactEmail: 'fellowships@mit.edu',
     isPublic: false,
     matchScore: 90,
-    // Optional legacy fields for backward compatibility
-    level: ScholarshipType.PHD,
-    studyMode: StudyMode.FULL_TIME,
-    moderationStatus: ModerationStatus.REJECTED,
-    scholarshipAmount: 75000,
-    currency: 'USD',
   },
   // 5. Another Published Scholarship
   {
@@ -292,17 +251,15 @@ export const SCHOLARSHIPS: Scholarship[] = [
     providerName: 'Stanford University',
     title: 'Bioengineering Innovators Scholarship',
     description: 'For undergraduate students demonstrating innovation in biomedical engineering.',
-
     amount: 20000,
     type: ScholarshipType.UNDERGRADUATE,
     status: ScholarshipStatus.PUBLISHED,
-    isRemote: false,
-
     applicationDeadline: formatDateString(new Date('2025-04-30')),
     location: 'Stanford, CA, USA',
     university: 'Stanford University',
     department: 'Bioengineering',
     duration: 12,
+    isRemote: false,
     minGpa: 3.7,
     requirements: {
       minGpa: 3.7,
@@ -317,12 +274,6 @@ export const SCHOLARSHIPS: Scholarship[] = [
     contactEmail: 'bioe@stanford.edu',
     isPublic: true,
     matchScore: 88,
-    // Optional legacy fields for backward compatibility
-    level: ScholarshipType.UNDERGRADUATE,
-    studyMode: StudyMode.FULL_TIME,
-    moderationStatus: ModerationStatus.APPROVED,
-    scholarshipAmount: 20000,
-    currency: 'USD',
   },
 ];
 
@@ -420,9 +371,7 @@ export const REPORTS: Report[] = [
     targetId: 'scholarship-2', // Báo cáo học bổng 'Stanford Cybersecurity'
     targetType: 'SCHOLARSHIP',
     reporterId: 'student-1',
-    reporterName: 'John Doe',
-    reporterEmail: 'john.doe@student.edu',
-    priority: 'HIGH',
+    reporterName: 'John Doe', // Lấy từ component [id]/page
     category: 'Misleading Information',
     description: 'The scholarship amount listed is incorrect. The official website says $40,000, not $45,000.',
     status: ReportStatus.PENDING,
@@ -435,8 +384,6 @@ export const REPORTS: Report[] = [
     targetType: 'SCHOLARSHIP',
     reporterId: 'student-2',
     reporterName: 'Jane Smith',
-    reporterEmail: 'jane.smith@student.edu',
-    priority: 'MEDIUM',
     category: 'Broken Link',
     description: 'The "website" link (https://web.mit.edu/fellowships) is dead, it leads to a 404 page.',
     status: ReportStatus.PENDING,
@@ -449,8 +396,6 @@ export const REPORTS: Report[] = [
     targetType: 'SCHOLARSHIP',
     reporterId: 'student-3',
     reporterName: 'Alex Chen',
-    reporterEmail: 'alex.chen@student.edu',
-    priority: 'CRITICAL',
     category: 'Spam',
     description: 'This provider asked me to pay an application fee via wire transfer, which seems like a scam.',
     status: ReportStatus.RESOLVED,
@@ -565,7 +510,7 @@ export const mockApi = {
       if (currentMockUser?.role === UserRole.ADMIN) {
         return { success: true, data };
       }
-      // Chỉ trả về học bổng published cho student/guest
+      // Chỉ trả về học bổng public cho student/guest
       return { success: true, data: data.filter(s => s.status === ScholarshipStatus.PUBLISHED) };
     },
 
@@ -573,8 +518,8 @@ export const mockApi = {
       await delay(300);
       const item = SCHOLARSHIPS.find(s => s.id === id);
       if (!item) return { success: false, error: 'Not found' };
-      // Admin/Provider có thể xem mọi trạng thái, student chỉ xem được published
-      if (currentMockUser?.role === UserRole.USER && item.status !== ScholarshipStatus.PUBLISHED) {
+      // Admin/Provider có thể xem mọi trạng thái, student chỉ xem được public
+      if (currentMockUser?.role === UserRole.STUDENT && item.status !== ScholarshipStatus.PUBLISHED) {
          return { success: false, error: 'Not found' };
       }
       return { success: true, data: item };
@@ -670,8 +615,8 @@ export function getApplicationsByScholarship(scholarshipId: string): Application
  */
 export function getAdminStats() {
   const totalUsers = USERS.length;
-  const totalStudents = USERS.filter(u => u.role === UserRole.USER).length;
-  const totalProviders = USERS.filter(u => u.role === UserRole.EMPLOYER).length;
+  const totalStudents = USERS.filter(u => u.role === UserRole.STUDENT).length;
+  const totalProviders = USERS.filter(u => u.role === UserRole.PROVIDER).length;
   const totalScholarships = SCHOLARSHIPS.length;
   const totalApplications = APPLICATIONS.length;
   
@@ -686,95 +631,6 @@ export function getAdminStats() {
     totalApplications,
     totalRevenue
   };
-}
-
-// =============================================================================
-// ADDITIONAL MOCK DATA FOR ADMIN PAGES
-// =============================================================================
-
-/**
- * Mock Transactions data
- */
-export const TRANSACTIONS: Transaction[] = [
-  {
-    id: 'txn-1',
-    userId: 'student-1',
-    amount: 99.99,
-    status: 'COMPLETED',
-    type: 'SUBSCRIPTION',
-    createdAt: new Date('2025-01-01'),
-  },
-  {
-    id: 'txn-2',
-    userId: 'student-2',
-    amount: 199.99,
-    status: 'COMPLETED',
-    type: 'SUBSCRIPTION',
-    createdAt: new Date('2025-01-05'),
-  },
-  {
-    id: 'txn-3',
-    userId: 'provider-1',
-    amount: 299.99,
-    status: 'COMPLETED',
-    type: 'SUBSCRIPTION',
-    createdAt: new Date('2025-01-10'),
-  },
-  {
-    id: 'txn-4',
-    userId: 'student-3',
-    amount: 49.99,
-    status: 'PENDING',
-    type: 'APPLICATION_FEE',
-    createdAt: new Date('2025-01-12'),
-  },
-];
-
-/**
- * Mock Audit Logs data
- */
-export const AUDIT_LOGS: AuditLog[] = [
-  {
-    id: 'log-1',
-    adminId: 'admin-1',
-    action: 'APPROVE_SCHOLARSHIP',
-    targetId: 'scholarship-1',
-    targetType: 'SCHOLARSHIP',
-    reason: 'Meets all requirements',
-    createdAt: new Date('2024-11-01'),
-  },
-  {
-    id: 'log-2',
-    adminId: 'admin-1',
-    action: 'REJECT_SCHOLARSHIP',
-    targetId: 'scholarship-4',
-    targetType: 'SCHOLARSHIP',
-    reason: 'Incomplete documentation',
-    createdAt: new Date('2024-10-20'),
-  },
-  {
-    id: 'log-3',
-    adminId: 'admin-1',
-    action: 'SUSPEND_USER',
-    targetId: 'student-4',
-    targetType: 'USER',
-    reason: 'Violation of terms of service',
-    createdAt: new Date('2025-01-05'),
-  },
-];
-
-/**
- * Get user profile by userId
- */
-export function getUserProfile(userId: string): UserProfile | undefined {
-  return USER_PROFILES.find(p => p.userId === userId);
-}
-
-/**
- * Get applications by student (applicant) ID
- */
-export function getApplicationsByStudent(studentId: string): Application[] {
-  return APPLICATIONS.filter(app => app.applicantId === studentId);
 }
 
 // =============================================================================

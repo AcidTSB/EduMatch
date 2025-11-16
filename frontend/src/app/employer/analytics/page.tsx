@@ -23,8 +23,6 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDate } from '@/lib/utils';
 import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext';
-import { USERS } from '@/lib/mock-data';
-import { USER_PROFILES } from '@/lib/mock-data';
 import { ApplicationStatus, ScholarshipStatus } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -41,7 +39,7 @@ export default function ProviderAnalyticsPage() {
     const acceptedApplications = applications.filter(app => app.status === ApplicationStatus.ACCEPTED).length;
     const rejectedApplications = applications.filter(app => app.status === ApplicationStatus.REJECTED).length;
     const pendingApplications = applications.filter(app => 
-      app.status === ApplicationStatus.PENDING
+      app.status === ApplicationStatus.SUBMITTED || app.status === ApplicationStatus.UNDER_REVIEW
     ).length;
     
     const activeScholarships = scholarships.filter(s => s.status === ScholarshipStatus.PUBLISHED).length;
@@ -54,7 +52,7 @@ export default function ProviderAnalyticsPage() {
       const accepted = scholarshipApplications.filter(app => app.status === ApplicationStatus.ACCEPTED).length;
       const rejected = scholarshipApplications.filter(app => app.status === ApplicationStatus.REJECTED).length;
       const pending = scholarshipApplications.filter(app => 
-        app.status === ApplicationStatus.PENDING
+        app.status === ApplicationStatus.SUBMITTED || app.status === ApplicationStatus.UNDER_REVIEW
       ).length;
       
       return {
@@ -74,10 +72,12 @@ export default function ProviderAnalyticsPage() {
     const majorStats = new Map();
     
     applications.forEach(app => {
-      const profile = USER_PROFILES.find((p: any) => p.userId === app.applicantId);
-      // UserProfile does not have university/major, fallback to 'N/A'
-      universityStats.set('N/A', (universityStats.get('N/A') || 0) + 1);
-      majorStats.set('N/A', (majorStats.get('N/A') || 0) + 1);
+      if (app.applicant?.university) {
+        universityStats.set(app.applicant.university, (universityStats.get(app.applicant.university) || 0) + 1);
+      }
+      if (app.applicant?.major) {
+        majorStats.set(app.applicant.major, (majorStats.get(app.applicant.major) || 0) + 1);
+      }
     });
 
     const topUniversities = Array.from(universityStats.entries())

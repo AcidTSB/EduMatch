@@ -73,8 +73,8 @@ export function RealTimeApplicationStatus() {
       scholarshipTitle: scholarship?.title || 'Unknown Scholarship',
       provider: scholarship?.providerName || 'Unknown Provider',
       status: app.status,
-      appliedDate: app.createdAt ? formatDate(app.createdAt) : null,
-      deadline: scholarship?.applicationDeadline ? formatDate(scholarship.applicationDeadline) : null,
+      appliedDate: app.submittedAt ? formatDate(app.submittedAt) : null,
+      deadline: scholarship?.deadline ? formatDate(scholarship.deadline) : null,
       updatedAt: app.updatedAt ? formatDate(app.updatedAt) : null
     };
   });

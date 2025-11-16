@@ -67,21 +67,21 @@ export default function ScholarshipsPage() {
         scholarship.title.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
         scholarship.providerName?.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
         scholarship.description.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        scholarship.requiredSkills?.some((skill: string) => skill.toLowerCase().includes(filters.searchTerm.toLowerCase()))
+        scholarship.field?.some((field: string) => field.toLowerCase().includes(filters.searchTerm.toLowerCase()))
       );
     }
 
     // Categories filter (field of study)
     if (filters.categories.length > 0) {
       filtered = filtered.filter(scholarship => 
-        scholarship.requiredSkills?.some((skill: string) => filters.categories.includes(skill))
+        scholarship.field?.some((field: string) => filters.categories.includes(field))
       );
     }
 
     // Amount range filter
     if (filters.amountRange[0] > 0 || filters.amountRange[1] > 0) {
       filtered = filtered.filter(scholarship => {
-        const amount = scholarship.amount || 0;
+        const amount = scholarship.amount || scholarship.stipend || 0;
         const min = filters.amountRange[0];
         const max = filters.amountRange[1];
         
@@ -117,8 +117,8 @@ export default function ScholarshipsPage() {
       }
       
       filtered = filtered.filter(scholarship => {
-        if (!scholarship.applicationDeadline) return false;
-        const deadline = new Date(scholarship.applicationDeadline);
+        if (!scholarship.deadline) return false;
+        const deadline = new Date(scholarship.deadline);
         return deadline >= now && deadline <= endDate;
       });
     }
@@ -126,7 +126,7 @@ export default function ScholarshipsPage() {
     // Locations filter
     if (filters.locations.length > 0) {
       filtered = filtered.filter(scholarship => 
-        filters.locations.includes(scholarship.location || '')
+        filters.locations.includes(scholarship.country || '')
       );
     }
 
@@ -144,14 +144,14 @@ export default function ScholarshipsPage() {
 
     // Old filter compatibility - Field filter (will be deprecated)
     if (fieldFilter !== 'all') {
-      filtered = filtered.filter(scholarship => scholarship.requiredSkills?.includes(fieldFilter));
+      filtered = filtered.filter(scholarship => scholarship.field?.includes(fieldFilter));
     }
 
     // Sort
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'deadline':
-          return new Date(a.applicationDeadline || '').getTime() - new Date(b.applicationDeadline || '').getTime();
+          return new Date(a.deadline || '').getTime() - new Date(b.deadline || '').getTime();
         case 'title':
           return a.title.localeCompare(b.title);
         case 'provider':
@@ -178,7 +178,7 @@ export default function ScholarshipsPage() {
 
   // Get unique fields and levels for filters
   const uniqueFields = React.useMemo(() => 
-    Array.from(new Set(scholarships.flatMap((s: any) => s.requiredSkills || []))).sort(),
+    Array.from(new Set(scholarships.flatMap((s: any) => s.field || []))).sort(),
     [scholarships]
   );
   
@@ -188,7 +188,7 @@ export default function ScholarshipsPage() {
   );
 
   const uniqueLocations = React.useMemo(() => 
-    Array.from(new Set(scholarships.map((s: any) => s.location).filter(Boolean))).sort(),
+    Array.from(new Set(scholarships.map((s: any) => s.country).filter(Boolean))).sort(),
     [scholarships]
   );
 

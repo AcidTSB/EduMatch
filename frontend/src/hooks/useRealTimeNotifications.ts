@@ -7,7 +7,7 @@ import { Notification } from '@/types/realtime';
 import { toast } from 'react-hot-toast';
 
 // Polling interval in milliseconds (5 seconds)
-const POLLING_INTERVAL = 30000; // 30s - reduced from 5s to prevent lag
+const POLLING_INTERVAL = 5000;
 
 interface UseRealTimeNotificationsOptions {
   enabled?: boolean;

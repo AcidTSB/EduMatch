@@ -17,24 +17,24 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
-import { authService } from '@/services/auth.service';
 
 export default function RegisterPage() {
   const { t } = useLanguage();
-  const router = useRouter();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    // Đã xóa 'sex' và 'role' khỏi state - backend không cần
+    sex: '' as 'MALE' | 'FEMALE' | 'OTHER' | '',
+    // Đã xóa 'role' khỏi state
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const router = useRouter();
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -71,7 +71,11 @@ export default function RegisterPage() {
       newErrors.confirmPassword = t('register.errors.passwordMismatch');
     }
 
-    // Đã xóa validate cho 'sex' và 'role' - backend không cần
+    if (!formData.sex) {
+      newErrors.sex = t('register.errors.sexRequired');
+    }
+
+    // Đã xóa validate cho 'role'
 
     if (!agreeToTerms) {
       newErrors.terms = t('register.errors.termsRequired');
@@ -91,56 +95,31 @@ export default function RegisterPage() {
       return;
     }
 
-    // 🔥 CLEAR TOKEN CŨ TRƯỚC KHI ĐĂNG KÝ - Tránh lỗi 401
-    console.log('🧹 Clearing old tokens before registration...');
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('auth_user');
-
     setIsLoading(true);
-    const toastId = toast.loading('📝 Đang tạo tài khoản...');
+    const toastId = toast.loading('Đang tạo tài khoản...');
 
     try {
-      console.log('🚀 Calling authService.register with:', {
-        ...formData,
-        password: '***',
-      });
+      // Mock API call - replace with actual registration
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Gọi trực tiếp authService - KHÔNG qua useAuth
-      const response = await authService.register({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        password: formData.password,
-        // sex: removed - backend không cần
-      });
+      // Mock successful registration
+      localStorage.setItem('auth_token', 'mock-jwt-token');
+      // Mặc định vai trò là 'user' vì trường chọn đã bị xóa
+      localStorage.setItem('user_role', 'user');
 
-      console.log('✅ Registration success! Response:', response);
-
-      toast.success('✅ Đăng ký thành công!', {
+      toast.success('Đăng ký thành công!', {
         id: toastId,
         description: `Chào mừng ${formData.firstName} ${formData.lastName} đến với EduMatch!`,
-        duration: 2000,
       });
 
-      // Lưu thông tin vào localStorage
-      localStorage.setItem('auth_token', response.accessToken);
-      localStorage.setItem('auth_user', JSON.stringify(response.user));
-      if (response.refreshToken) {
-        localStorage.setItem('refresh_token', response.refreshToken);
-      }
-
-      // Redirect đến trang user dashboard - NGAY LẬP TỨC
-      console.log('🔄 Redirecting to user dashboard...');
+      // Chuyển hướng đến dashboard của user
       setTimeout(() => {
         router.push('/user/dashboard');
-      }, 500);
-
-    } catch (error: any) {
-      console.error('❌ Registration failed:', error);
-      const errorMessage = error.response?.data?.message || error.message || t('register.errors.submitFailed');
-      toast.error('❌ Đăng ký thất bại', {
+      }, 1000);
+    } catch (error) {
+      console.error('Registration failed:', error);
+      const errorMessage = t('register.errors.submitFailed');
+      toast.error('Đăng ký thất bại', {
         id: toastId,
         description: errorMessage,
       });
@@ -251,7 +230,28 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* --- THAY ĐỔI: Đã xóa trường chọn Sex và Role - backend không yêu cầu --- */}
+            <div className="space-y-2">
+              <Select
+                value={formData.sex}
+                onValueChange={(value) => handleInputChange('sex', value)}
+              >
+                <SelectTrigger className={errors.sex ? 'border-danger-500' : ''}>
+                  <SelectValue placeholder={t('register.sex')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MALE">{t('register.sexMale')}</SelectItem>
+                  <SelectItem value="FEMALE">
+                    {t('register.sexFemale')}
+                  </SelectItem>
+                  <SelectItem value="OTHER">{t('register.sexOther')}</SelectItem>
+                </SelectContent>
+              </Select>
+              {errors.sex && (
+                <p className="text-xs text-danger-500">{errors.sex}</p>
+              )}
+            </div>
+
+            {/* --- THAY ĐỔI: Đã xóa trường chọn Role --- */}
 
             <div className="space-y-2">
               <div className="relative">

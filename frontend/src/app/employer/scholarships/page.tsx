@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-// MOCK DATA REMOVED - TODO: Integrate with real backend API
+import { mockScholarships } from '@/lib/mock-data';
 import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext';
 import { Scholarship, ScholarshipStatus } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
@@ -65,8 +65,8 @@ export default function ProviderScholarshipsPage() {
         return 'secondary';
       case ScholarshipStatus.CLOSED:
         return 'destructive';
-      // case ScholarshipStatus.EXPIRED:
-      //   return 'warning';
+      case ScholarshipStatus.EXPIRED:
+        return 'warning';
       default:
         return 'secondary';
     }
@@ -110,7 +110,7 @@ export default function ProviderScholarshipsPage() {
       <DialogHeader>
         <DialogTitle className="flex items-center justify-between">
           <span>{scholarship.title}</span>
-          <Badge variant={getStatusColor(scholarship.status as ScholarshipStatus)}>
+          <Badge variant={getStatusColor(scholarship.status)}>
             {scholarship.status}
           </Badge>
         </DialogTitle>
@@ -126,11 +126,11 @@ export default function ProviderScholarshipsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">{t('providerScholarships.details.amount')}</p>
-                <p className="font-semibold">{scholarship.amount}</p>
+                <p className="font-semibold">{scholarship.stipend}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{t('providerScholarships.details.deadline')}</p>
-                <p className="font-semibold">{scholarship.applicationDeadline ? formatDate(scholarship.applicationDeadline) : 'TBA'}</p>
+                <p className="font-semibold">{scholarship.deadline ? formatDate(scholarship.deadline) : 'TBA'}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">{t('providerScholarships.details.level')}</p>
@@ -150,7 +150,7 @@ export default function ProviderScholarshipsPage() {
             <div>
               <p className="text-sm text-muted-foreground mb-2">{t('providerScholarships.details.fields')}</p>
               <div className="flex flex-wrap gap-2">
-                {scholarship.requiredSkills?.map((field: string, index: number) => (
+                {scholarship.field?.map((field, index) => (
                   <Badge key={index} variant="outline">{field}</Badge>
                 ))}
               </div>
@@ -160,7 +160,7 @@ export default function ProviderScholarshipsPage() {
               <p className="text-sm text-muted-foreground mb-2">{t('providerScholarships.details.requirements')}</p>
               <div className="space-y-1 text-sm">
                 {Array.isArray(scholarship.requirements) ? (
-                  (scholarship.requirements as string[]).map((requirement: string, index: number) => (
+                  scholarship.requirements.map((requirement, index) => (
                     <p key={index}>• {requirement}</p>
                   ))
                 ) : (
@@ -332,7 +332,7 @@ export default function ProviderScholarshipsPage() {
                   <SelectItem value={ScholarshipStatus.PUBLISHED}>{t('providerScholarships.stats.published')}</SelectItem>
                   <SelectItem value={ScholarshipStatus.DRAFT}>{t('providerScholarships.stats.draft')}</SelectItem>
                   <SelectItem value={ScholarshipStatus.CLOSED}>{t('providerScholarships.stats.closed')}</SelectItem>
-                  {/* <SelectItem value={ScholarshipStatus.EXPIRED}>Expired</SelectItem> */}
+                  <SelectItem value={ScholarshipStatus.EXPIRED}>Expired</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -388,11 +388,11 @@ export default function ProviderScholarshipsPage() {
                             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center">
                                 <DollarSign className="h-4 w-4 mr-1" />
-                                {scholarship.amount}
+                                {scholarship.stipend}
                               </div>
                               <div className="flex items-center">
                                 <Calendar className="h-4 w-4 mr-1" />
-                                Deadline: {scholarship.applicationDeadline ? formatDate(scholarship.applicationDeadline) : 'TBA'}
+                                Deadline: {scholarship.deadline ? formatDate(scholarship.deadline) : 'TBA'}
                               </div>
                               <div className="flex items-center">
                                 <Users className="h-4 w-4 mr-1" />

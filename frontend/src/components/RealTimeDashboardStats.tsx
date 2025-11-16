@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { ApplicationStatus } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { FileText, Clock, CheckCircle, Heart, TrendingUp, Users, Award, AlertTriangle } from 'lucide-react';
 import { useRealTime } from '@/providers/RealTimeProvider';
@@ -35,7 +34,7 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
     {
       id: 'review',
       title: 'In Review',
-      value: applications.filter(a => a.status === ApplicationStatus.PENDING).length,
+      value: applications.filter(a => a.status === 'UNDER_REVIEW').length,
       change: stats?.reviewChange || '+1',
       icon: Clock,
       color: 'bg-gradient-to-br from-yellow-100 to-amber-200',

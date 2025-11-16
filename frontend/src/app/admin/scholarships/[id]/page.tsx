@@ -148,7 +148,7 @@ export default function AdminScholarshipDetailPage() {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="text-2xl font-bold text-gray-900">{scholarship.title}</h2>
-                <Badge className={getStatusColor(scholarship.status as ScholarshipStatus)}>
+                <Badge className={getStatusColor(scholarship.status)}>
                   {scholarship.status}
                 </Badge>
               </div>

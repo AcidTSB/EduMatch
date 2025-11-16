@@ -207,7 +207,7 @@ export default function MessagesPage() {
                 <span>{t('messages.title')}</span>
               </h1>
               <p className="text-gray-600 mt-2">
-                {t('messages.subtitle').replace('{role}', user.role === 'user' ? t('messages.subtitleProvider') : t('messages.subtitleStudent'))}
+                {t('messages.subtitle').replace('{role}', user.role === 'applicant' ? t('messages.subtitleProvider') : t('messages.subtitleStudent'))}
               </p>
             </div>
             <div className="mt-4 sm:mt-0 flex items-center space-x-4">

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StatCard from '@/components/admin/StatCard';
 import CSVExportButton from '@/components/admin/CSVExportButton';
-// MOCK DATA REMOVED - TODO: Integrate with real backend API
+import { getAdminStats, SCHOLARSHIPS, APPLICATIONS } from '@/lib/mock-data';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AdminAnalyticsPage() {

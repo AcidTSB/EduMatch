@@ -1,18 +1,3 @@
-  // Helper to get applicant profile by applicantId
-  const getApplicantProfile = (applicantId: string) => {
-    // Replace with actual lookup from USER_PROFILES context or mock data
-    return {
-      name: 'Unknown',
-      email: 'Unknown',
-      university: 'Unknown',
-      major: 'Unknown',
-      gpa: 'N/A',
-      avatar: '',
-      skills: [],
-      bio: '',
-      graduationYear: 'Unknown',
-    };
-  };
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -81,12 +66,11 @@ export default function ScholarshipApplicationsPage() {
 
     // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter((app: Application) => {
-        const profile = getApplicantProfile(app.applicantId);
-        return profile.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          profile.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          profile.university.toLowerCase().includes(searchTerm.toLowerCase());
-      });
+      filtered = filtered.filter((app: Application) => 
+        app.applicant?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.applicant?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.applicant?.university?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
 
     // Filter by status
@@ -120,10 +104,11 @@ export default function ScholarshipApplicationsPage() {
       // Also create notification for the applicant
       await addNotification({
         userId: selectedApplication.applicantId,
-        type: 'INFO',
+        type: 'message',
         title: `New message: ${messageSubject}`,
         message: messageText,
-        read: false
+        read: false,
+        actionUrl: `/messages` // Link to messages page
       });
 
       toast.success('Message sent successfully via real-time!');
@@ -231,7 +216,7 @@ export default function ScholarshipApplicationsPage() {
           </span>
           <span className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
-            Deadline: {scholarship?.applicationDeadline ? formatDate(scholarship.applicationDeadline) : 'TBA'}
+            Deadline: {scholarship?.deadline ? (typeof scholarship.deadline === 'string' ? formatDate(scholarship.deadline) : scholarship.deadline.toLocaleDateString()) : 'TBA'}
           </span>
           <span className="flex items-center gap-1">
             <GraduationCap className="h-4 w-4" />
@@ -284,53 +269,50 @@ export default function ScholarshipApplicationsPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4">
                     <Avatar className="h-12 w-12">
-                      {(() => {
-                        const profile = getApplicantProfile(application.applicantId);
-                        return <>
-                          <AvatarImage src={profile.avatar} alt={profile.name} />
-                          <AvatarFallback>{profile.name.split(' ').map((n: string) => n[0]).join('') || 'N/A'}</AvatarFallback>
-                        </>;
-                      })()}
+                      <AvatarImage src={application.applicant?.avatar} alt={application.applicant?.name} />
+                      <AvatarFallback>
+                        {application.applicant?.name?.split(' ').map((n: string) => n[0]).join('') || 'N/A'}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="text-lg font-semibold text-gray-900">
-                          {getApplicantProfile(application.applicantId).name}
+                          {application.applicant?.name || 'Unknown'}
                         </h3>
                         <Badge variant={getStatusVariant(application.status)} className="flex items-center gap-1">
                           {getStatusIcon(application.status)}
                           {getStatusLabel(application.status)}
                         </Badge>
                       </div>
-                      <p className="text-gray-600 mb-2">{getApplicantProfile(application.applicantId).email}</p>
+                      <p className="text-gray-600 mb-2">{application.applicant?.email || 'No email'}</p>
                       <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
                         <span className="flex items-center gap-1">
                           <GraduationCap className="h-4 w-4" />
-                          {getApplicantProfile(application.applicantId).university} • {getApplicantProfile(application.applicantId).major}
+                          {application.applicant?.university || 'Unknown'} • {application.applicant?.major || 'Unknown'}
                         </span>
                         <span className="flex items-center gap-1">
                           <Star className="h-4 w-4" />
-                          GPA: {getApplicantProfile(application.applicantId).gpa}
+                          GPA: {application.applicant?.gpa || 'N/A'}
                         </span>
                         <span className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          Applied: {application.createdAt ? new Date(application.createdAt).toLocaleDateString() : 'Unknown'}
+                          Applied: {application.submittedAt ? new Date(application.submittedAt).toLocaleDateString() : 'Unknown'}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1 mb-2">
-                        {getApplicantProfile(application.applicantId).skills.slice(0, 3).map((skill: string) => (
+                        {(application.applicant?.profile?.skills || []).slice(0, 3).map((skill: string) => (
                           <Badge key={skill} variant="outline" className="text-xs">
                             {skill}
                           </Badge>
                         ))}
-                        {getApplicantProfile(application.applicantId).skills.length > 3 && (
+                        {(application.applicant?.profile?.skills || []).length > 3 && (
                           <Badge variant="outline" className="text-xs">
-                            +{getApplicantProfile(application.applicantId).skills.length - 3} more
+                            +{(application.applicant?.profile?.skills || []).length - 3} more
                           </Badge>
                         )}
                       </div>
                       <p className="text-sm text-gray-500">
-                        Applied on {application.createdAt ? formatDate(application.createdAt.toString()) : 'Unknown'}
+                        Applied on {application.submittedAt ? formatDate(application.submittedAt.toString()) : 'Unknown'}
                       </p>
                     </div>
                   </div>
@@ -345,7 +327,7 @@ export default function ScholarshipApplicationsPage() {
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
-                          <DialogTitle>Application Details - {getApplicantProfile(application.applicantId).name}</DialogTitle>
+                          <DialogTitle>Application Details - {application.applicant?.name || 'Unknown'}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-6">
                           {/* Personal Info */}
@@ -354,23 +336,23 @@ export default function ScholarshipApplicationsPage() {
                             <div className="grid grid-cols-2 gap-4 text-sm">
                               <div>
                                 <span className="text-gray-500">Email:</span>
-                                {getApplicantProfile(application.applicantId).email}
+                                <p>{application.applicant?.email || 'Unknown'}</p>
                               </div>
                               <div>
                                 <span className="text-gray-500">University:</span>
-                                {getApplicantProfile(application.applicantId).university}
+                                <p>{application.applicant?.university || application.applicant?.profile?.university || 'Unknown'}</p>
                               </div>
                               <div>
                                 <span className="text-gray-500">Major:</span>
-                                {getApplicantProfile(application.applicantId).major}
+                                <p>{application.applicant?.major || application.applicant?.profile?.major || 'Unknown'}</p>
                               </div>
                               <div>
                                 <span className="text-gray-500">GPA:</span>
-                                {getApplicantProfile(application.applicantId).gpa}
+                                <p>{application.applicant?.gpa || application.applicant?.profile?.gpa || 'N/A'}</p>
                               </div>
                               <div>
                                 <span className="text-gray-500">Graduation Year:</span>
-                                {getApplicantProfile(application.applicantId).graduationYear}
+                                <p>{application.applicant?.profile?.graduationYear || 'Unknown'}</p>
                               </div>
                             </div>
                           </div>
@@ -379,7 +361,7 @@ export default function ScholarshipApplicationsPage() {
                           <div>
                             <h4 className="font-semibold mb-2">Skills</h4>
                             <div className="flex flex-wrap gap-1">
-                              {getApplicantProfile(application.applicantId).skills.map((skill: string) => (
+                              {(application.applicant?.profile?.skills || []).map((skill: string) => (
                                 <Badge key={skill} variant="secondary" className="text-xs">
                                   {skill}
                                 </Badge>
@@ -390,13 +372,13 @@ export default function ScholarshipApplicationsPage() {
                           {/* Experience */}
                           <div>
                             <h4 className="font-semibold mb-2">Bio</h4>
-                            {getApplicantProfile(application.applicantId).bio || 'No bio provided'}
+                            <p className="text-sm text-gray-700">{application.applicant?.profile?.bio || 'No bio provided'}</p>
                           </div>
 
                           {/* Cover Letter */}
                           <div>
                             <h4 className="font-semibold mb-2">Cover Letter</h4>
-                            {/* coverLetter removed, not in Application type */}
+                            <p className="text-sm text-gray-700 whitespace-pre-wrap">{application.coverLetter || 'No cover letter provided'}</p>
                           </div>
 
                           {/* Additional Documents */}
@@ -417,23 +399,23 @@ export default function ScholarshipApplicationsPage() {
                             <div className="flex gap-2">
                               <Button 
                                 size="sm" 
-                                onClick={() => handleStatusUpdate(application.id, 'VIEWED')}
-                                disabled={application.status === 'VIEWED'}
+                                onClick={() => handleStatusUpdate(application.id, ApplicationStatus.UNDER_REVIEW)}
+                                disabled={application.status === ApplicationStatus.UNDER_REVIEW}
                               >
                                 Mark Under Review
                               </Button>
                               <Button 
                                 size="sm" 
-                                onClick={() => handleStatusUpdate(application.id, 'ACCEPTED')}
-                                disabled={application.status === 'ACCEPTED'}
+                                onClick={() => handleStatusUpdate(application.id, ApplicationStatus.ACCEPTED)}
+                                disabled={application.status === ApplicationStatus.ACCEPTED}
                               >
                                 Accept
                               </Button>
                               <Button 
                                 size="sm" 
                                 variant="destructive"
-                                onClick={() => handleStatusUpdate(application.id, 'REJECTED')}
-                                disabled={application.status === 'REJECTED'}
+                                onClick={() => handleStatusUpdate(application.id, ApplicationStatus.REJECTED)}
+                                disabled={application.status === ApplicationStatus.REJECTED}
                               >
                                 Reject
                               </Button>
@@ -518,7 +500,7 @@ export default function ScholarshipApplicationsPage() {
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">
-              {applications.filter(app => app.status === 'PENDING').length}
+              {applications.filter(app => app.status === 'SUBMITTED').length}
             </div>
             <div className="text-sm text-gray-500">New Applications</div>
           </CardContent>
@@ -526,8 +508,7 @@ export default function ScholarshipApplicationsPage() {
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold text-yellow-600">
-              {/* If you want to support VIEWED status, update here */}
-              {applications.filter(app => app.status === 'VIEWED').length}
+              {applications.filter(app => app.status === 'UNDER_REVIEW').length}
             </div>
             <div className="text-sm text-gray-500">Under Review</div>
           </CardContent>

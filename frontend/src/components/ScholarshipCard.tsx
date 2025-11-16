@@ -88,8 +88,8 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
         </div>
         
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          {/* SỬA: Dùng university hoặc providerId (nếu university null) */}
-          <span className="font-medium">{scholarship.university || `Provider #${scholarship.providerId}`}</span>
+          {/* SỬA: Dùng university hoặc organizationId (nếu university null) */}
+          <span className="font-medium">{scholarship.university || `Org #${scholarship.organizationId}`}</span>
           <span>•</span>
           <div className="flex items-center gap-1">
             <MapPin className="h-3 w-3" />
@@ -133,14 +133,14 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
           </div>
           
           {/* SỬA: Dùng scholarshipAmount */}
-          {(scholarship.scholarshipAmount ?? scholarship.amount ?? 0) > 0 && (
+          {(scholarship.scholarshipAmount > 0) && (
             <div className="flex items-center gap-2 col-span-2">
               <div className="w-4 h-4 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
                 <DollarSign className="h-3 w-3 text-white" />
               </div>
               <span className="font-semibold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 {/* SỬA: Format scholarshipAmount */}
-                {formatCurrency((scholarship.scholarshipAmount ?? scholarship.amount ?? 0))}
+                {formatCurrency(scholarship.scholarshipAmount)}
               </span>
             </div>
           )}

@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-// MOCK DATA REMOVED - TODO: Integrate with real backend API
+import { mockUsers } from '@/lib/mock-data';
 import { UserRole } from '@/types';
 import { AddUserModal } from '@/components/admin/AddUserModal';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
@@ -82,11 +82,11 @@ export default function UsersManagement() {
       id: user.id,
       name: user.name || 'Unknown',
       email: user.email,
-      role: user.role === UserRole.ADMIN ? t('adminUsers.roleAdmin') : user.role === UserRole.USER ? t('adminUsers.roleStudent') : t('adminUsers.roleProvider'),
+      role: user.role === UserRole.ADMIN ? t('adminUsers.roleAdmin') : user.role === UserRole.STUDENT ? t('adminUsers.roleStudent') : t('adminUsers.roleProvider'),
       status: user.status || t('adminUsers.statusActive'),
       joinDate: new Date(user.createdAt).toISOString().split('T')[0],
-      applications: user.role === UserRole.USER ? 5 : undefined,
-      scholarships: user.role === UserRole.EMPLOYER ? 10 : undefined,
+      applications: user.role === UserRole.STUDENT ? 5 : undefined,
+      scholarships: user.role === UserRole.PROVIDER ? 10 : undefined,
       avatar: initials
     };
   });

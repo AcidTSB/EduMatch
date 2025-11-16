@@ -93,7 +93,7 @@ export default function CreateScholarshipPage() {
       console.log('Creating scholarship with API body:', apiBody);
 
       toast.success(t('createScholarship.success'));
-      router.push('/employer/scholarships');
+      router.push('/provider/scholarships'); // Giả sử route này đúng
     } catch (error) {
       toast.error(t('createScholarship.error'));
       console.error('Error creating scholarship:', error);
@@ -111,7 +111,7 @@ export default function CreateScholarshipPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Button
             variant="ghost"
-            onClick={() => router.push('/employer/scholarships')}
+            onClick={() => router.push('/provider/scholarships')}
             className="mb-4"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -429,7 +429,7 @@ export default function CreateScholarshipPage() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => router.push('/employer/scholarships')}
+              onClick={() => router.push('/provider/scholarships')}
               className="flex-1"
             >
               {t('createScholarship.cancel')}

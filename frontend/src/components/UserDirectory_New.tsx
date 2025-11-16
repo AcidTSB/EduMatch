@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { UserRole } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +20,7 @@ import {
 interface User {
   id: string;
   name: string;
-  role: 'user' | 'employer' | 'admin';
+  role: 'applicant' | 'provider' | 'admin';
   avatar?: string;
   bio?: string;
   isOnline: boolean;
@@ -44,18 +43,21 @@ export function UserDirectory({ onStartChat }: UserDirectoryProps) {
   // Define role-based chat rules
   const canChatWith = (targetRole: string): boolean => {
     if (!currentUser) return false;
+    
     const { role: currentRole } = currentUser;
-    if (currentRole === UserRole.ADMIN) return true;
-    if (currentRole === UserRole.USER && (targetRole === 'user' || targetRole === 'employer')) return true;
-    if (currentRole === UserRole.EMPLOYER && (targetRole === 'employer' || targetRole === 'user')) return true;
+    
+    if (currentRole === 'admin') return true;
+    if (currentRole === 'applicant' && (targetRole === 'applicant' || targetRole === 'provider')) return true;
+    if (currentRole === 'provider' && (targetRole === 'provider' || targetRole === 'applicant')) return true;
+    
     return false;
   };
 
   // Load mock users and track online status
   useEffect(() => {
     const mockUsers = [
-      { id: '1', name: 'John Student', role: 'user' as const, bio: 'Computer Science • MIT', isOnline: false },
-      { id: '2', name: 'Jane Employer', role: 'employer' as const, bio: 'AI & Machine Learning • Tech Innovation Foundation', isOnline: false },
+      { id: '1', name: 'John Student', role: 'applicant' as const, bio: 'Computer Science • MIT', isOnline: false },
+      { id: '2', name: 'Jane Provider', role: 'provider' as const, bio: 'AI & Machine Learning • Tech Innovation Foundation', isOnline: false },
       { id: '3', name: 'Admin User', role: 'admin' as const, bio: 'System Administrator', isOnline: false }
     ];
 
@@ -69,7 +71,7 @@ export function UserDirectory({ onStartChat }: UserDirectoryProps) {
 
   // Track online users via socket
   useEffect(() => {
-    if (!socket) return;
+    if (!socket.socket) return;
 
     const updateOnlineStatus = (onlineUserIds: string[]) => {
       setUsers(prevUsers => 
@@ -81,12 +83,12 @@ export function UserDirectory({ onStartChat }: UserDirectoryProps) {
     };
 
     // Listen for user presence updates
-    socket.on('users_list_update', (data: any) => {
+    socket.socket.on('users_list_update', (data: any) => {
       const onlineIds = data.onlineUsers?.map((u: any) => u.userId) || [];
       updateOnlineStatus(onlineIds);
     });
 
-    socket.on('user_online', (userData: any) => {
+    socket.socket.on('user_online', (userData: any) => {
       setUsers(prevUsers =>
         prevUsers.map(user =>
           user.id === userData.userId
@@ -96,7 +98,7 @@ export function UserDirectory({ onStartChat }: UserDirectoryProps) {
       );
     });
 
-    socket.on('user_offline', (userData: any) => {
+    socket.socket.on('user_offline', (userData: any) => {
       setUsers(prevUsers =>
         prevUsers.map(user =>
           user.id === userData.userId
@@ -107,13 +109,13 @@ export function UserDirectory({ onStartChat }: UserDirectoryProps) {
     });
 
     return () => {
-      if (socket) {
-        socket.off('users_list_update');
-        socket.off('user_online');
-        socket.off('user_offline');
+      if (socket.socket) {
+        socket.socket.off('users_list_update');
+        socket.socket.off('user_online');
+        socket.socket.off('user_offline');
       }
     };
-  }, [socket]);
+  }, [socket.socket]);
 
   // Filter users based on search and filters
   useEffect(() => {
