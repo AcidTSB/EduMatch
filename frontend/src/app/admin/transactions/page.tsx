@@ -11,7 +11,8 @@ import FilterPanel, { FilterConfig } from '@/components/admin/FilterPanel';
 import ModalConfirm from '@/components/admin/ModalConfirm';
 import StatCard from '@/components/admin/StatCard';
 import CSVExportButton from '@/components/admin/CSVExportButton';
-// MOCK DATA REMOVED - TODO: Integrate with real backend API
+import { TRANSACTIONS, USERS } from '@/lib/mock-data';
+import { Transaction } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AdminTransactionsPage() {
@@ -30,7 +31,7 @@ export default function AdminTransactionsPage() {
         { label: t('adminTransactions.status.pending'), value: 'PENDING' },
         { label: t('adminTransactions.status.completed'), value: 'COMPLETED' },
         { label: t('adminTransactions.status.failed'), value: 'FAILED' },
-        { label: t('adminTransactions.status.refunded'), value: 'REFUNDED' }
+        // No 'REFUNDED' status in Transaction type
       ]
     },
     {
@@ -40,8 +41,7 @@ export default function AdminTransactionsPage() {
       options: [
         { label: t('adminTransactions.type.subscription'), value: 'SUBSCRIPTION' },
         { label: t('adminTransactions.type.applicationFee'), value: 'APPLICATION_FEE' },
-        { label: t('adminTransactions.type.refund'), value: 'REFUND' },
-        { label: t('adminTransactions.type.credit'), value: 'CREDIT' }
+        // No 'REFUND' or 'CREDIT' type in Transaction type
       ]
     },
     {
@@ -49,9 +49,7 @@ export default function AdminTransactionsPage() {
       label: t('adminTransactions.filters.paymentMethod'),
       type: 'select',
       options: [
-        { label: t('adminTransactions.payment.card'), value: 'CARD' },
-        { label: t('adminTransactions.payment.paypal'), value: 'PAYPAL' },
-        { label: t('adminTransactions.payment.bank'), value: 'BANK' }
+        // No paymentMethod in Transaction type
       ]
     },
     {
@@ -64,7 +62,6 @@ export default function AdminTransactionsPage() {
   const filteredTransactions = TRANSACTIONS.filter((tx: Transaction) => {
     const matchesStatus = !filterValues.status?.length || filterValues.status.includes(tx.status);
     const matchesType = !filterValues.type?.length || filterValues.type.includes(tx.type);
-    const matchesPaymentMethod = !filterValues.paymentMethod || tx.paymentMethod === filterValues.paymentMethod;
 
     if (filterValues.dateRange?.from || filterValues.dateRange?.to) {
       const txDate = new Date(tx.createdAt);
@@ -72,16 +69,13 @@ export default function AdminTransactionsPage() {
       if (filterValues.dateRange.to && txDate > new Date(filterValues.dateRange.to)) return false;
     }
 
-    return matchesStatus && matchesType && matchesPaymentMethod;
+    return matchesStatus && matchesType;
   });
 
   const stats = {
     totalRevenue: TRANSACTIONS
-      .filter((t: Transaction) => t.status === 'COMPLETED' && t.type !== 'REFUND')
+      .filter((t: Transaction) => t.status === 'COMPLETED')
       .reduce((sum: number, t: Transaction) => sum + t.amount, 0),
-    totalRefunded: TRANSACTIONS
-      .filter((t: Transaction) => t.status === 'REFUNDED' || t.type === 'REFUND')
-      .reduce((sum: number, t: Transaction) => sum + Math.abs(t.amount), 0),
     pendingCount: TRANSACTIONS.filter((t: Transaction) => t.status === 'PENDING').length,
     completedCount: TRANSACTIONS.filter((t: Transaction) => t.status === 'COMPLETED').length
   };
@@ -114,15 +108,18 @@ export default function AdminTransactionsPage() {
       render: (tx) => <span className="font-mono text-sm">{tx.id}</span>
     },
     {
-      key: 'userName',
+      key: 'user',
       label: t('adminTransactions.table.user'),
       sortable: true,
-      render: (tx) => (
-        <div>
-          <div className="font-medium text-gray-900">{tx.userName}</div>
-          <div className="text-sm text-gray-500">{tx.userEmail}</div>
-        </div>
-      )
+      render: (tx) => {
+        const user = USERS.find((u: any) => u.id === tx.userId);
+        return (
+          <div>
+            <div className="font-medium text-gray-900">{user?.name || tx.userId}</div>
+            <div className="text-sm text-gray-500">{user?.email || ''}</div>
+          </div>
+        );
+      }
     },
     {
       key: 'type',
@@ -139,23 +136,6 @@ export default function AdminTransactionsPage() {
           ${Math.abs(tx.amount).toFixed(2)}
         </span>
       )
-    },
-    {
-      key: 'paymentMethod',
-      label: t('adminTransactions.table.paymentMethod'),
-      render: (tx) => {
-        const icons: Record<string, string> = {
-          CARD: '💳',
-          PAYPAL: '🅿️',
-          BANK: '🏦'
-        };
-        return (
-          <div className="flex items-center gap-2">
-            <span>{icons[tx.paymentMethod]}</span>
-            <span className="text-sm">{tx.paymentMethod}</span>
-          </div>
-        );
-      }
     },
     {
       key: 'status',
@@ -179,18 +159,7 @@ export default function AdminTransactionsPage() {
       label: t('adminTransactions.table.actions'),
       render: (tx) => (
         <div className="flex gap-2">
-          {tx.status === 'COMPLETED' && tx.type !== 'REFUND' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSelectedTransaction(tx);
-                setShowRefundModal(true);
-              }}
-            >
-              <RefreshCw className="w-4 h-4 text-orange-600" />
-            </Button>
-          )}
+          {/* Refund logic removed, not supported by Transaction type */}
         </div>
       )
     }
@@ -208,15 +177,12 @@ export default function AdminTransactionsPage() {
 
   const exportData = filteredTransactions.map((tx: Transaction) => ({
     'Transaction ID': tx.id,
-    'User': tx.userName,
-    'Email': tx.userEmail,
+    'User': (USERS.find((u: any) => u.id === tx.userId)?.name || tx.userId),
+    'Email': (USERS.find((u: any) => u.id === tx.userId)?.email || ''),
     'Type': tx.type,
     'Amount': tx.amount,
-    'Payment Method': tx.paymentMethod,
     'Status': tx.status,
     'Date': new Date(tx.createdAt).toISOString(),
-    'Description': tx.description || '',
-    'Reference ID': tx.metadata?.referenceId || ''
   }));
 
   return (
@@ -242,11 +208,6 @@ export default function AdminTransactionsPage() {
           trend="up"
           change={12.5}
           changeLabel={t('adminTransactions.stats.vsLastMonth')}
-        />
-        <StatCard
-          title={t('adminTransactions.stats.totalRefunded')}
-          value={`$${stats.totalRefunded.toFixed(2)}`}
-          icon={<RefreshCw className="w-6 h-6 text-orange-600" />}
         />
         <StatCard
           title={t('adminTransactions.stats.pending')}

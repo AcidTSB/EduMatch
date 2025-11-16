@@ -38,6 +38,19 @@ export default function LoginPage() {
     }
   }, []);
 
+  const handleInputChange = (field: string, value: string) => {
+    if (field === 'username') setUsername(value);
+    if (field === 'password') setPassword(value);
+    
+    if (errors[field]) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  // 5. SỬA LẠI HOÀN TOÀN handleSubmit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -81,7 +94,7 @@ export default function LoginPage() {
       }
 
       // Redirect dựa trên role - NGAY LẬP TỨC
-      const role = response.user.roles[0]?.replace('ROLE_', '').toLowerCase();
+      const role = response.user.roles[0]?.toLowerCase();
       console.log('🔄 Redirecting to dashboard for role:', role);
       
       setTimeout(() => {
@@ -107,33 +120,20 @@ export default function LoginPage() {
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    if (field === 'username') setUsername(value);
-    if (field === 'password') setPassword(value);
-    
-    // Clear error when user starts editing
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: ''
-      }));
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-blue-50 via-white to-brand-cyan-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-12 h-12 bg-brand-blue-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">E</span>
-              </div>
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-12 h-12 bg-brand-blue-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xl">E</span>
             </div>
-            <CardTitle className="text-2xl text-center">{t('login.welcomeBack')}</CardTitle>
-            <p className="text-muted-foreground text-center">
-              {t('login.subtitle')}
-            </p>
-          </CardHeader>
+          </div>
+          <CardTitle className="text-2xl text-center">{t('login.welcomeBack')}</CardTitle>
+          <p className="text-muted-foreground text-center">
+            {t('login.subtitle')}
+          </p>
+        </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {errors.submit && (

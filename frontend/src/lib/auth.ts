@@ -149,20 +149,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       setAuthState(createAuthenticatedState(user));
 
-      // Wait a bit then redirect to let cookies set
-      setTimeout(() => {
-        // Redirect based on user role
-        if (user.role === 'admin') {
-          window.location.href = '/admin';
-        } else if (user.role === 'employer') {
-          window.location.href = '/employer/dashboard';
-        } else {
-          // Default: user/student role
-          window.location.href = '/user/dashboard';
-        }
-      }, 100);
-    } catch (err: any) {
-      const errorMessage = err.message || 'Đăng nhập thất bại';
+      // Redirect immediately based on user role
+      if (user.role === 'admin') {
+        window.location.href = '/admin';
+      } else if (user.role === 'employer') {
+        window.location.href = '/employer/dashboard';
+      } else {
+        window.location.href = '/user/dashboard';
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
       setError(errorMessage);
       setAuthState(resetAuthState());
       throw err;

@@ -25,8 +25,8 @@ export function middleware(request: NextRequest) {
   // Allow public access to scholarships list and details for browsing
   // Support both legacy and new route names (applicant -> user)
   const publicScholarshipRoutes = [
-    '/applicant/scholarships',
-    '/applicant/scholarships/',
+    '/applicant/scholarships', // Legacy support
+    '/applicant/scholarships/', // Legacy support
     '/user/scholarships',
     '/user/scholarships/'
   ];
@@ -44,7 +44,7 @@ export function middleware(request: NextRequest) {
     // Backend only returns 'employer' role (from ROLE_EMPLOYER)
     if (userRole !== 'employer') {
       // Redirect wrong role to their own dashboard
-      if (userRole === 'admin') {
+      if (userRole === 'admin' || userRole === 'ADMIN') {
         return NextResponse.redirect(new URL('/admin', request.url));
       } else if (userRole === 'user') {
         return NextResponse.redirect(new URL('/user/dashboard', request.url));
@@ -62,7 +62,7 @@ export function middleware(request: NextRequest) {
     // Backend only returns 'user' role (from ROLE_USER)
     if (userRole !== 'user') {
       // Redirect wrong role to their own dashboard
-      if (userRole === 'admin') {
+      if (userRole === 'admin' || userRole === 'ADMIN') {
         return NextResponse.redirect(new URL('/admin', request.url));
       } else if (userRole === 'employer') {
         return NextResponse.redirect(new URL('/employer/dashboard', request.url));
@@ -76,7 +76,7 @@ export function middleware(request: NextRequest) {
     if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'ADMIN') {
       // Redirect wrong role to their own dashboard
       if (userRole === 'employer') {
         return NextResponse.redirect(new URL('/employer/dashboard', request.url));

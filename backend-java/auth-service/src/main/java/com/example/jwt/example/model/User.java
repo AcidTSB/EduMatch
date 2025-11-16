@@ -42,6 +42,9 @@ public class User implements UserDetails {
     @Column(name = "last_name")
     private String lastName;
 
+    @Column(name = "sex", length = 10)
+    private String sex; // MALE, FEMALE, OTHER
+
     @Column(name = "organization_id")
     private Long organizationId;
 

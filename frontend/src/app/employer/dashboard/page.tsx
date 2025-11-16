@@ -63,29 +63,43 @@ export default function ProviderDashboardPage() {
   const { scholarships } = useScholarshipsData();
 
   // Calculate real stats from AppContext data
-  const dashboardData = React.useMemo(() => ({
-    stats: {
-      totalScholarships: scholarships.length,
-      activeScholarships: scholarships.filter(s => s.status === ScholarshipStatus.PUBLISHED).length,
-      totalApplications: applications.length,
-      acceptedStudents: applications.filter(a => a.status === 'ACCEPTED').length
-    },
-    recentApplications: applications.slice(0, 3).map(app => ({
-      id: app.id,
-      applicantName: app.applicant?.name || 'Unknown',
-      applicantEmail: app.applicant?.email || 'No email',
-      scholarshipTitle: scholarships.find(s => s.id === app.scholarshipId)?.title || 'Unknown Scholarship',
-      appliedDate: app.submittedAt?.toISOString().split('T')[0] || '',
-      status: app.status.toLowerCase(),
-      gpa: app.applicant?.gpa || 0,
-      university: app.applicant?.university || 'Unknown'
-    })),
-    myScholarships: scholarships.slice(0, 4).map(s => ({
-      ...s,
-      status: s.status || ScholarshipStatus.PUBLISHED,
-      applicationCount: applications.filter(app => app.scholarshipId === s.id).length
-    }))
-  }), [scholarships, applications]);
+  const dashboardData = React.useMemo(() => {
+    // Helper to get applicant profile by applicantId
+    const getApplicantProfile = (applicantId: string) => {
+      // Replace with your actual user/profile lookup logic
+      // For now, fallback to unknown
+      return { name: 'Unknown', email: 'No email', gpa: 0, university: 'Unknown' };
+    };
+
+    return {
+      stats: {
+        totalScholarships: scholarships.length,
+        activeScholarships: scholarships.filter(s => s.status === ScholarshipStatus.PUBLISHED).length,
+        totalApplications: applications.length,
+        acceptedStudents: applications.filter(a => a.status === 'ACCEPTED').length
+      },
+      recentApplications: applications.slice(0, 3).map(app => {
+        const profile = getApplicantProfile(app.applicantId);
+        return {
+          id: app.id,
+          applicantName: profile.name,
+          applicantEmail: profile.email,
+          scholarshipTitle: scholarships.find(s => s.id === app.scholarshipId)?.title || 'Unknown Scholarship',
+          appliedDate: app.createdAt ? app.createdAt.toISOString().split('T')[0] : '',
+          status: app.status.toLowerCase(),
+          gpa: profile.gpa,
+          university: profile.university
+        };
+      }),
+      myScholarships: scholarships.slice(0, 4).map(s => ({
+        ...s,
+        status: s.status || ScholarshipStatus.PUBLISHED,
+        applicationCount: applications.filter(app => app.scholarshipId === s.id).length,
+        applicationDeadline: s.applicationDeadline,
+        amount: s.amount
+      }))
+    };
+  }, [scholarships, applications]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -349,13 +363,13 @@ export default function ProviderDashboardPage() {
                       </div>
                       <div className="flex items-center text-sm text-gray-600">
                         <Calendar className="h-4 w-4 mr-2 text-blue-600" />
-                        {t('provider.scholarships.deadline')}: {scholarship.deadline ? formatDate(scholarship.deadline) : 'TBA'}
+                        {t('provider.scholarships.deadline')}: {scholarship.applicationDeadline ? formatDate(scholarship.applicationDeadline) : 'TBA'}
                       </div>
-                      {scholarship.stipend && (
+                      {scholarship.amount && (
                         <div className="flex items-center text-sm font-medium">
                           <DollarSign className="h-4 w-4 mr-2 text-green-600" />
                           <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                            {scholarship.stipend}
+                            {scholarship.amount}
                           </span>
                         </div>
                       )}

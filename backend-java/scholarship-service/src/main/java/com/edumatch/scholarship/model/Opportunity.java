@@ -30,46 +30,61 @@ public class Opportunity {
     // --- Tham chiếu logic tới Auth-Service (Giữ nguyên) ---
     @Column(name = "creator_user_id", nullable = false)
     private Long creatorUserId;
+
     @Column(name = "organization_id", nullable = false)
     private Long organizationId;
-    // --- --------------------------------- ---
+    // ------------------------------------------------------
 
-    // --- TIMELINE (Đã sửa) ---
+    // --- TIMELINE ---
     @Column(name = "application_deadline")
     private LocalDate applicationDeadline;
 
-    @Column(name = "start_date") // MỚI
+    @Column(name = "start_date")
     private LocalDate startDate;
 
-    @Column(name = "end_date") // MỚI
+    @Column(name = "end_date")
     private LocalDate endDate;
-    // --- ----------------- ---
+    // ----------------
 
     // --- TÀI CHÍNH & YÊU CẦU ---
-    @Column(name = "scholarship_amount", precision = 10, scale = 2) // MỚI: Tiền học bổng
+    @Column(name = "scholarship_amount", precision = 10, scale = 2)
     private BigDecimal scholarshipAmount;
 
     @Column(name = "min_gpa", precision = 3, scale = 2)
     private BigDecimal minGpa;
 
-    // --- THÔNG TIN LIÊN HỆ (MỚI) ---
+    // --- THÔNG TIN LIÊN HỆ ---
     @Column(name = "contact_email", length = 255)
     private String contactEmail;
 
-    @Column(name = "website", length = 255)
+    @Column(name = "website", length = 500)
     private String website;
-    // --- ------------------------- ---
+    // --------------------------
 
-    // --- CẤU TRÚC MỚI (Đã thêm) ---
-    @Column(name = "study_mode", length = 50) // MỚI
+    // --- THÔNG TIN ĐỊA ĐIỂM & TRƯỜNG HỌC ---
+    @Column(name = "location", length = 255)
+    private String location;
+
+    @Column(name = "university", length = 255)
+    private String university;
+
+    @Column(name = "department", length = 255)
+    private String department;
+
+    @Column(name = "duration_months")
+    private Integer durationMonths;
+    // ----------------------------------------
+
+    // --- CẤU TRÚC MỚI ---
+    @Column(name = "study_mode", length = 50)
     private String studyMode;
 
-    @Column(name = "level", length = 50) // MỚI
+    @Column(name = "level", length = 50)
     private String level;
 
-    @Column(name = "is_public") // MỚI
+    @Column(name = "is_public")
     private Boolean isPublic = false;
-
+    // ---------------------
 
     @Column(name = "moderation_status", length = 50)
     private String moderationStatus = "PENDING";
@@ -77,7 +92,7 @@ public class Opportunity {
     @Column(name = "views_cnt")
     private Integer viewsCnt = 0;
 
-    // ... (Mối quan hệ Nhiều-Nhiều giữ nguyên) ...
+    // --- Many-to-Many ---
     @ManyToMany(fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinTable(
             name = "opportunity_to_tags",

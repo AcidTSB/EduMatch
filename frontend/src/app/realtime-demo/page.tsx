@@ -78,7 +78,7 @@ export default function RealTimeDemoPage() {
     console.log('Test notification sent - check the mock server logs');
   };
 
-  const handleQuickLogin = async (role: 'applicant' | 'provider' | 'admin') => {
+  const handleQuickLogin = async (role: 'user' | 'employer' | 'admin') => {
     setIsLoading(true);
     
     try {
@@ -273,7 +273,7 @@ export default function RealTimeDemoPage() {
           {/* Right Column - Dashboard & Applications */}
           <div className="lg:col-span-2 space-y-6">
             {/* Dashboard Stats */}
-            {(user?.role === 'provider' || user?.role === 'admin') && (
+            {(user?.role === 'employer' || user?.role === 'admin') && (
               <div>
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-purple-600" />
@@ -284,7 +284,7 @@ export default function RealTimeDemoPage() {
             )}
 
             {/* Application Status */}
-            {user?.role === 'applicant' && (
+            {user?.role === 'user' && (
               <div>
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Users className="h-5 w-5 text-blue-600" />
@@ -355,7 +355,7 @@ export default function RealTimeDemoPage() {
       )}
 
       {/* Match Toast (only for students) */}
-      {user?.role === 'applicant' && <MatchToast />}
+      {user?.role === 'user' && <MatchToast />}
     </div>
   );
 }
