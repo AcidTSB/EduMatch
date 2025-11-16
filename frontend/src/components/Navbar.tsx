@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/auth'; // Use AuthContext instead of hooks
 import { useLanguage } from '@/contexts/LanguageContext';
 import { UserRole } from '@/types';
 
@@ -159,6 +159,16 @@ export function Navbar() {
     return `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim() || user.email;
   };
 
+  // Debug logging
+  console.log('🔍 Navbar State:', {
+    isAuthenticated,
+    user,
+    role: user?.role,
+    roleType: typeof user?.role,
+    isUserRole: user?.role === UserRole.USER,
+    isUserString: user?.role === 'USER',
+  });
+
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
@@ -193,7 +203,7 @@ export function Navbar() {
                   </Link>
                   
                   {/* Role-specific key items */}
-                  {user?.role === UserRole.USER && (
+                  {(user?.role === UserRole.USER || user?.role === 'USER') && (
                     <>
                       <Link
                         href="/user/dashboard"
@@ -231,7 +241,7 @@ export function Navbar() {
                     </>
                   )}
                   
-                  {user?.role === UserRole.EMPLOYER && (
+                  {(user?.role === UserRole.EMPLOYER || user?.role === 'EMPLOYER') && (
                     <>
                       <Link
                         href="/employer/dashboard"
@@ -280,7 +290,7 @@ export function Navbar() {
                     </>
                   )}
                   
-                  {user?.role === UserRole.ADMIN && (
+                  {(user?.role === UserRole.ADMIN || user?.role === 'ADMIN') && (
                     <>
                       <Link
                         href="/admin"
