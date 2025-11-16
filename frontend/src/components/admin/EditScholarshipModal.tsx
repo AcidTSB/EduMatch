@@ -176,7 +176,7 @@ export function EditScholarshipModal({ isOpen, onClose, onSubmit, scholarship }:
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value={ScholarshipType.UNDERGRADUATE}>{t('editScholarshipModal.typeUndergraduate')}</option>
-                  <option value={ScholarshipType.GRADUATE}>{t('editScholarshipModal.typeGraduate')}</option>
+                  <option value={ScholarshipType.MASTER}>{t('editScholarshipModal.typeMaster')}</option>
                   <option value={ScholarshipType.PHD}>{t('editScholarshipModal.typePhd')}</option>
                   <option value={ScholarshipType.POSTDOC}>{t('editScholarshipModal.typePostdoc')}</option>
                   <option value={ScholarshipType.RESEARCH}>{t('editScholarshipModal.typeResearch')}</option>

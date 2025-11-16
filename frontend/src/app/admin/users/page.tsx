@@ -82,11 +82,11 @@ export default function UsersManagement() {
       id: user.id,
       name: user.name || 'Unknown',
       email: user.email,
-      role: user.role === UserRole.ADMIN ? t('adminUsers.roleAdmin') : user.role === UserRole.STUDENT ? t('adminUsers.roleStudent') : t('adminUsers.roleProvider'),
+      role: user.role === UserRole.ADMIN ? t('adminUsers.roleAdmin') : user.role === UserRole.USER ? t('adminUsers.roleStudent') : t('adminUsers.roleProvider'),
       status: user.status || t('adminUsers.statusActive'),
       joinDate: new Date(user.createdAt).toISOString().split('T')[0],
-      applications: user.role === UserRole.STUDENT ? 5 : undefined,
-      scholarships: user.role === UserRole.PROVIDER ? 10 : undefined,
+      applications: user.role === UserRole.USER ? 5 : undefined,
+      scholarships: user.role === UserRole.EMPLOYER ? 10 : undefined,
       avatar: initials
     };
   });

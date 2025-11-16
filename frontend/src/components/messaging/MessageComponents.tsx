@@ -11,7 +11,7 @@ import { formatDate } from '@/lib/utils';
 interface MessageItemProps {
   id: string;
   senderName: string;
-  senderRole: 'applicant' | 'provider' | 'admin';
+  senderRole: 'user' | 'employer' | 'admin';
   content: string;
   timestamp: string;
   isRead: boolean;

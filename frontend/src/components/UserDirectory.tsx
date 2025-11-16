@@ -21,7 +21,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'applicant' | 'provider' | 'admin';
+  role: 'user' | 'employer' | 'admin';
   avatar?: string;
   isOnline?: boolean;
   lastSeen?: string;
@@ -42,7 +42,7 @@ export function UserDirectory({ onStartChat }: UserDirectoryProps) {
   const [onlineFilter, setOnlineFilter] = useState<string>('all');
   
   const { user: currentUser } = useAuth();
-  const { socket, canChatWith } = useRealTime();
+  const { socket, canChatWith, onlineUsers } = useRealTime();
 
   // Real users từ mock database + online users
   useEffect(() => {
@@ -52,7 +52,7 @@ export function UserDirectory({ onStartChat }: UserDirectoryProps) {
         id: '1',
         name: 'John Student',
         email: 'student@demo.com',
-        role: 'applicant',
+        role: 'user',
         avatar: '👨‍🎓',
         isOnline: false,
         school: 'MIT',
@@ -62,7 +62,7 @@ export function UserDirectory({ onStartChat }: UserDirectoryProps) {
         id: '2',
         name: 'Jane Provider',
         email: 'provider@demo.com',
-        role: 'provider',
+        role: 'employer',
         avatar: '👩‍🏫',
         isOnline: false,
         company: 'Tech Innovation Foundation',
@@ -86,14 +86,15 @@ export function UserDirectory({ onStartChat }: UserDirectoryProps) {
 
   // Update online status based on socket info
   useEffect(() => {
+    if (!onlineUsers) return;
     setUsers(prevUsers => 
       prevUsers.map(user => ({
         ...user,
-        isOnline: socket.onlineUsers.includes(user.id),
+        isOnline: onlineUsers.includes(user.id),
         lastSeen: user.isOnline ? undefined : '5 minutes ago'
       }))
     );
-  }, [socket.onlineUsers]);
+  }, [onlineUsers]);
 
   // Apply filters
   useEffect(() => {
@@ -272,7 +273,7 @@ export function UserDirectory({ onStartChat }: UserDirectoryProps) {
         <div className="mt-4 pt-3 border-t">
           <div className="flex items-center justify-between text-xs text-gray-500">
             <span>
-              {socket.isConnected ? (
+              {socket && socket.connected ? (
                 <span className="flex items-center gap-1 text-green-600">
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                   Connected to chat
@@ -284,7 +285,7 @@ export function UserDirectory({ onStartChat }: UserDirectoryProps) {
                 </span>
               )}
             </span>
-            <span>{socket.onlineUsers.length} users online</span>
+            <span>{onlineUsers ? onlineUsers.length : 0} users online</span>
           </div>
         </div>
       </CardContent>

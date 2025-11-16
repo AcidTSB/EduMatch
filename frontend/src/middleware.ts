@@ -23,10 +23,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Allow public access to scholarships list and details for browsing
-  // Support both legacy and new route names (applicant -> user)
   const publicScholarshipRoutes = [
-    '/applicant/scholarships',
-    '/applicant/scholarships/',
     '/user/scholarships',
     '/user/scholarships/'
   ];
@@ -35,38 +32,33 @@ export function middleware(request: NextRequest) {
     pathname.startsWith(route) && !pathname.includes('/applications')
   );
 
-  // Protect provider/employer routes (always require login)
-  if (pathname.startsWith('/provider') || pathname.startsWith('/employer')) {
+  // Protect employer routes
+  if (pathname.startsWith('/employer')) {
     if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
-    // Accept legacy and new role names: 'provider' or 'employer'
-    if (userRole !== 'provider' && userRole !== 'employer') {
+    if (userRole !== 'EMPLOYER') {
       // Redirect wrong role to their own dashboard
-      if (userRole === 'admin') {
-        return NextResponse.redirect(new URL('/admin', request.url));
-      } else if (userRole === 'applicant' || userRole === 'user') {
-        // send applicant/user to applicant/user area
-        const dest = (userRole === 'user') ? '/user/dashboard' : '/applicant/dashboard';
-        return NextResponse.redirect(new URL(dest, request.url));
+      if (userRole === 'ADMIN') {
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      } else if (userRole === 'USER') {
+        return NextResponse.redirect(new URL('/user/dashboard', request.url));
       }
       return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
-  // Protect applicant/user routes (except public scholarship browsing)
-  if ((pathname.startsWith('/applicant') || pathname.startsWith('/user')) && !isPublicScholarshipRoute) {
+  // Protect user routes (except public scholarship browsing)
+  if (pathname.startsWith('/user') && !isPublicScholarshipRoute) {
     if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
-    // Accept legacy and new role names: 'applicant' or 'user'
-    if (userRole !== 'applicant' && userRole !== 'user') {
+    if (userRole !== 'USER') {
       // Redirect wrong role to their own dashboard
-      if (userRole === 'admin') {
-        return NextResponse.redirect(new URL('/admin', request.url));
-      } else if (userRole === 'provider' || userRole === 'employer') {
-        const dest = (userRole === 'employer') ? '/employer/dashboard' : '/provider/dashboard';
-        return NextResponse.redirect(new URL(dest, request.url));
+      if (userRole === 'ADMIN') {
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      } else if (userRole === 'EMPLOYER') {
+        return NextResponse.redirect(new URL('/employer/dashboard', request.url));
       }
       return NextResponse.redirect(new URL('/', request.url));
     }
@@ -77,14 +69,12 @@ export function middleware(request: NextRequest) {
     if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
-    if (userRole !== 'admin') {
+    if (userRole !== 'ADMIN') {
       // Redirect wrong role to their own dashboard
-      if (userRole === 'provider' || userRole === 'employer') {
-        const dest = (userRole === 'employer') ? '/employer/dashboard' : '/provider/dashboard';
-        return NextResponse.redirect(new URL(dest, request.url));
-      } else if (userRole === 'applicant' || userRole === 'user') {
-        const dest = (userRole === 'user') ? '/user/dashboard' : '/applicant/dashboard';
-        return NextResponse.redirect(new URL(dest, request.url));
+      if (userRole === 'EMPLOYER') {
+        return NextResponse.redirect(new URL('/employer/dashboard', request.url));
+      } else if (userRole === 'USER') {
+        return NextResponse.redirect(new URL('/user/dashboard', request.url));
       }
       return NextResponse.redirect(new URL('/', request.url));
     }
@@ -95,10 +85,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/',  // Add home page to matcher for role-based redirect
-    '/provider/:path*',
     '/employer/:path*',
-    '/applicant/:path*', 
     '/user/:path*',
     '/admin/:path*'
   ]

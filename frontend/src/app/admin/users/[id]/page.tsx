@@ -47,7 +47,17 @@ export default function AdminUserProfilePage() {
   const user = getUserById(userId);
   const profile = getUserProfile(userId);
   const userApplications = getApplicationsByStudent(userId);
-  const userAuditLogs = AUDIT_LOGS.filter(log => log.entityId === userId || log.adminId === userId);
+  const userAuditLogs = AUDIT_LOGS.filter(log => log.targetId === userId || log.adminId === userId).map(log => ({
+    id: log.id,
+    action: log.action,
+    actionType: log.action.split('_')[0] || 'VIEW',
+    adminName: USERS.find(u => u.id === log.adminId)?.name || 'Unknown',
+    details: log.reason || '',
+    entityType: log.targetType,
+    entityName: USERS.find(u => u.id === log.targetId)?.name || '',
+    createdAt: log.createdAt,
+    success: true,
+  }));
 
   if (!user) {
     return (
@@ -78,9 +88,9 @@ export default function AdminUserProfilePage() {
     switch (role) {
       case UserRole.ADMIN:
         return 'bg-purple-100 text-purple-700';
-      case UserRole.PROVIDER:
+      case UserRole.EMPLOYER:
         return 'bg-blue-100 text-blue-700';
-      case UserRole.STUDENT:
+      case UserRole.USER:
         return 'bg-green-100 text-green-700';
       default:
         return 'bg-gray-100 text-gray-700';
@@ -130,7 +140,7 @@ export default function AdminUserProfilePage() {
                 <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
                 <Badge className={getRoleColor(user.role)}>
                   {user.role === UserRole.ADMIN ? 'Admin' : 
-                   user.role === UserRole.STUDENT ? 'Student' : 'Provider'}
+                   user.role === UserRole.USER ? 'Student' : 'Provider'}
                 </Badge>
                 <Badge variant={user.status === 'ACTIVE' ? 'default' : 'secondary'}>
                   {user.status}
@@ -142,12 +152,6 @@ export default function AdminUserProfilePage() {
                   <Mail className="w-4 h-4" />
                   <span>{user.email}</span>
                 </div>
-                {profile?.phone && (
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Phone className="w-4 h-4" />
-                    <span>{profile.phone}</span>
-                  </div>
-                )}
                 <div className="flex items-center gap-2 text-gray-600">
                   <Calendar className="w-4 h-4" />
                   <span>Joined {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}</span>
@@ -189,16 +193,6 @@ export default function AdminUserProfilePage() {
                     <p className="font-medium">{profile.firstName} {profile.lastName}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Date of Birth</p>
-                    <p className="font-medium">
-                      {profile.dateOfBirth ? new Date(profile.dateOfBirth).toLocaleDateString() : 'N/A'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Phone</p>
-                    <p className="font-medium">{profile.phone || 'N/A'}</p>
-                  </div>
-                  <div>
                     <p className="text-sm text-gray-500">Languages</p>
                     <p className="font-medium">{profile.languages?.join(', ') || 'N/A'}</p>
                   </div>
@@ -212,20 +206,8 @@ export default function AdminUserProfilePage() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <p className="text-sm text-gray-500">University</p>
-                    <p className="font-medium">{profile.university || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Major</p>
-                    <p className="font-medium">{profile.major || 'N/A'}</p>
-                  </div>
-                  <div>
                     <p className="text-sm text-gray-500">GPA</p>
                     <p className="font-medium">{profile.gpa ? `${profile.gpa}/4.0` : 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Graduation Year</p>
-                    <p className="font-medium">{profile.graduationYear || 'N/A'}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -291,7 +273,7 @@ export default function AdminUserProfilePage() {
                         <div className="flex-1">
                           <h4 className="font-semibold text-gray-900">{scholarship?.title || 'Unknown'}</h4>
                           <p className="text-sm text-gray-500">
-                            Submitted {app.submittedAt ? formatDistanceToNow(new Date(app.submittedAt), { addSuffix: true }) : 'Unknown'}
+                            Submitted {app.createdAt ? formatDistanceToNow(new Date(app.createdAt), { addSuffix: true }) : 'Unknown'}
                           </p>
                         </div>
                         <div className="flex items-center gap-3">

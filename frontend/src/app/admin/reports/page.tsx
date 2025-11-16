@@ -11,7 +11,8 @@ import DataTable, { Column } from '@/components/admin/DataTable';
 import FilterPanel, { FilterConfig } from '@/components/admin/FilterPanel';
 import ModalForm, { FormField } from '@/components/admin/ModalForm';
 import StatCard from '@/components/admin/StatCard';
-import { REPORTS, Report } from '@/lib/mock-data';
+import { REPORTS } from '@/lib/mock-data';
+import { Report } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function AdminReportsPage() {
@@ -31,6 +32,10 @@ export default function AdminReportsPage() {
         { label: t('adminReports.status.inReview'), value: 'IN_REVIEW' },
         { label: t('adminReports.status.resolved'), value: 'RESOLVED' },
         { label: t('adminReports.status.dismissed'), value: 'DISMISSED' }
+        { label: t('adminReports.status.new'), value: 'PENDING' },
+        { label: t('adminReports.status.inReview'), value: 'PENDING' }, // If you have an 'IN_REVIEW' status, add to ReportStatus enum and mock-data
+        { label: t('adminReports.status.resolved'), value: 'RESOLVED' },
+        { label: t('adminReports.status.dismissed'), value: 'DISMISSED' }
       ]
     },
     {
@@ -42,6 +47,10 @@ export default function AdminReportsPage() {
         { label: t('adminReports.priority.medium'), value: 'MEDIUM' },
         { label: t('adminReports.priority.high'), value: 'HIGH' },
         { label: t('adminReports.priority.urgent'), value: 'URGENT' }
+        { label: t('adminReports.priority.low'), value: 'LOW' },
+        { label: t('adminReports.priority.medium'), value: 'MEDIUM' },
+        { label: t('adminReports.priority.high'), value: 'HIGH' },
+        { label: t('adminReports.priority.critical'), value: 'CRITICAL' }
       ]
     },
     {
@@ -54,6 +63,11 @@ export default function AdminReportsPage() {
         { label: t('adminReports.category.fakeInfo'), value: 'FAKE_INFO' },
         { label: t('adminReports.category.inappropriate'), value: 'INAPPROPRIATE' },
         { label: t('adminReports.category.other'), value: 'OTHER' }
+        { label: t('adminReports.category.spam'), value: 'Spam' },
+        { label: t('adminReports.category.harassment'), value: 'Harassment' },
+        { label: t('adminReports.category.fakeInfo'), value: 'Misleading Information' },
+        { label: t('adminReports.category.inappropriate'), value: 'Inappropriate' },
+        { label: t('adminReports.category.other'), value: 'Other' }
       ]
     },
     {
@@ -63,11 +77,13 @@ export default function AdminReportsPage() {
       options: [
         { label: t('adminReports.targetType.user'), value: 'USER' },
         { label: t('adminReports.targetType.scholarship'), value: 'SCHOLARSHIP' }
+        { label: t('adminReports.targetType.user'), value: 'USER' },
+        { label: t('adminReports.targetType.scholarship'), value: 'SCHOLARSHIP' }
       ]
     }
   ];
 
-  const filteredReports = REPORTS.filter((report: Report) => {
+  const filteredReports = REPORTS.filter((report) => {
     const matchesStatus = !filterValues.status?.length || filterValues.status.includes(report.status);
     const matchesPriority = !filterValues.priority?.length || filterValues.priority.includes(report.priority);
     const matchesCategory = !filterValues.category || report.category === filterValues.category;
@@ -78,14 +94,14 @@ export default function AdminReportsPage() {
 
   const stats = {
     total: REPORTS.length,
-    new: REPORTS.filter((r: Report) => r.status === 'NEW').length,
-    inReview: REPORTS.filter((r: Report) => r.status === 'IN_REVIEW').length,
-    resolved: REPORTS.filter((r: Report) => r.status === 'RESOLVED').length
+    new: REPORTS.filter((r) => r.status === 'PENDING').length,
+    inReview: 0, // If you add 'IN_REVIEW' to ReportStatus and mock-data, update this
+    resolved: REPORTS.filter((r) => r.status === 'RESOLVED').length
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'URGENT': return 'text-red-600';
+      case 'CRITICAL': return 'text-red-600';
       case 'HIGH': return 'text-orange-600';
       case 'MEDIUM': return 'text-yellow-600';
       case 'LOW': return 'text-gray-600';
@@ -134,9 +150,9 @@ export default function AdminReportsPage() {
       sortable: true,
       render: (report) => (
         <div className="flex items-center gap-2">
-          <AlertTriangle className={`w-5 h-5 ${getPriorityColor(report.priority)}`} />
-          <span className={`font-medium ${getPriorityColor(report.priority)}`}>
-            {t(`adminReports.priority.${report.priority.toLowerCase()}`)}
+          <AlertTriangle className={`w-5 h-5 ${getPriorityColor(report.priority ?? 'LOW')}`} />
+          <span className={`font-medium ${getPriorityColor(report.priority ?? 'LOW')}`}>
+            {report.priority ? t(`adminReports.priority.${report.priority.toLowerCase()}`) : t('adminReports.priority.low')}
           </span>
         </div>
       )
@@ -158,7 +174,7 @@ export default function AdminReportsPage() {
       render: (report) => (
         <div>
           <Badge variant="outline" className="mb-1">{t(`adminReports.targetType.${report.targetType.toLowerCase()}`)}</Badge>
-          <div className="text-sm text-gray-900">{report.targetTitle}</div>
+          {/* If you want to show a title, you need to add it to the Report type and mock-data */}
         </div>
       )
     },

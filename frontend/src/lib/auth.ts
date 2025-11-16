@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { AuthUser, AuthState, LoginCredentials, RegisterCredentials } from '@/types';
-import api from '@/lib/api';
+// import { api } from '@/lib/api';
 import { mockApi, shouldUseMockApi } from '@/lib/mock-data';
 import { getFromLocalStorage, setToLocalStorage, removeFromLocalStorage } from '@/lib/utils';
 import { setCookie, getCookie, deleteCookie } from '@/lib/cookies';
@@ -117,31 +117,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = async (credentials: LoginCredentials) => {
     try {
       setError(null);
-      setAuthState((prev: AuthState) => ({ ...prev, isLoading: true }));
+      setAuthState(prev => ({ ...prev, isLoading: true }));
 
-      // Use real API instead of mock
-      const response = await api.auth.login({
-        email: credentials.email,
-        password: credentials.password || '',
-      });
+      const response = await mockApi.auth.login(credentials);
 
       if (response.success && response.data) {
-        const { user: backendUser, token } = response.data;
-
-        // Transform backend user to AuthUser format
-        // Backend user has: id, username, email, firstName, lastName, roles[]
-        const user: any = {
-          id: String((backendUser as any).id),
-          email: (backendUser as any).email,
-          name: `${(backendUser as any).firstName} ${(backendUser as any).lastName}`,
-          role: (backendUser as any).roles?.[0] || 'USER', // Take first role
-          emailVerified: true,
-          status: 'ACTIVE',
-          subscriptionType: 'FREE',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          profile: backendUser,
-        };
+        const { user, token } = response.data;
 
         // Store in localStorage
         setToLocalStorage('auth_token', token);
@@ -155,11 +136,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // Wait a bit then redirect to let cookies set
         setTimeout(() => {
-          // Redirect based on user role - check string value
-          const roleStr = String(user.role).toUpperCase();
-          if (roleStr === 'ADMIN') {
-            window.location.href = '/admin/dashboard';
-          } else if (roleStr === 'EMPLOYER' || roleStr === 'PROVIDER') {
+          // Redirect based on user role
+          if (user.role === 'admin') {
+            window.location.href = '/admin';
+          } else if (user.role === 'employer') {
             window.location.href = '/employer/dashboard';
           } else {
             window.location.href = '/user/dashboard';
@@ -167,7 +147,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }, 100);
       } else {
         // Handle failed login response
-        setAuthState((prev: AuthState) => ({ ...prev, isLoading: false }));
+        setAuthState(prev => ({ ...prev, isLoading: false }));
         const errorMessage = response.error || 'Login failed';
         setError(errorMessage);
         throw new Error(errorMessage);
@@ -183,7 +163,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const register = async (credentials: RegisterCredentials) => {
     try {
       setError(null);
-      setAuthState((prev: AuthState) => ({ ...prev, isLoading: true }));
+      setAuthState(prev => ({ ...prev, isLoading: true }));
 
       const response = await mockApi.auth.register(credentials);
 
@@ -213,8 +193,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async () => {
     try {
-      // Call real logout API
-      await api.auth.logout();
+      // Call logout API
+      await mockApi.auth.logout();
     } catch (error) {
       // Continue with logout even if API call fails
     } finally {
@@ -237,9 +217,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshToken = async () => {
     try {
-      // TODO: Implement refresh token with real API
-      // For now, just skip refresh
-      console.log('Token refresh not implemented yet');
+      const response = await mockApi.auth.refreshToken();
+
+      if (response.success && response.data) {
+        setToLocalStorage('auth_token', response.data.token);
+      }
     } catch (err) {
       // If refresh fails, logout user
       await logout();
