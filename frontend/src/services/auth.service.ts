@@ -1,6 +1,22 @@
-﻿// File: src/services/auth.service.ts (NỘI DUNG MỚI - DÙNG AXIOS THẬT)
+﻿// File: src/services/auth.service.ts (Using fetch API)
 
-import { authApi } from '@/lib/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080';
+const AUTH_API_URL = `${API_BASE_URL}/api/auth`;
+
+// Helper: Decode JWT token and extract roles
+const decodeJWT = (token: string): { roles: string[] } | null => {
+  try {
+    const payload = token.split('.')[1];
+    const decoded = JSON.parse(atob(payload));
+    // JWT has roles as "USER,ADMIN,EMPLOYER" string
+    const rolesStr = decoded.roles || '';
+    const roles = rolesStr.split(',').map((r: string) => r.trim()).filter(Boolean);
+    return { roles };
+  } catch (error) {
+    console.error('Failed to decode JWT:', error);
+    return null;
+  }
+};
 
 // Types
 export interface LoginCredentials {
@@ -34,42 +50,80 @@ export interface UserResponse {
 
 export const authService = {
   /**
-   * Login - POST /signin
+   * Login - POST /login
    */
   login: async (data: LoginCredentials): Promise<LoginResponse & { user: UserResponse }> => {
     try {
       console.log('🔐 [AuthService] Login attempt with REAL API...');
       console.log('📤 Request payload:', { username: data.email, password: '***' });
       
-      // Step 1: Login to get token - ENDPOINT: /signin (KHÔNG PHẢI /auth/login)
-      const loginResponse = await authApi.post<LoginResponse>('signin', {
-        username: data.email, // Backend expects 'username' field
-        password: data.password,
+      // Step 1: Login to get token
+      const loginResponse = await fetch(`${AUTH_API_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          username: data.email,
+          password: data.password,
+        }),
       });
-      
+
+      if (!loginResponse.ok) {
+        const errorData = await loginResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Invalid username or password');
+      }
+
+      const loginData = await loginResponse.json();
       console.log('✅ [AuthService] Login successful, token received');
       
-      // Save token immediately (localStorage + cookie for middleware)
-      if (loginResponse.data.accessToken) {
-        const token = loginResponse.data.accessToken;
+      // Save token immediately
+      if (loginData.accessToken) {
+        const token = loginData.accessToken;
         localStorage.setItem('auth_token', token);
-        if (loginResponse.data.refreshToken) {
-          localStorage.setItem('refresh_token', loginResponse.data.refreshToken);
+        if (loginData.refreshToken) {
+          localStorage.setItem('refresh_token', loginData.refreshToken);
         }
-        // Also set cookie for Edge middleware
         if (typeof document !== 'undefined') {
           document.cookie = `auth_token=${token}; Path=/; Max-Age=86400`;
         }
       }
       
-        // Step 2: Get user info - ENDPOINT: /me (baseURL is /api/auth)
+      // Step 2: Get user info
       console.log('👤 [AuthService] Fetching user info...');
-        const userResponse = await authApi.get<UserResponse>('me');
+      const userResponse = await fetch(`${AUTH_API_URL}/me`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${loginData.accessToken}`,
+        },
+        credentials: 'include',
+      });
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch user info');
+      }
+
+      const userData = await userResponse.json();
+      console.log('📝 [AuthService] User info retrieved:', userData);
       
-      console.log('📝 [AuthService] User info retrieved:', userResponse.data);
+      // Extract roles from JWT token
+      const tokenData = decodeJWT(loginData.accessToken);
+      const roles = tokenData?.roles || ['USER'];
+      console.log('🎭 [AuthService] Roles from JWT:', roles);
       
-      // Save user info (localStorage + cookie for middleware)
-      const userStr = JSON.stringify(userResponse.data);
+      // Merge user data with roles
+      const enrichedUser = {
+        ...userData,
+        roles,
+        enabled: true,
+        firstName: userData.name?.split(' ')[0] || userData.username,
+        lastName: userData.name?.split(' ').slice(1).join(' ') || '',
+      };
+      
+      // Save user info
+      const userStr = JSON.stringify(enrichedUser);
       localStorage.setItem('user', userStr);
       localStorage.setItem('auth_user', userStr);
       if (typeof document !== 'undefined') {
@@ -77,70 +131,89 @@ export const authService = {
       }
       
       return {
-        ...loginResponse.data,
-        user: userResponse.data,
+        ...loginData,
+        user: enrichedUser,
       };
     } catch (error: any) {
       console.error('❌ [AuthService] Login failed:', error);
-      console.error('❌ Response data:', error.response?.data);
-      console.error('❌ Response status:', error.response?.status);
-      
-      // Throw lại error với message rõ ràng
-      const errorMessage = error.response?.data?.message 
-        || error.response?.data?.error 
-        || error.message 
-        || 'Invalid credentials';
-      
-      throw new Error(errorMessage);
+      throw new Error(error.message || 'Invalid credentials');
     }
   },
 
   /**
-   * Register - POST /signup
+   * Register - POST /register
    */
   register: async (data: RegisterCredentials): Promise<LoginResponse & { user: UserResponse }> => {
     try {
       console.log('📝 [AuthService] Register attempt with REAL API...');
-      console.log('📤 [AuthService] Sending registration data:', {
-        username: data.email,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        password: '***',
+      
+      // Step 1: Register
+      const registerResponse = await fetch(`${AUTH_API_URL}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          username: data.email,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          password: data.password,
+        }),
       });
+
+      if (!registerResponse.ok) {
+        const errorData = await registerResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const registerData = await registerResponse.json();
+      console.log('✅ [AuthService] Registration successful');
       
-      // Step 1: Register - ENDPOINT: /signup (KHÔNG PHẢI /auth/register)
-      const registerResponse = await authApi.post<LoginResponse>('signup', {
-        username: data.email, // Use email as username
-        firstName: data.firstName,
-        lastName: data.lastName,
-        email: data.email,
-        password: data.password,
-        // Backend KHÔNG có trường sex - đã remove
-      });
-      
-      console.log('✅ [AuthService] Registration successful, token received:', registerResponse.data);
-      
-      // Save token immediately (localStorage + cookie)
-      if (registerResponse.data.accessToken) {
-        const token = registerResponse.data.accessToken;
+      // Save token
+      if (registerData.accessToken) {
+        const token = registerData.accessToken;
         localStorage.setItem('auth_token', token);
-        if (registerResponse.data.refreshToken) {
-          localStorage.setItem('refresh_token', registerResponse.data.refreshToken);
+        if (registerData.refreshToken) {
+          localStorage.setItem('refresh_token', registerData.refreshToken);
         }
         if (typeof document !== 'undefined') {
           document.cookie = `auth_token=${token}; Path=/; Max-Age=86400`;
         }
       }
       
-        // Step 2: Get user info
-      console.log('👤 [AuthService] Fetching user info with token...');
-        const userResponse = await authApi.get<UserResponse>('me');
+      // Step 2: Get user info
+      const userResponse = await fetch(`${AUTH_API_URL}/me`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${registerData.accessToken}`,
+        },
+        credentials: 'include',
+      });
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch user info');
+      }
+
+      const userData = await userResponse.json();
       
-      console.log('✅ [AuthService] User info retrieved:', userResponse.data);
+      // Extract roles from JWT token
+      const tokenData = decodeJWT(registerData.accessToken);
+      const roles = tokenData?.roles || ['USER'];
       
-      // Save user info (localStorage + cookie)
-      const userStr = JSON.stringify(userResponse.data);
+      // Merge user data with roles
+      const enrichedUser = {
+        ...userData,
+        roles,
+        enabled: true,
+        firstName: data.firstName,
+        lastName: data.lastName,
+      };
+      
+      // Save user info
+      const userStr = JSON.stringify(enrichedUser);
       localStorage.setItem('user', userStr);
       localStorage.setItem('auth_user', userStr);
       if (typeof document !== 'undefined') {
@@ -148,22 +221,12 @@ export const authService = {
       }
       
       return {
-        ...registerResponse.data,
-        user: userResponse.data,
+        ...registerData,
+        user: enrichedUser,
       };
     } catch (error: any) {
       console.error('❌ [AuthService] Registration failed:', error);
-      console.error('📝 [AuthService] Error response:', error.response?.data);
-      console.error('📝 [AuthService] Error message:', error.message);
-      
-      // Extract error message from backend
-      const errorMessage = 
-        error.response?.data?.message || 
-        error.response?.data?.error || 
-        error.message || 
-        'Đăng ký thất bại';
-      
-      throw new Error(errorMessage);
+      throw new Error(error.message || 'Đăng ký thất bại');
     }
   },
 
@@ -172,7 +235,16 @@ export const authService = {
    */
   logout: async (): Promise<void> => {
     try {
-  await authApi.post('logout');
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        await fetch(`${AUTH_API_URL}/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          credentials: 'include',
+        });
+      }
     } catch (error) {
       console.error('Logout API error:', error);
     } finally {
@@ -181,7 +253,6 @@ export const authService = {
       localStorage.removeItem('user');
       localStorage.removeItem('auth_user');
       if (typeof document !== 'undefined') {
-        // Clear cookies
         document.cookie = 'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
         document.cookie = 'auth_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
       }
@@ -192,8 +263,21 @@ export const authService = {
    * Get current user
    */
   getCurrentUser: async (): Promise<UserResponse> => {
-    const response = await authApi.get<UserResponse>('me');
-    return response.data;
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${AUTH_API_URL}/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get user');
+    }
+
+    return response.json();
   },
 
   /**

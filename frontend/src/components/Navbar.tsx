@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationDropdown } from '@/components/NotificationDropdown';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/lib/auth'; // Use AuthContext instead of hooks
 import { useLanguage } from '@/contexts/LanguageContext';
 import { UserRole } from '@/types';
 
@@ -129,6 +129,15 @@ export function Navbar() {
   const getRoleSpecificNavigation = () => {
     // Don't show navigation while loading or if not authenticated
     if (!isAuthenticated) return [];
+    
+    console.log('🔍 Navbar Debug:', { 
+      role: user?.role, 
+      roleType: typeof user?.role,
+      isUserEnum: user?.role === UserRole.USER,
+      isEmployerEnum: user?.role === UserRole.EMPLOYER,
+      isAdminEnum: user?.role === UserRole.ADMIN,
+      userObject: user 
+    });
     
     switch (user?.role) {
       case 'EMPLOYER':
