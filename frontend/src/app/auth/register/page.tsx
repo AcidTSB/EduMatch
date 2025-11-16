@@ -99,26 +99,61 @@ export default function RegisterPage() {
     const toastId = toast.loading('Đang tạo tài khoản...');
 
     try {
-      // Mock API call - replace with actual registration
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Call real register API
+      const response = await fetch('http://localhost:8080/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.email, // Use email as username
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          sex: formData.sex, // Include sex field
+        }),
+      });
 
-      // Mock successful registration
-      localStorage.setItem('auth_token', 'mock-jwt-token');
-      // Mặc định vai trò là 'user' vì trường chọn đã bị xóa
-      localStorage.setItem('user_role', 'user');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const data = await response.json();
+      
+      // Backend returns: { accessToken, user, tokenType, refreshToken }
+      const { accessToken, user } = data;
+
+      // Store token
+      localStorage.setItem('auth_token', accessToken);
+      
+      // Transform to AuthUser format and store
+      const authUser = {
+        id: String(user.id),
+        email: user.email,
+        name: `${user.firstName} ${user.lastName}`,
+        role: user.roles?.[0] || 'USER',
+        emailVerified: true,
+        status: 'ACTIVE',
+        subscriptionType: 'FREE',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      localStorage.setItem('auth_user', JSON.stringify(authUser));
 
       toast.success('Đăng ký thành công!', {
         id: toastId,
         description: `Chào mừng ${formData.firstName} ${formData.lastName} đến với EduMatch!`,
       });
 
-      // Chuyển hướng đến dashboard của user
+      // Redirect to user dashboard
       setTimeout(() => {
         router.push('/user/dashboard');
       }, 1000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration failed:', error);
-      const errorMessage = t('register.errors.submitFailed');
+      const errorMessage = error.message || t('register.errors.submitFailed');
       toast.error('Đăng ký thất bại', {
         id: toastId,
         description: errorMessage,

@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
-  MapPin, 
+  MapPin,
   Calendar,
   DollarSign,
-  Building2, 
+  Building2,
   CheckCircle,
   Share2,
   FileText,
@@ -26,8 +26,14 @@ import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ApplyButton } from '@/components/ApplyButton';
 import { useApplications, useSavedScholarships } from '@/hooks/api';
-import { apiClient } from '@/lib/api-client'; 
-import { Scholarship, ScholarshipLevel, StudyMode, ModerationStatus } from '@/types';
+import { apiClient } from '@/lib/api-client';
+// SỬA 1: Giả sử bạn đã thêm ModerationStatus vào @/types
+import {
+  Scholarship,
+  ScholarshipType,
+  StudyMode,
+  ModerationStatus,
+} from '@/types';
 import { formatDate, formatCurrency, cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 
@@ -56,11 +62,15 @@ export default function ScholarshipDetailPage() {
 
         if (response.success && response.data) {
           setScholarship(response.data);
-          const currentUserId = 'student-1'; 
-          const appStatusResponse = await apiClient.applications.checkApplicationStatus(scholarshipId, currentUserId);
+          const currentUserId = 'student-1';
+          const appStatusResponse =
+            await apiClient.applications.checkApplicationStatus(
+              scholarshipId,
+              currentUserId
+            );
           setHasApplied(appStatusResponse.data?.hasApplied || false);
         } else {
-          setScholarship(null); 
+          setScholarship(null);
         }
       } catch (error) {
         console.error('Error fetching scholarship:', error);
@@ -71,63 +81,85 @@ export default function ScholarshipDetailPage() {
     };
 
     fetchData();
-  }, [params.id]);
+  }, [params.id, t]); // Thêm 't' vào dependency array của useEffect
 
+  // SỬA 2: Thêm kiểm tra null cho scholarship và scholarship.id
   const handleSaveToggle = async () => {
-    if (!scholarship) return;
-    await toggleSaved(scholarship.id.toString());
-    toast.success(isScholarshipSaved(scholarship.id.toString()) ? "Removed from saved" : "Saved for later");
+    if (!scholarship || !scholarship.id) return; // Đảm bảo scholarship và id tồn tại
+
+    const scholarshipIdStr = scholarship.id.toString();
+    await toggleSaved(scholarshipIdStr);
+    toast.success(
+      isScholarshipSaved(scholarshipIdStr)
+        ? 'Removed from saved'
+        : 'Saved for later'
+    );
   };
 
   // Hàm tính Duration (số tháng)
   const calculateDuration = (start: string, end: string) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
-    
+
     // Tính số tháng chênh lệch
     let months = (endDate.getFullYear() - startDate.getFullYear()) * 12;
     months -= startDate.getMonth();
     months += endDate.getMonth();
-    
+
     // Làm tròn nếu cần (ở đây lấy tháng trọn vẹn hoặc hơn)
     return months <= 0 ? 0 : months;
   };
 
-  const getLevelColor = (level: ScholarshipLevel) => {
+  // SỬA 3: Đổi 'ScholarshipLevel' thành 'ScholarshipType'
+  const getLevelColor = (level: ScholarshipType | string) => {
     // ... (Giữ nguyên logic màu)
     switch (level) {
-      case ScholarshipLevel.UNDERGRADUATE: return 'bg-purple-100 text-purple-800 border-purple-200';
-      case ScholarshipLevel.MASTER: return 'bg-blue-100 text-blue-800 border-blue-200';
-      case ScholarshipLevel.PHD: return 'bg-green-100 text-green-800 border-green-200';
-      case ScholarshipLevel.POSTDOC: return 'bg-orange-100 text-orange-800 border-orange-200';
-      case ScholarshipLevel.RESEARCH: return 'bg-teal-100 text-teal-800 border-teal-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case ScholarshipType.UNDERGRADUATE:
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case ScholarshipType.MASTER: // Lỗi này được sửa trong file types
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case ScholarshipType.PHD: // Lỗi này được sửa trong file types
+        return 'bg-green-100 text-green-800 border-green-200';
+      case ScholarshipType.POSTDOC: // Lỗi này được sửa trong file types
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case ScholarshipType.RESEARCH:
+        return 'bg-teal-100 text-teal-800 border-teal-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const getStatusColor = (status: ModerationStatus) => {
-     switch (status) {
-       case ModerationStatus.APPROVED: return 'bg-green-100 text-green-800';
-       case ModerationStatus.PENDING: return 'bg-yellow-100 text-yellow-800';
-       case ModerationStatus.REJECTED: return 'bg-red-100 text-red-800';
-       default: return 'bg-gray-100 text-gray-800';
-     }
+  const getStatusColor = (status: ModerationStatus | string) => {
+    switch (status) {
+      case ModerationStatus.APPROVED:
+        return 'bg-green-100 text-green-800';
+      case ModerationStatus.PENDING:
+        return 'bg-yellow-100 text-yellow-800';
+      case ModerationStatus.REJECTED:
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
-  
-  if (isLoading) return <div className="min-h-screen bg-gray-50 p-8">Loading...</div>;
-  
+
+  if (isLoading)
+    return <div className="min-h-screen bg-gray-50 p-8">Loading...</div>;
+
   if (!scholarship) {
     return (
       <div className="min-h-screen bg-gray-50 p-8 flex flex-col items-center">
         <h1 className="text-2xl font-bold mb-4">Scholarship Not Found</h1>
-        <Button onClick={() => router.push('/user/scholarships')}>Back to List</Button>
+        <Button onClick={() => router.push('/user/scholarships')}>
+          Back to List
+        </Button>
       </div>
     );
   }
 
-  const duration = scholarship.endDate 
-    ? calculateDuration(scholarship.startDate, scholarship.endDate) 
-    : 0;
+  const duration =
+    scholarship.endDate && scholarship.startDate
+      ? calculateDuration(scholarship.startDate, scholarship.endDate)
+      : 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -145,19 +177,27 @@ export default function ScholarshipDetailPage() {
             <Card>
               <CardContent className="p-6">
                 <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge className={cn('border', getLevelColor(scholarship.level))}>
+                  {/* SỬA 4: Các lỗi 'level', 'studyMode', 'moderationStatus' được sửa trong file types */}
+                  <Badge
+                    className={cn('border', getLevelColor(scholarship.level))}
+                  >
                     {scholarship.level.replace('_', ' ')}
                   </Badge>
                   <Badge variant="outline" className="flex items-center">
-                     <Briefcase className="h-3 w-3 mr-1" />
-                     {scholarship.studyMode.replace('_', ' ')}
+                    <Briefcase className="h-3 w-3 mr-1" />
+                    {scholarship.studyMode.replace('_', ' ')}
                   </Badge>
-                  <Badge className={getStatusColor(scholarship.moderationStatus)}>
+                  <Badge
+                    className={getStatusColor(scholarship.moderationStatus)}
+                  >
                     {scholarship.moderationStatus}
                   </Badge>
-                  
+
                   {scholarship.matchScore && (
-                    <Badge variant="outline" className="border-green-500 text-green-700 bg-green-50 font-semibold">
+                    <Badge
+                      variant="outline"
+                      className="border-green-500 text-green-700 bg-green-50 font-semibold"
+                    >
                       {scholarship.matchScore}% Match
                     </Badge>
                   )}
@@ -174,21 +214,24 @@ export default function ScholarshipDetailPage() {
                       {scholarship.university}
                     </div>
                   )}
-                  
+
                   {scholarship.location && (
                     <div className="flex items-center">
                       <MapPin className="h-4 w-4 mr-2 text-gray-500" />
                       {scholarship.location}
                     </div>
                   )}
-                  
+
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                    {t('scholarshipDetail.due')} {formatDate(scholarship.applicationDeadline)}
+                    {/* SỬA 5: Thêm fallback cho formatDate */}
+                    {t('scholarshipDetail.due')}{' '}
+                    {formatDate(scholarship.applicationDeadline || '')}
                   </div>
                   <div className="flex items-center">
                     <Users className="h-4 w-4 mr-2 text-gray-500" />
-                    {scholarship.viewsCnt} {t('scholarshipDetail.views')}
+                    {/* SỬA 6: Đổi 'viewsCnt' thành 'viewCount' */}
+                    {scholarship.viewCount} {t('scholarshipDetail.views')}
                   </div>
                 </div>
 
@@ -219,10 +262,11 @@ export default function ScholarshipDetailPage() {
                         {t('scholarshipDetail.amount')}:
                       </span>
                       <p className="font-medium text-2xl text-green-600">
+                        {/* SỬA 7: Lỗi 'scholarshipAmount' được sửa trong file types */}
                         {formatCurrency(scholarship.scholarshipAmount || 0)}
                       </p>
                     </div>
-                    
+
                     {/* THÊM: Duration (Tính toán) */}
                     {duration > 0 && (
                       <div>
@@ -252,7 +296,8 @@ export default function ScholarshipDetailPage() {
                       </span>
                       {/* Thêm pl-1 vào đây */}
                       <span className="text-sm font-medium text-red-600 pl-1">
-                        {formatDate(scholarship.applicationDeadline)}
+                        {/* SỬA 8: Thêm fallback cho formatDate */}
+                        {formatDate(scholarship.applicationDeadline || '')}
                       </span>
                     </div>
                     <div className="grid grid-cols-[auto_1fr] gap-x-3 items-baseline">
@@ -261,7 +306,7 @@ export default function ScholarshipDetailPage() {
                       </span>
                       {/* Thêm pl-1 vào đây */}
                       <span className="text-sm font-medium text-gray-900 pl-1">
-                        {formatDate(scholarship.startDate)}
+                        {formatDate(scholarship.startDate || '')}
                       </span>
                     </div>
                     {scholarship.endDate && (
@@ -295,14 +340,19 @@ export default function ScholarshipDetailPage() {
                       </p>
                     </div>
 
-                    {scholarship.requiredSkills && scholarship.requiredSkills.length > 0 && (
+                    {scholarship.requiredSkills &&
+                      scholarship.requiredSkills.length > 0 && (
                         <div>
                           <span className="text-sm text-gray-600 block mb-2">
                             {t('scholarshipDetail.requiredSkills')}:
                           </span>
                           <div className="flex flex-wrap gap-2">
                             {scholarship.requiredSkills.map((skill, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
+                              <Badge
+                                key={index}
+                                variant="secondary"
+                                className="text-xs"
+                              >
                                 {skill}
                               </Badge>
                             ))}
@@ -322,15 +372,27 @@ export default function ScholarshipDetailPage() {
                   </h3>
                   <div className="space-y-3">
                     <div className="grid grid-cols-[auto_1fr] gap-x-3 items-baseline">
-                      <span className="text-sm text-gray-600 whitespace-nowrap">Email:</span>
-                      <a href={`mailto:${scholarship.contactEmail}`} className="text-sm text-blue-600 hover:underline break-all">
+                      <span className="text-sm text-gray-600 whitespace-nowrap">
+                        Email:
+                      </span>
+                      <a
+                        href={`mailto:${scholarship.contactEmail}`}
+                        className="text-sm text-blue-600 hover:underline break-all"
+                      >
                         {scholarship.contactEmail}
                       </a>
                     </div>
                     {scholarship.website && (
                       <div className="grid grid-cols-[auto_1fr] gap-x-3 items-baseline">
-                        <span className="text-sm text-gray-600 whitespace-nowrap">Website:</span>
-                        <a href={scholarship.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                        <span className="text-sm text-gray-600 whitespace-nowrap">
+                          Website:
+                        </span>
+                        <a
+                          href={scholarship.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                        >
                           {t('scholarshipDetail.visitWebsite')}
                           <ExternalLink className="h-3 w-3" />
                         </a>
@@ -390,7 +452,8 @@ export default function ScholarshipDetailPage() {
                   <span className="text-sm text-gray-600">
                     {t('scholarshipDetail.views')}
                   </span>
-                  <span className="font-medium">{scholarship.viewsCnt}</span>
+                  {/* SỬA 9: Đổi 'viewsCnt' thành 'viewCount' */}
+                  <span className="font-medium">{scholarship.viewCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">
@@ -414,7 +477,11 @@ export default function ScholarshipDetailPage() {
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
                     {scholarship.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
+                      <Badge
+                        key={index}
+                        variant="secondary"
+                        className="text-xs"
+                      >
                         #{tag}
                       </Badge>
                     ))}

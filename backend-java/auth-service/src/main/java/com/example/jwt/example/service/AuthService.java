@@ -193,6 +193,8 @@ public class AuthService {
                 .password(passwordEncoder.encode(request.getPassword()))
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
+                .sex(request.getSex()) // Map sex field
+                .organizationId(request.getOrganizationId()) // Map organizationId if provided
                 .enabled(true)
                 .build();
     }

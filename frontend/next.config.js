@@ -1,5 +1,24 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Transpile framer-motion để fix lỗi "Unexpected token" khi build
+  transpilePackages: ['framer-motion'],
+  
+  swcMinify: false,
+  
+  // Experimental config để handle ESM packages
+  experimental: {
+    esmExternals: 'loose',
+  },
+  
+  // Webpack config để handle framer-motion
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'framer-motion': require.resolve('framer-motion'),
+    };
+    return config;
+  },
+  
   typescript: {
     // Skip TypeScript errors during build
     ignoreBuildErrors: true,

@@ -59,13 +59,13 @@ public class UserService {
     }
 
     /**
-     * Tao employer moi voi role EMPLOYER
+     * Tao employer moi voi role PROVIDER
      */
     public User createEmployer(SignUpRequest request) {
         validateUserRequest(request);
 
-        Role employerRole = roleRepository.findByName("ROLE_EMPLOYER")
-                .orElseThrow(() -> new ResourceNotFoundException("Role", "name", "ROLE_EMPLOYER"));
+        Role employerRole = roleRepository.findByName("ROLE_PROVIDER")
+                .orElseThrow(() -> new ResourceNotFoundException("Role", "name", "ROLE_PROVIDER"));
 
         User employer = buildUser(request, employerRole);
         employer.setOrganizationId(request.getOrganizationId());

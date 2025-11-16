@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScholarshipLevel} from '@/types';
+import { ScholarshipType} from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface CreateScholarshipModalProps {
@@ -13,7 +13,7 @@ interface CreateScholarshipModalProps {
   onSubmit: (scholarshipData: {
     title: string;
     amount: number;
-    type: ScholarshipLevel;
+    type: ScholarshipType;
     deadline: string;
     university: string;
     location: string;
@@ -26,7 +26,7 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
   const [formData, setFormData] = useState({
     title: '',
     amount: '',
-    type: ScholarshipLevel.UNDERGRADUATE,
+    type: ScholarshipType.UNDERGRADUATE,
     deadline: '',
     university: '',
     location: '',
@@ -154,7 +154,7 @@ export function CreateScholarshipModal({ isOpen, onClose, onSubmit }: CreateScho
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value={ScholarshipType.UNDERGRADUATE}>{t('createScholarshipModal.typeUndergraduate')}</option>
-                <option value={ScholarshipType.GRADUATE}>{t('createScholarshipModal.typeGraduate')}</option>
+                <option value={ScholarshipType.MASTER}>{t('createScholarshipModal.typeMaster')}</option>
                 <option value={ScholarshipType.RESEARCH}>{t('createScholarshipModal.typeResearch')}</option>
               </select>
             </div>

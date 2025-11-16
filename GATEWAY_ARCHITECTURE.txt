@@ -1,0 +1,207 @@
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        EduMatch API Gateway Flow                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────┐
+│   BROWSER        │
+│  (Frontend App)  │
+│                  │
+│  localhost:3000  │
+└────────┬─────────┘
+         │
+         │ HTTP Request
+         │ Example: POST /api/auth/login
+         │
+         ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    NGINX API GATEWAY                             │
+│                                                                  │
+│  Host: localhost:8080                                            │
+│  Container: api-gateway-test (port 80)                           │
+│                                                                  │
+│  Features:                                                       │
+│  • CORS handling (Allow all origins)                            │
+│  • Rate limiting (auth: 10/s, api: 100/s, ml: 5/s)              │
+│  • Load balancing                                                │
+│  • Request routing                                               │
+│  • Timeout management                                            │
+│                                                                  │
+│  Routes:                                                         │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ /api/auth/*         → auth-service-test:8081            │  │
+│  │ /api/users/*        → auth-service-test:8081            │  │
+│  │ /api/scholarships/* → scholarship-service-test:8082     │  │
+│  │ /api/opportunities/* → scholarship-service-test:8082    │  │
+│  │ /api/applications/* → scholarship-service-test:8082     │  │
+│  │ /api/matching/*     → matching-service-test:8000        │  │
+│  │ /api/notifications/* → notification-service-test:8083   │  │
+│  │ /health             → matching-service-test:8000        │  │
+│  │ /recommendations    → matching-service-test:8000        │  │
+│  │ /gateway/health     → Gateway health check              │  │
+│  │ /gateway/status     → All services status               │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└────────┬─────────────────────────────────────┬─────────────────┘
+         │                                      │
+         │                                      │
+    ┌────▼─────┐                          ┌────▼─────┐
+    │  AUTH    │                          │SCHOLARSHIP│
+    │ SERVICE  │                          │  SERVICE  │
+    │          │                          │           │
+    │  :8081   │                          │   :8082   │
+    │          │                          │           │
+    │ • Login  │                          │• List     │
+    │ • Register│                         │• Apply    │
+    │ • Users  │                          │• Track    │
+    └────┬─────┘                          └────┬──────┘
+         │                                      │
+         │                                      │
+         │         ┌─────────────┐             │
+         │         │  MATCHING   │             │
+         └─────────│  SERVICE    │─────────────┘
+                   │             │
+                   │   :8000     │
+                   │             │
+                   │ • ML Score  │
+                   │ • Recommend │
+                   └──────┬──────┘
+                          │
+                          │
+                   ┌──────▼──────┐
+                   │ NOTIFICATION│
+                   │  SERVICE    │
+                   │             │
+                   │   :8083     │
+                   │             │
+                   │ • Push      │
+                   │ • Email     │
+                   └─────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════
+                            EXAMPLE REQUEST FLOW
+═══════════════════════════════════════════════════════════════════════════════
+
+1. LOGIN REQUEST
+   ─────────────
+
+   Browser                  Gateway                 Auth Service
+      │                        │                         │
+      │  POST /api/auth/login  │                         │
+      │  {email, password}     │                         │
+      ├───────────────────────►│                         │
+      │                        │                         │
+      │                        │  Forward request to     │
+      │                        │  auth-service:8081      │
+      │                        ├────────────────────────►│
+      │                        │                         │
+      │                        │                         │ Validate
+      │                        │                         │ credentials
+      │                        │                         │
+      │                        │  { token, user }        │
+      │                        │◄────────────────────────┤
+      │                        │                         │
+      │  { token, user }       │                         │
+      │◄───────────────────────┤                         │
+      │                        │                         │
+      │  Store token           │                         │
+      │  in localStorage       │                         │
+      │                        │                         │
+
+
+2. GET SCHOLARSHIPS (Authenticated)
+   ─────────────────────────────────
+
+   Browser                  Gateway              Scholarship Service
+      │                        │                         │
+      │  GET /api/scholarships │                         │
+      │  Authorization: Bearer │                         │
+      ├───────────────────────►│                         │
+      │                        │                         │
+      │                        │  Add X-Real-IP header   │
+      │                        │  Forward to :8082       │
+      │                        ├────────────────────────►│
+      │                        │                         │
+      │                        │                         │ Query DB
+      │                        │                         │ Apply filters
+      │                        │                         │
+      │                        │  [ scholarships array ] │
+      │                        │◄────────────────────────┤
+      │                        │                         │
+      │  [ scholarships ]      │                         │
+      │◄───────────────────────┤                         │
+      │                        │                         │
+      │  Render list           │                         │
+      │                        │                         │
+
+
+3. ML MATCHING (Rate Limited)
+   ───────────────────────────
+
+   Browser                  Gateway                Matching Service
+      │                        │                         │
+      │  POST /api/matching    │                         │
+      │  { user_id, filters }  │                         │
+      ├───────────────────────►│                         │
+      │                        │                         │
+      │                        │  Check rate limit       │
+      │                        │  (5 req/sec)            │
+      │                        │                         │
+      │                        │  Forward to :8000       │
+      │                        ├────────────────────────►│
+      │                        │                         │
+      │                        │                         │ Run ML model
+      │                        │                         │ (60-90s)
+      │                        │                         │
+      │                        │  { recommendations }    │
+      │                        │◄────────────────────────┤
+      │                        │                         │
+      │  { recommendations }   │                         │
+      │◄───────────────────────┤                         │
+      │                        │                         │
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                              CONFIGURATION FILES
+═══════════════════════════════════════════════════════════════════════════════
+
+1. frontend/.env.local
+   ───────────────────
+   NEXT_PUBLIC_API_GATEWAY=http://localhost:8080
+
+2. frontend/src/lib/api.ts
+   ────────────────────────
+   const GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080';
+   const API_BASE_URL = `${GATEWAY_URL}/api`;
+
+3. nginx-gateway/nginx.conf
+   ─────────────────────────
+   location /api/auth { proxy_pass http://auth_service; }
+   location /api/scholarships { proxy_pass http://scholarship_service; }
+
+4. docker-compose.test.yml
+   ────────────────────────
+   api-gateway:
+     ports: ["8080:80"]
+     volumes: ["./nginx-gateway/nginx.conf:/etc/nginx/nginx.conf:ro"]
+
+
+═══════════════════════════════════════════════════════════════════════════════
+                                HEALTH CHECKS
+═══════════════════════════════════════════════════════════════════════════════
+
+Gateway Health:
+$ curl http://localhost:8080/gateway/health
+{
+  "status": "healthy",
+  "gateway": "EduMatch-API-Gateway",
+  "services": ["auth", "scholarship", "matching", "notification"]
+}
+
+Service Status:
+$ curl http://localhost:8080/gateway/status
+{
+  "gateway": "healthy",
+  "auth": "http://auth-service-test:8081",
+  "scholarship": "http://scholarship-service-test:8082",
+  "matching": "http://matching-service-test:8000",
+  "notification": "http://notification-service-test:8083"
+}

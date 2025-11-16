@@ -9,6 +9,7 @@ import com.example.jwt.example.exception.BadRequestException;
 import com.example.jwt.example.exception.ResourceNotFoundException;
 import com.example.jwt.example.model.User;
 import com.example.jwt.example.service.AuthService;
+import com.example.jwt.example.security.JwtTokenProvider;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,7 @@ import java.net.URI;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -53,12 +55,18 @@ public class AuthController {
         try {
             User user = authService.registerUser(signUpRequest);
             
+            // Tự động đăng nhập sau khi đăng ký
+            LoginRequest loginRequest = new LoginRequest();
+            loginRequest.setUsername(user.getUsername());
+            loginRequest.setPassword(signUpRequest.getPassword());
+            
+            JwtAuthenticationResponse response = authService.authenticateUser(loginRequest);
+            
             URI location = ServletUriComponentsBuilder
                     .fromCurrentContextPath().path("/api/users/{username}")
                     .buildAndExpand(user.getUsername()).toUri();
             
-            return ResponseEntity.created(location)
-                    .body(new ApiResponse(true, "User registered successfully"));
+            return ResponseEntity.created(location).body(response);
         } catch (BadRequestException e) {
             return ResponseEntity.badRequest()
                     .body(new ApiResponse(false, e.getMessage()));

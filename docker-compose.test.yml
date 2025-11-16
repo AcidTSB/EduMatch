@@ -205,16 +205,20 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # All APIs now go through API Gateway at port 8080
-      - NEXT_PUBLIC_API_URL=http://localhost:8080/api
-      - NEXT_PUBLIC_AUTH_API=http://localhost:8080/api/auth
-      - NEXT_PUBLIC_SCHOLARSHIP_API=http://localhost:8080/api/scholarships
-      - NEXT_PUBLIC_MATCHING_API=http://localhost:8080/api/matching
+      # IMPORTANT: Frontend runs in browser, calls go through the API Gateway on host 8080
+      - NEXT_PUBLIC_API_GATEWAY=http://localhost:8080
       - NEXT_PUBLIC_SOCKET_URL=http://localhost:3003
+      # Enable file change polling for hot reload in Docker on Windows
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    volumes:
+      # Mount source for hot reload
+      - ./frontend:/app
+      # Keep container node_modules so host doesn't override it
+      - /app/node_modules
     networks:
       - test-network
-    depends_on:
-      - api-gateway
+    # NO DEPENDS_ON - Frontend can start independently
 
   # === API GATEWAY (Nginx) ===
   api-gateway:
@@ -223,13 +227,10 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./nginx-gateway/nginx-test.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - test-network
-    depends_on:
-      - auth-service
-      - scholarship-service
-      - matching-service
+    # NO DEPENDS_ON - Gateway can start independently, services will connect when ready
     restart: unless-stopped
 
   # ==================== COMMENTED OUT - NOT NEEDED FOR TESTING ====================

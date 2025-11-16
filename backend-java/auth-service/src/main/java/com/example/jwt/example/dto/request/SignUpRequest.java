@@ -8,7 +8,7 @@ import lombok.Data;
 @Data
 public class SignUpRequest {
     @NotBlank
-    @Size(min = 3, max = 50)
+    @Size(max = 60)
     private String username;
 
     @NotBlank
@@ -20,11 +20,16 @@ public class SignUpRequest {
     @Size(min = 6, max = 20)
     private String password;
 
+    @NotBlank
     @Size(max = 50)
     private String firstName;
 
+    @NotBlank
     @Size(max = 50)
     private String lastName;
+
+    @Size(max = 10)
+    private String sex; // MALE, FEMALE, OTHER
 
     private Long organizationId;
 }

@@ -7,9 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
-import { useAuth } from '@/lib/auth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation'; // 1. Import router
+import { useQueryClient } from '@tanstack/react-query'; // 2. Import query client
+
+// 3. Import ĐÚNG hook useAuth và file api
+import { useAuth, User } from '@/hooks/useAuth'; // ✅ SỬA LỖI 1: Import 'User' type
+import api from '@/lib/api';
+import { UserRole } from '@/types'; // ✅ SỬA LỖI 1: Import 'UserRole'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -18,9 +24,15 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { login, error: authError } = useAuth();
-  const { t } = useLanguage();
 
+  // 4. Lấy các hàm và state
+  // ✅ SỬA LỖI 1: Xóa 'error: authError' vì useAuth không cung cấp nó.
+  const { login: setAuthState } = useAuth(); 
+  const { t } = useLanguage();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  // validateForm() và handleInputChange() giữ nguyên
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -40,6 +52,19 @@ export default function LoginPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleInputChange = (field: string, value: string) => {
+    if (field === 'email') setEmail(value);
+    if (field === 'password') setPassword(value);
+    
+    if (errors[field]) {
+      setErrors((prev) => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  // 5. SỬA LẠI HOÀN TOÀN handleSubmit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -54,16 +79,57 @@ export default function LoginPage() {
     const toastId = toast.loading('Đang đăng nhập...');
     
     try {
-      // Use the auth context login method
-      await login({ email, password });
+      // 6. TỰ GỌI API login
+      const response = await api.auth.login({ email, password });
+      
+      // ✅ SỬA LỖI 2 & 3: Thêm kiểm tra 'response.data'
+      // Lỗi này xảy ra vì 'data' có thể là optional (data?: T)
+      if (!response.data) {
+        throw new Error('Không nhận được dữ liệu từ server');
+      }
+
+      // 'user' từ API trả về thực chất là 'UserProfile'
+      const { token, user: profile } = response.data; // Đổi tên 'user' thành 'profile'
+
+      // 7. ✅ SỬA LỖI 1: Xây dựng object 'User' đầy đủ
+      // Object này khớp với định nghĩa 'User' trong useAuth.ts
+      const userToAuth: User = {
+        id: profile.id,
+        email: profile.email || '',
+        role: profile.role || UserRole.USER,
+        status: 'ACTIVE' as any,
+        subscriptionType: 'FREE' as any,
+        emailVerified: profile.verified || false,
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt,
+        profile: profile, // Gắn profile vào user
+      };
+
+      // 8. GỌI HÀM setAuthState với object 'User' đầy đủ
+      setAuthState(token, userToAuth); // Lỗi 1 đã được sửa
+
+      // 9. ✅ SỬA LỖI 2: Cập nhật cache với 'profile' (là UserProfile)
+      queryClient.setQueryData(['currentUser'], { data: profile }); // Lỗi 2 đã được sửa
+
       toast.success('Đăng nhập thành công!', {
         id: toastId,
         description: `Chào mừng bạn trở lại, ${email}`
       });
-      // Redirect is handled automatically in auth.ts based on role
-    } catch (error) {
+
+      // 10. TỰ CHUYỂN HƯỚNG (dùng userToAuth)
+      if (userToAuth.role === 'ADMIN') {
+        router.push('/admin/dashboard');
+      } else if (userToAuth.role === 'EMPLOYER') {
+        router.push('/employer/dashboard');
+      } else {
+        router.push('/user/dashboard'); 
+      }
+
+    } catch (error: any) {
       console.error('Login failed:', error);
-      const errorMessage = authError || t('login.invalidCredentials');
+      // Lấy message lỗi từ API response nếu có
+      // ✅ SỬA LỖI 1: Xóa 'authError' và lấy lỗi trực tiếp
+      const errorMessage = error.message || t('login.invalidCredentials');
       toast.error('Đăng nhập thất bại', {
         id: toastId,
         description: errorMessage
@@ -74,33 +140,20 @@ export default function LoginPage() {
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    if (field === 'email') setEmail(value);
-    if (field === 'password') setPassword(value);
-    
-    // Clear error when user starts editing
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: ''
-      }));
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-blue-50 via-white to-brand-cyan-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1">
-            <div className="flex items-center justify-center mb-4">
-              <div className="w-12 h-12 bg-brand-blue-500 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">E</span>
-              </div>
+        <CardHeader className="space-y-1">
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-12 h-12 bg-brand-blue-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xl">E</span>
             </div>
-            <CardTitle className="text-2xl text-center">{t('login.welcomeBack')}</CardTitle>
-            <p className="text-muted-foreground text-center">
-              {t('login.subtitle')}
-            </p>
-          </CardHeader>
+          </div>
+          <CardTitle className="text-2xl text-center">{t('login.welcomeBack')}</CardTitle>
+          <p className="text-muted-foreground text-center">
+            {t('login.subtitle')}
+          </p>
+        </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {errors.submit && (
@@ -113,14 +166,18 @@ export default function LoginPage() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  type="email"
-                  placeholder={t('login.emailPlaceholder')}
+                  type="text"
+                  placeholder="Username (e.g., admin, testuser)"
                   value={email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="pl-10"
                   error={errors.email}
+                  autoComplete="username"
                 />
               </div>
+              <p className="text-xs text-muted-foreground ml-1">
+                Default accounts: admin/admin123, testuser/test123
+              </p>
             </div>
 
             <div className="space-y-2">

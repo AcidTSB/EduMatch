@@ -54,6 +54,15 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(request -> {
+                    var corsConfig = new org.springframework.web.cors.CorsConfiguration();
+                    corsConfig.addAllowedOrigin("http://localhost:3000"); // Frontend URL
+                    corsConfig.addAllowedOrigin("http://localhost:8080"); // Gateway URL
+                    corsConfig.addAllowedMethod("*"); // Allow all methods (GET, POST, PUT, DELETE, etc.)
+                    corsConfig.addAllowedHeader("*"); // Allow all headers
+                    corsConfig.setAllowCredentials(true); // Allow cookies
+                    return corsConfig;
+                }))
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session-> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth ->

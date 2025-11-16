@@ -24,18 +24,29 @@ public class UserController {
     private final UserRepository userRepository;
 
     @GetMapping("/user/me")
-    public UserSummary getCurrentUser() {
+    public ResponseEntity<?> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
 
-        return UserSummary.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .name(user.getFirstName() + " " + user.getLastName())
-                .build();
+        // Return full user details for frontend
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("id", user.getId());
+        response.put("username", user.getUsername());
+        response.put("email", user.getEmail());
+        response.put("firstName", user.getFirstName());
+        response.put("lastName", user.getLastName());
+        response.put("enabled", user.isEnabled());
+        
+        // Extract role names
+        java.util.List<String> roles = user.getRoles().stream()
+                .map(role -> role.getName())
+                .collect(java.util.stream.Collectors.toList());
+        response.put("roles", roles);
+
+        return ResponseEntity.ok(response);
     }
     /**
      * API nội bộ, dùng cho các service khác (như Scholarship-Service)
