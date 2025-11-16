@@ -1,9 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { AuthUser, AuthState, LoginCredentials, RegisterCredentials } from '@/types';
-import api from '@/lib/api';
-import { mockApi, shouldUseMockApi } from '@/lib/mock-data';
+import { AuthUser, AuthState, LoginCredentials, RegisterCredentials, UserRole } from '@/types';
+import { authService } from '@/services/auth.service';
 import { getFromLocalStorage, setToLocalStorage, removeFromLocalStorage } from '@/lib/utils';
 import { setCookie, getCookie, deleteCookie } from '@/lib/cookies';
 
@@ -119,56 +118,53 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       setAuthState((prev: AuthState) => ({ ...prev, isLoading: true }));
 
-      // Use real API instead of mock
-      const response = await api.auth.login({
+      // Call real authService
+      const response = await authService.login({
         email: credentials.email,
         password: credentials.password || '',
       });
 
-      if (response.success && response.data) {
-        const { user: backendUser, token } = response.data;
+      if (response.user && response.accessToken) {
+        const { user } = response;
 
         // Transform backend user to AuthUser format
-        // Backend user has: id, username, email, firstName, lastName, roles[]
-        const user: any = {
-          id: String((backendUser as any).id),
-          email: (backendUser as any).email,
-          name: `${(backendUser as any).firstName} ${(backendUser as any).lastName}`,
-          role: (backendUser as any).roles?.[0] || 'USER', // Take first role
-          emailVerified: true,
+        const roleStr = user.roles?.[0]?.replace('ROLE_', '') || 'USER';
+        const authUser: AuthUser = {
+          id: String(user.id),
+          email: user.email,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+          role: roleStr as UserRole, // Cast to UserRole enum
+          emailVerified: user.enabled,
           status: 'ACTIVE',
           subscriptionType: 'FREE',
           createdAt: new Date(),
           updatedAt: new Date(),
-          profile: backendUser,
         };
 
-        // Store in localStorage
-        setToLocalStorage('auth_token', token);
-        setToLocalStorage('auth_user', JSON.stringify(user));
+        console.log('💾 [Auth.ts] Saving user to storage:', authUser);
 
-        // Set cookies for middleware using utility function
-        setCookie('auth_token', token, 7);
-        setCookie('auth_user', JSON.stringify(user), 7);
+        // Save user to localStorage and cookies
+        const userStr = JSON.stringify(authUser);
+        setToLocalStorage('auth_user', userStr);
+        setCookie('auth_user', userStr, 7);
 
-        setAuthState(createAuthenticatedState(user));
+        // Update state
+        setAuthState(createAuthenticatedState(authUser));
 
-        // Wait a bit then redirect to let cookies set
+        // Wait a bit then redirect
         setTimeout(() => {
-          // Redirect based on user role - check string value
-          const roleStr = String(user.role).toUpperCase();
-          if (roleStr === 'ADMIN') {
+          // Redirect based on user role
+          if (authUser.role === UserRole.ADMIN) {
             window.location.href = '/admin/dashboard';
-          } else if (roleStr === 'EMPLOYER' || roleStr === 'PROVIDER') {
+          } else if (authUser.role === UserRole.EMPLOYER) {
             window.location.href = '/employer/dashboard';
           } else {
             window.location.href = '/user/dashboard';
           }
         }, 100);
       } else {
-        // Handle failed login response
         setAuthState((prev: AuthState) => ({ ...prev, isLoading: false }));
-        const errorMessage = response.error || 'Login failed';
+        const errorMessage = 'Login failed';
         setError(errorMessage);
         throw new Error(errorMessage);
       }
@@ -185,20 +181,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       setAuthState((prev: AuthState) => ({ ...prev, isLoading: true }));
 
-      const response = await mockApi.auth.register(credentials);
+      // Call real authService
+      const response = await authService.register({
+        email: credentials.email,
+        password: credentials.password || '',
+        firstName: credentials.name?.split(' ')[0] || credentials.email.split('@')[0],
+        lastName: credentials.name?.split(' ').slice(1).join(' ') || '',
+      });
 
-      if (response.success && response.data) {
-        const { user, token } = response.data;
+      if (response.user && response.accessToken) {
+        const { user } = response;
 
-        // Store in localStorage
-        setToLocalStorage('auth_token', token);
-        setToLocalStorage('auth_user', JSON.stringify(user));
+        // Transform backend user to AuthUser format
+        const roleStr = user.roles?.[0]?.replace('ROLE_', '') || 'USER';
+        const authUser: AuthUser = {
+          id: String(user.id),
+          email: user.email,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+          role: roleStr as UserRole, // Cast to UserRole enum
+          emailVerified: user.enabled,
+          status: 'ACTIVE',
+          subscriptionType: 'FREE',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
 
-        // Set cookies for middleware using utility function
-        setCookie('auth_token', token, 7);
-        setCookie('auth_user', JSON.stringify(user), 7);
+        // Save user to localStorage and cookies
+        const userStr = JSON.stringify(authUser);
+        setToLocalStorage('auth_user', userStr);
+        setCookie('auth_user', userStr, 7);
 
-        setAuthState(createAuthenticatedState(user));
+        // Update state
+        setAuthState(createAuthenticatedState(authUser));
 
         // Redirect to home page after successful registration
         window.location.href = '/';
@@ -214,7 +228,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = async () => {
     try {
       // Call real logout API
-      await api.auth.logout();
+      await authService.logout();
     } catch (error) {
       // Continue with logout even if API call fails
     } finally {
@@ -238,7 +252,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshToken = async () => {
     try {
       // TODO: Implement refresh token with real API
-      // For now, just skip refresh
       console.log('Token refresh not implemented yet');
     } catch (err) {
       // If refresh fails, logout user

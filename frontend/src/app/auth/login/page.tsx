@@ -12,10 +12,9 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation'; // 1. Import router
 import { useQueryClient } from '@tanstack/react-query'; // 2. Import query client
 
-// 3. Import ĐÚNG hook useAuth và file api
-import { useAuth, User } from '@/hooks/useAuth'; // ✅ SỬA LỖI 1: Import 'User' type
-import api from '@/lib/api';
-import { UserRole } from '@/types'; // ✅ SỬA LỖI 1: Import 'UserRole'
+// 3. Import useAuth from AuthContext (not hooks)
+import { useAuth } from '@/lib/auth'; // Use context-based auth
+import { UserRole } from '@/types';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -25,12 +24,10 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 4. Lấy các hàm và state
-  // ✅ SỬA LỖI 1: Xóa 'error: authError' vì useAuth không cung cấp nó.
-  const { login: setAuthState } = useAuth(); 
+  // 4. Get login function from AuthContext
+  const { login } = useAuth(); 
   const { t } = useLanguage();
   const router = useRouter();
-  const queryClient = useQueryClient();
 
   // validateForm() và handleInputChange() giữ nguyên
   const validateForm = () => {
@@ -64,7 +61,6 @@ export default function LoginPage() {
     }
   };
 
-  // 5. SỬA LẠI HOÀN TOÀN handleSubmit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -76,62 +72,18 @@ export default function LoginPage() {
     }
 
     setIsLoading(true);
-    const toastId = toast.loading('Đang đăng nhập...');
     
     try {
-      // 6. TỰ GỌI API login
-      const response = await api.auth.login({ email, password });
+      // Use AuthContext login which calls real API
+      await login({ email, password });
       
-      // ✅ SỬA LỖI 2 & 3: Thêm kiểm tra 'response.data'
-      // Lỗi này xảy ra vì 'data' có thể là optional (data?: T)
-      if (!response.data) {
-        throw new Error('Không nhận được dữ liệu từ server');
-      }
-
-      // 'user' từ API trả về thực chất là 'UserProfile'
-      const { token, user: profile } = response.data; // Đổi tên 'user' thành 'profile'
-
-      // 7. ✅ SỬA LỖI 1: Xây dựng object 'User' đầy đủ
-      // Object này khớp với định nghĩa 'User' trong useAuth.ts
-      const userToAuth: User = {
-        id: profile.id,
-        email: profile.email || '',
-        role: profile.role || UserRole.USER,
-        status: 'ACTIVE' as any,
-        subscriptionType: 'FREE' as any,
-        emailVerified: profile.verified || false,
-        createdAt: profile.createdAt,
-        updatedAt: profile.updatedAt,
-        profile: profile, // Gắn profile vào user
-      };
-
-      // 8. GỌI HÀM setAuthState với object 'User' đầy đủ
-      setAuthState(token, userToAuth); // Lỗi 1 đã được sửa
-
-      // 9. ✅ SỬA LỖI 2: Cập nhật cache với 'profile' (là UserProfile)
-      queryClient.setQueryData(['currentUser'], { data: profile }); // Lỗi 2 đã được sửa
-
-      toast.success('Đăng nhập thành công!', {
-        id: toastId,
-        description: `Chào mừng bạn trở lại, ${email}`
-      });
-
-      // 10. TỰ CHUYỂN HƯỚNG (dùng userToAuth)
-      if (userToAuth.role === 'ADMIN') {
-        router.push('/admin/dashboard');
-      } else if (userToAuth.role === 'EMPLOYER') {
-        router.push('/employer/dashboard');
-      } else {
-        router.push('/user/dashboard'); 
-      }
-
+      // AuthContext handles everything: API call, token storage, state update, redirect
+      // No need to manually handle response
+      
     } catch (error: any) {
       console.error('Login failed:', error);
-      // Lấy message lỗi từ API response nếu có
-      // ✅ SỬA LỖI 1: Xóa 'authError' và lấy lỗi trực tiếp
       const errorMessage = error.message || t('login.invalidCredentials');
       toast.error('Đăng nhập thất bại', {
-        id: toastId,
         description: errorMessage
       });
       setErrors({ submit: errorMessage });
@@ -166,18 +118,14 @@ export default function LoginPage() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  type="text"
-                  placeholder="Username (e.g., admin, testuser)"
+                  type="email"
+                  placeholder={t('login.emailPlaceholder')}
                   value={email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="pl-10"
                   error={errors.email}
-                  autoComplete="username"
                 />
               </div>
-              <p className="text-xs text-muted-foreground ml-1">
-                Default accounts: admin/admin123, testuser/test123
-              </p>
             </div>
 
             <div className="space-y-2">
