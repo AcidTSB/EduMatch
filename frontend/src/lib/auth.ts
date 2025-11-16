@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { AuthUser, AuthState, LoginCredentials, RegisterCredentials } from '@/types';
+import { AuthUser, AuthState, LoginCredentials, RegisterCredentials, UserRole } from '@/types';
 import { authService } from '@/services/auth.service';
 import { getFromLocalStorage, setToLocalStorage, removeFromLocalStorage } from '@/lib/utils';
 import { setCookie, getCookie, deleteCookie } from '@/lib/cookies';
@@ -128,11 +128,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const { user } = response;
 
         // Transform backend user to AuthUser format
+        const roleStr = user.roles?.[0]?.replace('ROLE_', '') || 'USER';
         const authUser: AuthUser = {
           id: String(user.id),
           email: user.email,
           name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
-          role: (user.roles?.[0]?.replace('ROLE_', '') || 'USER') as any, // Keep uppercase
+          role: roleStr as UserRole, // Cast to UserRole enum
           emailVerified: user.enabled,
           status: 'ACTIVE',
           subscriptionType: 'FREE',
@@ -140,16 +141,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
           updatedAt: new Date(),
         };
 
-        // authService already saved token, just update state
+        console.log('💾 [Auth.ts] Saving user to storage:', authUser);
+
+        // Save user to localStorage and cookies
+        const userStr = JSON.stringify(authUser);
+        setToLocalStorage('auth_user', userStr);
+        setCookie('auth_user', userStr, 7);
+
+        // Update state
         setAuthState(createAuthenticatedState(authUser));
 
         // Wait a bit then redirect
         setTimeout(() => {
           // Redirect based on user role
-          const roleStr = String(authUser.role);
-          if (roleStr === 'ADMIN') {
+          if (authUser.role === UserRole.ADMIN) {
             window.location.href = '/admin/dashboard';
-          } else if (roleStr === 'EMPLOYER') {
+          } else if (authUser.role === UserRole.EMPLOYER) {
             window.location.href = '/employer/dashboard';
           } else {
             window.location.href = '/user/dashboard';
@@ -186,11 +193,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const { user } = response;
 
         // Transform backend user to AuthUser format
+        const roleStr = user.roles?.[0]?.replace('ROLE_', '') || 'USER';
         const authUser: AuthUser = {
           id: String(user.id),
           email: user.email,
           name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
-          role: (user.roles?.[0]?.replace('ROLE_', '') || 'USER') as any, // Keep uppercase
+          role: roleStr as UserRole, // Cast to UserRole enum
           emailVerified: user.enabled,
           status: 'ACTIVE',
           subscriptionType: 'FREE',
@@ -198,7 +206,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
           updatedAt: new Date(),
         };
 
-        // authService already saved token, just update state
+        // Save user to localStorage and cookies
+        const userStr = JSON.stringify(authUser);
+        setToLocalStorage('auth_user', userStr);
+        setCookie('auth_user', userStr, 7);
+
+        // Update state
         setAuthState(createAuthenticatedState(authUser));
 
         // Redirect to home page after successful registration

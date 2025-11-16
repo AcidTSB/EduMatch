@@ -130,15 +130,6 @@ export function Navbar() {
     // Don't show navigation while loading or if not authenticated
     if (!isAuthenticated) return [];
     
-    console.log('🔍 Navbar Debug:', { 
-      role: user?.role, 
-      roleType: typeof user?.role,
-      isUserEnum: user?.role === UserRole.USER,
-      isEmployerEnum: user?.role === UserRole.EMPLOYER,
-      isAdminEnum: user?.role === UserRole.ADMIN,
-      userObject: user 
-    });
-    
     switch (user?.role) {
       case 'EMPLOYER':
         return providerSpecificNavigation;
@@ -167,6 +158,16 @@ export function Navbar() {
     if (!user?.profile) return user?.email || 'User';
     return `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim() || user.email;
   };
+
+  // Debug logging
+  console.log('🔍 Navbar State:', {
+    isAuthenticated,
+    user,
+    role: user?.role,
+    roleType: typeof user?.role,
+    isUserRole: user?.role === UserRole.USER,
+    isUserString: user?.role === 'USER',
+  });
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
@@ -202,7 +203,7 @@ export function Navbar() {
                   </Link>
                   
                   {/* Role-specific key items */}
-                  {user?.role === UserRole.USER && (
+                  {(user?.role === UserRole.USER || user?.role === 'USER') && (
                     <>
                       <Link
                         href="/user/dashboard"
@@ -240,7 +241,7 @@ export function Navbar() {
                     </>
                   )}
                   
-                  {user?.role === UserRole.EMPLOYER && (
+                  {(user?.role === UserRole.EMPLOYER || user?.role === 'EMPLOYER') && (
                     <>
                       <Link
                         href="/employer/dashboard"
@@ -289,7 +290,7 @@ export function Navbar() {
                     </>
                   )}
                   
-                  {user?.role === UserRole.ADMIN && (
+                  {(user?.role === UserRole.ADMIN || user?.role === 'ADMIN') && (
                     <>
                       <Link
                         href="/admin"

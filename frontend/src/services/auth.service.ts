@@ -117,18 +117,16 @@ export const authService = {
       const enrichedUser = {
         ...userData,
         roles,
+        role: roles[0] || 'USER', // Add primary role for Navbar
         enabled: true,
         firstName: userData.name?.split(' ')[0] || userData.username,
         lastName: userData.name?.split(' ').slice(1).join(' ') || '',
       };
       
-      // Save user info
-      const userStr = JSON.stringify(enrichedUser);
-      localStorage.setItem('user', userStr);
-      localStorage.setItem('auth_user', userStr);
-      if (typeof document !== 'undefined') {
-        document.cookie = `auth_user=${encodeURIComponent(userStr)}; Path=/; Max-Age=86400`;
-      }
+      console.log('✅ [AuthService] Enriched user with role:', enrichedUser);
+      
+      // NOTE: Don't save user to localStorage here!
+      // Let auth.ts handle saving the properly transformed AuthUser
       
       return {
         ...loginData,
@@ -207,18 +205,14 @@ export const authService = {
       const enrichedUser = {
         ...userData,
         roles,
+        role: roles[0] || 'USER', // Add primary role for Navbar
         enabled: true,
         firstName: data.firstName,
         lastName: data.lastName,
       };
       
-      // Save user info
-      const userStr = JSON.stringify(enrichedUser);
-      localStorage.setItem('user', userStr);
-      localStorage.setItem('auth_user', userStr);
-      if (typeof document !== 'undefined') {
-        document.cookie = `auth_user=${encodeURIComponent(userStr)}; Path=/; Max-Age=86400`;
-      }
+      // NOTE: Don't save user to localStorage here!
+      // Let auth.ts handle saving the properly transformed AuthUser
       
       return {
         ...registerData,
