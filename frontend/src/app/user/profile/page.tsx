@@ -25,6 +25,9 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AppContext';
+import { apiClient } from '@/lib/api-client';
+import { UserProfile } from '@/types';
 
 // Mock user profiles
 const mockUserProfiles = [
@@ -90,12 +93,92 @@ const mockUserProfiles = [
 
 export default function ProfilePage() {
   const { t } = useLanguage();
-  // Mock current user - replace with actual auth
-  const [profile, setProfile] = useState(mockUserProfiles[0]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Load user profile from context
+  React.useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const response = await apiClient.profile.getById(user.id);
+        if (response.success && response.data) {
+          // Merge user data with profile data
+          setProfile({
+            ...response.data,
+            email: user.email,
+            phone: response.data.phone || user.phone || '+1 234 567 8900',
+            dateOfBirth: response.data.dateOfBirth || '1995-06-15',
+            nationality: response.data.nationality || 'American',
+            currentLocation: response.data.currentLocation || 'New York, USA',
+            university: response.data.university || '',
+            major: response.data.major || '',
+            gpa: response.data.gpa || 0,
+            graduationYear: response.data.graduationYear,
+            currentLevel: response.data.currentLevel || 'Senior',
+            skills: response.data.skills || [],
+            interests: response.data.interests || [],
+            languages: response.data.languages || ['English'],
+            education: response.data.education || [],
+            experience: response.data.experience || [],
+            achievements: response.data.achievements || [],
+          });
+        } else {
+          // Fallback to basic user data
+          setProfile({
+            id: user.id,
+            firstName: user.firstName || user.username,
+            lastName: user.lastName || '',
+            email: user.email,
+            phone: '+1 234 567 8900',
+            dateOfBirth: '1995-06-15',
+            nationality: 'American',
+            currentLocation: 'New York, USA',
+            bio: 'No bio available',
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.firstName || user.username}`,
+            university: '',
+            major: '',
+            gpa: 0,
+            graduationYear: 2024,
+            currentLevel: 'Senior',
+            skills: [],
+            interests: [],
+            languages: ['English'],
+            education: [],
+            experience: [],
+            achievements: [],
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+        // Set basic fallback
+        if (user) {
+          setProfile({
+            id: user.id,
+            firstName: user.firstName || user.username,
+            lastName: user.lastName || '',
+            email: user.email,
+            phone: '+1 234 567 8900',
+            bio: 'No bio available',
+            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.firstName || user.username}`,
+          });
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [user]);
 
   const handleInputChange = (field: string, value: string | string[] | number) => {
     setProfile(prev => ({

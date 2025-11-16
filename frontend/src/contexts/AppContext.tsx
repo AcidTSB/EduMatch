@@ -201,20 +201,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // Load user data
           await loadInitialData(userResponse.data.id);
         } else {
-          // Not logged in, set default user for demo
-          const demoUser: AuthUser = {
-            id: '1',
-            email: 'student@demo.com',
-            name: 'John Student',
-            role: 'STUDENT' as any,
-            emailVerified: true,
-            status: 'ACTIVE' as any,
-            subscriptionType: 'FREE' as any,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-          dispatch({ type: 'SET_USER', payload: demoUser });
-          await loadInitialData(demoUser.id);
+          // Not logged in - don't set a default user
+          // Let login page handle authentication
+          dispatch({ type: 'SET_LOADING', payload: false });
         }
       } catch (error) {
         console.error('Failed to initialize app:', error);
@@ -252,7 +241,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       dispatch({ type: 'SET_LOADING', payload: false });
     } catch (error) {
-      console.error('Failed to load initial data:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
@@ -270,7 +258,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       return false;
     } catch (error) {
-      console.error('Login failed:', error);
       return false;
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
@@ -286,7 +273,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
       dispatch({ type: 'SET_SAVED_SCHOLARSHIPS', payload: [] });
     } catch (error) {
-      console.error('Logout failed:', error);
+      // Logout failed
     }
   };
 
@@ -297,7 +284,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'SET_SCHOLARSHIPS', payload: response.data });
       }
     } catch (error) {
-      console.error('Failed to load scholarships:', error);
+      // Failed to load scholarships
     }
   };
 
@@ -310,7 +297,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'SET_APPLICATIONS', payload: response.data });
       }
     } catch (error) {
-      console.error('Failed to load applications:', error);
+      // Failed to load applications
     }
   };
 
@@ -323,7 +310,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'SET_NOTIFICATIONS', payload: response.data });
       }
     } catch (error) {
-      console.error('Failed to load notifications:', error);
+      // Failed to load notifications
     }
   };
 
@@ -336,7 +323,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'SET_SAVED_SCHOLARSHIPS', payload: response.data });
       }
     } catch (error) {
-      console.error('Failed to load saved scholarships:', error);
+      // Failed to load saved scholarships
     }
   };
 
@@ -349,7 +336,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'TOGGLE_SAVED_SCHOLARSHIP', payload: scholarshipId });
       }
     } catch (error) {
-      console.error('Failed to toggle saved scholarship:', error);
+      // Failed to toggle saved scholarship
     }
   };
 
@@ -368,7 +355,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       return false;
     } catch (error) {
-      console.error('Failed to submit application:', error);
       return false;
     }
   };
@@ -380,7 +366,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'MARK_NOTIFICATION_READ', payload: notificationId });
       }
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+      // Failed to mark notification as read
     }
   };
 
@@ -394,7 +380,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       
       dispatch({ type: 'ADD_NOTIFICATION', payload: newNotification });
     } catch (error) {
-      console.error('Failed to add notification:', error);
+      // Failed to add notification
     }
   };
 

@@ -49,7 +49,9 @@ export function ApplyButton({
 
   const { submitApplication, loading: applicationLoading } = useApplications();
 
-  const isDeadlinePassed = new Date() > new Date(scholarship.applicationDeadline);
+  const isDeadlinePassed = scholarship.applicationDeadline 
+    ? new Date() > new Date(scholarship.applicationDeadline) 
+    : false;
   const canApply = scholarship.status === 'PUBLISHED' && !isDeadlinePassed && !hasApplied;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

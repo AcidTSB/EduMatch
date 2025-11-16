@@ -27,7 +27,6 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
     sex: '' as 'MALE' | 'FEMALE' | 'OTHER' | '',
-    // Đã xóa 'role' khỏi state
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -75,8 +74,6 @@ export default function RegisterPage() {
       newErrors.sex = t('register.errors.sexRequired');
     }
 
-    // Đã xóa validate cho 'role'
-
     if (!agreeToTerms) {
       newErrors.terms = t('register.errors.termsRequired');
     }
@@ -89,37 +86,37 @@ export default function RegisterPage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast.error('Thông tin không hợp lệ', {
-        description: 'Vui lòng kiểm tra lại các trường thông tin',
+      toast.error(t('register.toast.invalidInfo'), {
+        description: t('register.toast.checkFields'),
       });
       return;
     }
 
     setIsLoading(true);
-    const toastId = toast.loading('Đang tạo tài khoản...');
+    const toastId = toast.loading(t('register.toast.creatingAccount'));
 
     try {
-      // Mock API call - replace with actual registration
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Mock successful registration
-      localStorage.setItem('auth_token', 'mock-jwt-token');
-      // Mặc định vai trò là 'user' vì trường chọn đã bị xóa
-      localStorage.setItem('user_role', 'user');
-
-      toast.success('Đăng ký thành công!', {
-        id: toastId,
-        description: `Chào mừng ${formData.firstName} ${formData.lastName} đến với EduMatch!`,
+      const { authService } = await import('@/services/auth.service');
+      
+      await authService.register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        sex: formData.sex as 'MALE' | 'FEMALE' | 'OTHER',
       });
 
-      // Chuyển hướng đến dashboard của user
+      toast.success(t('register.toast.success'), {
+        id: toastId,
+        description: t('register.toast.welcome', { firstName: formData.firstName, lastName: formData.lastName }),
+      });
+
       setTimeout(() => {
         router.push('/user/dashboard');
       }, 1000);
-    } catch (error) {
-      console.error('Registration failed:', error);
-      const errorMessage = t('register.errors.submitFailed');
-      toast.error('Đăng ký thất bại', {
+    } catch (error: any) {
+      const errorMessage = error.message || t('register.errors.submitFailed');
+      toast.error(t('register.toast.failed'), {
         id: toastId,
         description: errorMessage,
       });

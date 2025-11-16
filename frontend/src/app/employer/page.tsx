@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/contexts/AppContext';
 
 // Mock data for dashboard
 const dashboardData = {
@@ -100,6 +101,7 @@ const dashboardData = {
 
 export default function ProviderDashboard() {
   const router = useRouter();
+  const { user } = useAuth();
   const [selectedTimeframe, setSelectedTimeframe] = useState('30d');
 
   const getStatusColor = (status: string) => {
@@ -141,7 +143,7 @@ export default function ProviderDashboard() {
             <div>
               <h1 className="text-3xl font-bold text-foreground">Provider Dashboard</h1>
               <p className="text-muted-foreground mt-2">
-                Welcome back! Here's an overview of your scholarship programs.
+                Welcome back, {user?.firstName || user?.name || user?.username || 'Provider'}! Here's an overview of your scholarship programs.
               </p>
             </div>
             <div className="flex items-center space-x-3 mt-4 sm:mt-0">

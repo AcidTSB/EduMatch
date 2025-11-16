@@ -13,17 +13,11 @@ import {
   Message,
   Conversation
 } from '@/types';
+import { apiWrapper } from './api-wrapper';
+import { mockApi } from './mock-data';
 
-// API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
-
-// Request configuration
-const defaultOptions: RequestInit = {
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  credentials: 'include', // Include cookies for authentication
-};
+// API Configuration - FIXED: Now points to correct Nginx Gateway port
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 // Helper function to get auth token
 const getAuthToken = (): string | null => {
@@ -45,42 +39,25 @@ const getAuthHeaders = (): HeadersInit => {
   return headers;
 };
 
-// Generic API call function
+// Generic API call function with mock fallback
 async function apiCall<T = any>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  mockFallback?: () => Promise<any>
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}${endpoint}`;
   
-  try {
-    const response = await fetch(url, {
-      ...defaultOptions,
+  return apiWrapper<ApiResponse<T>>(
+    url,
+    {
       ...options,
       headers: {
         ...getAuthHeaders(),
         ...options.headers,
       },
-    });
-
-    // Handle non-JSON responses
-    const contentType = response.headers.get('content-type');
-    let data;
-    
-    if (contentType && contentType.includes('application/json')) {
-      data = await response.json();
-    } else {
-      data = { message: await response.text() };
-    }
-
-    if (!response.ok) {
-      throw new Error(data.message || `HTTP error! status: ${response.status}`);
-    }
-
-    return data;
-  } catch (error) {
-    console.error(`API call failed for ${endpoint}:`, error);
-    throw error;
-  }
+    },
+    mockFallback
+  );
 }
 
 // Auth API
@@ -412,14 +389,45 @@ export const adminApi = {
     return apiCall<PaginatedResponse<Scholarship>>(`/admin/scholarships?${searchParams.toString()}`);
   },
 
-  // Update user status
-  updateUserStatus: (userId: string, status: string) =>
-    apiCall(`/admin/users/${userId}/status`, {
-      method: 'PUT',
-      body: JSON.stringify({ status }),
+  updateUserStatus: (userId: string) =>
+    apiCall(`/admin/users/${userId}/toggle-status`, {
+      method: 'PATCH',
     }),
 
-  // Get analytics
+  createUser: (userData: any) =>
+    apiCall('/admin/create-user', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    }),
+
+  createEmployer: (employerData: any) =>
+    apiCall('/admin/create-employer', {
+      method: 'POST',
+      body: JSON.stringify(employerData),
+    }),
+
+  deleteUser: (userId: string) =>
+    apiCall(`/admin/users/${userId}`, {
+      method: 'DELETE',
+    }),
+
+  approveScholarship: (scholarshipId: string) =>
+    apiCall(`/admin/scholarships/${scholarshipId}/approve`, {
+      method: 'PATCH',
+    }),
+
+  rejectScholarship: (scholarshipId: string, reason: string) =>
+    apiCall(`/admin/scholarships/${scholarshipId}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason }),
+    }),
+
+  getAuditLogs: () =>
+    apiCall('/admin/audit/logs'),
+
+  getAuditLogsByUser: (userId: string) =>
+    apiCall(`/admin/audit/users/${userId}`),
+
   getAnalytics: () =>
     apiCall('/admin/analytics'),
 };

@@ -33,7 +33,7 @@ import { RealTimeDashboardStats } from '@/components/RealTimeDashboardStats';
 import { RealTimeApplicationStatus } from '@/components/RealTimeApplicationStatus';
 import { MatchToast } from '@/components/MatchToast';
 import { ScholarshipCard } from '@/components/ScholarshipCard';
-import { useScholarshipsData, useApplicationsData, useNotificationsData } from '@/contexts/AppContext';
+import { useScholarshipsData, useApplicationsData, useNotificationsData, useAuth } from '@/contexts/AppContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { parseNotification } from '@/lib/notification-templates';
 
@@ -64,6 +64,7 @@ const containerVariants = {
 export default function DashboardPage() {
   const { t } = useLanguage();
   // Use AppContext hooks
+  const { user } = useAuth();
   const { scholarships } = useScholarshipsData();
   const { applications } = useApplicationsData();
   const { notifications } = useNotificationsData();
@@ -153,7 +154,9 @@ export default function DashboardPage() {
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">{t('dashboard.welcomeUser').replace('{name}', 'John')}</h1>
+              <h1 className="text-4xl font-bold text-gray-900">
+                {t('dashboard.welcomeUser').replace('{name}', user?.firstName || user?.name || user?.username || 'User')}
+              </h1>
               <p className="text-gray-600 mt-2">
                 {t('dashboard.subtitle')}
               </p>
@@ -193,7 +196,12 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="space-y-4">
                   {dashboardData.notifications.slice(0, 5).map((notification) => {
-                    const { templateKey, params } = parseNotification(notification);
+                    // Ensure message is always a string for parseNotification
+                    const { templateKey, params } = parseNotification({
+                      type: notification.type,
+                      title: notification.title,
+                      message: notification.message ?? notification.content ?? '',
+                    });
                     return (
                       <div key={notification.id} className={`p-3 rounded-lg border ${!notification.read ? 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 shadow-sm' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200'}`}>
                         <h5 className="font-medium text-sm text-gray-900">{t(templateKey + '.title', params || {})}</h5>

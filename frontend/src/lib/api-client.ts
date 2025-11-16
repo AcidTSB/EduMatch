@@ -241,7 +241,6 @@ export function useApplications(userId: string = '1') {
       }
     } catch (err) {
       setError('Failed to load applications');
-      console.error('Failed to load applications:', err);
     } finally {
       setLoading(false);
     }
@@ -264,7 +263,6 @@ export function useApplications(userId: string = '1') {
       }
     } catch (err) {
       setError('Failed to submit application');
-      console.error('Failed to submit application:', err);
       return { success: false, error: 'Failed to submit application' };
     } finally {
       setLoading(false);
@@ -305,7 +303,7 @@ export function useNotifications(userId: string = '1') {
         setUnreadCount(response.data.filter(n => !n.read).length);
       }
     } catch (error) {
-      console.error('Failed to load notifications:', error);
+      // Failed to load notifications
     } finally {
       setLoading(false);
     }
@@ -325,7 +323,7 @@ export function useNotifications(userId: string = '1') {
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+      // Failed to mark notification as read
     }
   }, []);
 
@@ -337,7 +335,7 @@ export function useNotifications(userId: string = '1') {
         setUnreadCount(0);
       }
     } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
+      // Failed to mark all notifications as read
     }
   }, [userId]);
 

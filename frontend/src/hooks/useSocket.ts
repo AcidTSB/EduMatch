@@ -26,46 +26,36 @@ export function useSocket(userId?: string, userRole?: string, userName?: string)
 
     const socket = socketRef.current;
 
-    // Connection events
     socket.on('connect', () => {
-      console.log('Socket connected:', socket.id);
       setIsConnected(true);
     });
 
     socket.on('disconnect', () => {
-      console.log('Socket disconnected');
       setIsConnected(false);
     });
 
     socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
       setIsConnected(false);
     });
 
     // User presence events
     socket.on('user_online', (userData: { userId: string; role: string; name: string }) => {
       setOnlineUsers(prev => [...prev.filter(id => id !== userData.userId), userData.userId]);
-      console.log(`${userData.name} (${userData.role}) came online`);
     });
 
     socket.on('user_offline', (userData: { userId: string; role: string; name: string }) => {
       setOnlineUsers(prev => prev.filter(id => id !== userData.userId));
-      console.log(`${userData.name} (${userData.role}) went offline`);
     });
 
     socket.on('online_users', (users: Array<{ userId: string; role: string; name: string }>) => {
       setOnlineUsers(users.map(u => u.userId));
-      console.log('Current online users:', users);
     });
 
     socket.on('users_list_update', (data: { onlineUsers: Array<{ userId: string; role: string; name: string }>; totalOnline: number }) => {
       setOnlineUsers(data.onlineUsers.map(u => u.userId));
-      console.log(`Online users updated: ${data.totalOnline} total`, data.onlineUsers);
     });
 
-    // Chat error handling
     socket.on('chat_error', (error) => {
-      console.error('Chat error:', error.message);
       alert(`Chat Error: ${error.message}`);
     });
 

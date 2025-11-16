@@ -124,6 +124,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.success && response.data) {
         const { user, token } = response.data;
 
+<<<<<<< Updated upstream
         // Store in localStorage
         setToLocalStorage('auth_token', token);
         setToLocalStorage('auth_user', JSON.stringify(user));
@@ -133,6 +134,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setCookie('auth_user', JSON.stringify(user), 7);
 
         setAuthState(createAuthenticatedState(user));
+=======
+        // Transform backend user to AuthUser format
+        const roleStr = user.roles?.[0]?.replace('ROLE_', '') || 'USER';
+        const authUser: AuthUser = {
+          id: String(user.id),
+          email: user.email,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+          role: roleStr as UserRole,
+          emailVerified: user.enabled,
+          status: 'ACTIVE',
+          subscriptionType: 'FREE',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        const userStr = JSON.stringify(authUser);
+        setToLocalStorage('auth_user', userStr);
+        setCookie('auth_user', userStr, 7);
+>>>>>>> Stashed changes
 
         // Wait a bit then redirect to let cookies set
         setTimeout(() => {
@@ -217,11 +237,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshToken = async () => {
     try {
+<<<<<<< Updated upstream
       const response = await mockApi.auth.refreshToken();
 
       if (response.success && response.data) {
         setToLocalStorage('auth_token', response.data.token);
       }
+=======
+>>>>>>> Stashed changes
     } catch (err) {
       // If refresh fails, logout user
       await logout();

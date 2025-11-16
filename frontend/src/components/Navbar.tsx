@@ -148,15 +148,15 @@ export function Navbar() {
   };
 
   const getInitials = () => {
-    if (!user?.profile) return 'U';
-    const firstName = user.profile.firstName || '';
-    const lastName = user.profile.lastName || '';
+    if (!user?.name) return 'U';
+    const nameParts = user.name.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts[1] || '';
     return (firstName[0] || '') + (lastName[0] || '');
   };
 
   const getUserFullName = () => {
-    if (!user?.profile) return user?.email || 'User';
-    return `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim() || user.email;
+    return user?.name || user?.email || 'User';
   };
 
   return (
@@ -421,9 +421,6 @@ export function Navbar() {
                     className="flex items-center space-x-2 px-2 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                   >
                     <Avatar className="h-8 w-8 flex-shrink-0">
-                      {user?.profile?.avatar && (
-                        <AvatarImage src={user.profile.avatar} alt={getUserFullName()} />
-                      )}
                       <AvatarFallback className="bg-blue-600 text-white text-xs">
                         {getInitials()}
                       </AvatarFallback>
@@ -467,7 +464,7 @@ export function Navbar() {
                         </div>
                         
                         <Link
-                          href={user?.role === 'ADMIN' ? '/admin/profile' : user?.role === 'EMPLOYER' ? '/employer/profile' : '/user/profile'}
+                          href={user?.role === UserRole.ADMIN ? '/admin/profile' : user?.role === UserRole.EMPLOYER ? '/employer/profile' : '/user/profile'}
                           className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
@@ -476,7 +473,7 @@ export function Navbar() {
                         </Link>
                         
                         <Link
-                          href={user?.role === 'ADMIN' ? '/admin/settings' : user?.role === 'EMPLOYER' ? '/employer/settings' : '/user/settings'}
+                          href={user?.role === UserRole.ADMIN ? '/admin/settings' : user?.role === UserRole.EMPLOYER ? '/employer/settings' : '/user/settings'}
                           className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                           onClick={() => setIsUserMenuOpen(false)}
                         >
@@ -631,9 +628,6 @@ export function Navbar() {
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex items-center px-3 py-2 mb-2">
                     <Avatar className="h-10 w-10">
-                      {user?.profile?.avatar && (
-                        <AvatarImage src={user.profile.avatar} alt={getUserFullName()} />
-                      )}
                       <AvatarFallback className="bg-blue-600 text-white">
                         {getInitials()}
                       </AvatarFallback>
@@ -653,7 +647,7 @@ export function Navbar() {
                   </div>
                   
                   <Link
-                    href={user?.role === 'ADMIN' ? '/admin/profile' : user?.role === 'EMPLOYER' ? '/employer/profile' : '/user/profile'}
+                    href={user?.role === UserRole.ADMIN ? '/admin/profile' : user?.role === UserRole.EMPLOYER ? '/employer/profile' : '/user/profile'}
                     className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -662,7 +656,7 @@ export function Navbar() {
                   </Link>
                   
                   <Link
-                    href={user?.role === 'ADMIN' ? '/admin/settings' : user?.role === 'EMPLOYER' ? '/employer/settings' : '/user/settings'}
+                    href={user?.role === UserRole.ADMIN ? '/admin/settings' : user?.role === UserRole.EMPLOYER ? '/employer/settings' : '/user/settings'}
                     className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >

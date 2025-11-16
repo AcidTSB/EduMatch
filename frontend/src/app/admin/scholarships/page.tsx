@@ -48,11 +48,27 @@ export default function ScholarshipsManagement() {
   const itemsPerPage = 8;
 
   // Handlers
-  const handleCreateScholarship = (scholarshipData: any) => {
-    toast.success(t('adminScholarships.scholarshipCreated'), {
-      description: t('adminScholarships.scholarshipCreatedDesc').replace('{title}', scholarshipData.title),
-    });
-    console.log('New scholarship created:', scholarshipData);
+  const handleCreateScholarship = async (scholarshipData: any) => {
+    try {
+      const response = await fetch('/api/v1/scholarships', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: JSON.stringify(scholarshipData),
+      });
+      
+      if (response.ok) {
+        toast.success(t('adminScholarships.scholarshipCreated'), {
+          description: t('adminScholarships.scholarshipCreatedDesc').replace('{title}', scholarshipData.title),
+        });
+      } else {
+        toast.error('Failed to create scholarship');
+      }
+    } catch (error) {
+      toast.error('Failed to create scholarship');
+    }
   };
 
   const handleViewScholarship = (scholarshipId: string) => {
@@ -67,11 +83,27 @@ export default function ScholarshipsManagement() {
     }
   };
 
-  const confirmEditScholarship = (scholarshipData: any) => {
-    toast.success(t('adminScholarships.scholarshipUpdated'), {
-      description: t('adminScholarships.scholarshipUpdatedDesc').replace('{title}', scholarshipData.title),
-    });
-    console.log('Updating scholarship:', editModal.scholarship?.id, scholarshipData);
+  const confirmEditScholarship = async (scholarshipData: any) => {
+    try {
+      const response = await fetch(`/api/v1/scholarships/${editModal.scholarship?.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: JSON.stringify(scholarshipData),
+      });
+      
+      if (response.ok) {
+        toast.success(t('adminScholarships.scholarshipUpdated'), {
+          description: t('adminScholarships.scholarshipUpdatedDesc').replace('{title}', scholarshipData.title),
+        });
+      } else {
+        toast.error('Failed to update scholarship');
+      }
+    } catch (error) {
+      toast.error('Failed to update scholarship');
+    }
     setEditModal({ isOpen: false, scholarship: null });
   };
 
@@ -79,11 +111,25 @@ export default function ScholarshipsManagement() {
     setDeleteModal({ isOpen: true, scholarshipId, scholarshipTitle });
   };
 
-  const confirmDeleteScholarship = () => {
-    toast.success(t('adminScholarships.scholarshipDeleted'), {
-      description: t('adminScholarships.scholarshipDeletedDesc').replace('{title}', deleteModal.scholarshipTitle),
-    });
-    console.log('Deleting scholarship:', deleteModal.scholarshipId);
+  const confirmDeleteScholarship = async () => {
+    try {
+      const response = await fetch(`/api/v1/scholarships/${deleteModal.scholarshipId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+      
+      if (response.ok) {
+        toast.success(t('adminScholarships.scholarshipDeleted'), {
+          description: t('adminScholarships.scholarshipDeletedDesc').replace('{title}', deleteModal.scholarshipTitle),
+        });
+      } else {
+        toast.error('Failed to delete scholarship');
+      }
+    } catch (error) {
+      toast.error('Failed to delete scholarship');
+    }
     setDeleteModal({ isOpen: false, scholarshipId: '', scholarshipTitle: '' });
   };
 

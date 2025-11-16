@@ -68,7 +68,7 @@ export function useRealTimeMessages(options: UseRealTimeMessagesOptions = {}) {
       // Update last fetch time
       lastFetchTimeRef.current[roomId] = new Date();
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      // Error fetching messages
     }
   }, [isAuthenticated, user, addMessage, activeRoom, onNewMessage]);
 
@@ -92,7 +92,7 @@ export function useRealTimeMessages(options: UseRealTimeMessagesOptions = {}) {
         updateChatRoom(room);
       });
     } catch (error) {
-      console.error('Error fetching chat rooms:', error);
+      // Error fetching chat rooms
     }
   }, [isAuthenticated, user, updateChatRoom]);
 
@@ -125,7 +125,6 @@ export function useRealTimeMessages(options: UseRealTimeMessagesOptions = {}) {
       
       return message;
     } catch (error) {
-      console.error('Error sending message:', error);
       toast.error('Failed to send message');
       throw error;
     }
@@ -151,7 +150,7 @@ export function useRealTimeMessages(options: UseRealTimeMessagesOptions = {}) {
       // Update local store
       useMessageStore.getState().markMessagesAsRead(roomId, messageIds);
     } catch (error) {
-      console.error('Error marking messages as read:', error);
+      // Error marking messages as read
     }
   }, [isAuthenticated, user]);
 
@@ -172,7 +171,7 @@ export function useRealTimeMessages(options: UseRealTimeMessagesOptions = {}) {
         }),
       });
     } catch (error) {
-      console.error('Error sending typing indicator:', error);
+      // Error sending typing indicator
     }
   }, [isAuthenticated, user]);
 

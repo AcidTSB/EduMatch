@@ -106,7 +106,7 @@ export function useRealTimeNotifications(options: UseRealTimeNotificationsOption
         lastFetchTimeRef.current = new Date();
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // Error fetching notifications
     }
   }, [isAuthenticated, user, addNotification, onNewNotification, showToast]);
 
@@ -129,7 +129,7 @@ export function useRealTimeNotifications(options: UseRealTimeNotificationsOption
       // Update local store
       markAsRead(notificationIds);
     } catch (error) {
-      console.error('Error marking notifications as read:', error);
+      // Error marking notifications as read
     }
   }, [isAuthenticated, user, markAsRead]);
 
@@ -149,7 +149,7 @@ export function useRealTimeNotifications(options: UseRealTimeNotificationsOption
       // Update local store
       markAllAsRead();
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      // Error marking all notifications as read
     }
   }, [isAuthenticated, user, markAllAsRead]);
 

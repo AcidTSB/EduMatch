@@ -79,6 +79,7 @@ export default function LoginPage() {
     const toastId = toast.loading('Đang đăng nhập...');
     
     try {
+<<<<<<< Updated upstream
       // 6. TỰ GỌI API login
       const response = await api.auth.login({ email, password });
       
@@ -141,6 +142,11 @@ export default function LoginPage() {
       console.error('Login failed:', error);
       // Lấy message lỗi từ API response nếu có
       // ✅ SỬA LỖI 1: Xóa 'authError' và lấy lỗi trực tiếp
+=======
+      await login({ email, password });
+      
+    } catch (error: any) {
+>>>>>>> Stashed changes
       const errorMessage = error.message || t('login.invalidCredentials');
       toast.error('Đăng nhập thất bại', {
         id: toastId,

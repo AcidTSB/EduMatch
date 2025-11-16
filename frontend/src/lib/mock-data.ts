@@ -3,9 +3,14 @@
 import {
   AuthUser,
   UserRole,
+  Role,
   Scholarship,
   Application,
+  ApplicationDocument,
   ApplicationStatus,
+  Bookmark,
+  Skill,
+  Tag,
   Notification,
   UserProfile,
   Report,
@@ -19,6 +24,9 @@ import {
   ModerationStatus,
   Transaction,
   AuditLog,
+  Conversation,
+  Message,
+  FcmToken,
 } from '@/types';
 
 // Helper để format Date thành 'YYYY-MM-DD'
@@ -31,44 +39,200 @@ function formatDateString(date: Date): string {
 // =============================================================================
 export const USERS: AuthUser[] = [
   {
-    id: 'admin-1', email: 'admin@edumatch.com', name: 'System Admin', role: UserRole.ADMIN,
-    emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'FREE' as any,
-    createdAt: new Date('2023-01-01'), updatedAt: new Date('2025-01-01'),
+    id: 'admin-1', 
+    username: 'admin', 
+    email: 'admin@edumatch.com', 
+    firstName: 'System', 
+    lastName: 'Admin',
+    name: 'System Admin', 
+    sex: 'OTHER',
+    role: UserRole.ADMIN,
+    enabled: true,
+    emailVerified: true, 
+    status: 'ACTIVE' as any, 
+    subscriptionType: 'FREE' as any,
+    createdAt: new Date('2023-01-01'), 
+    updatedAt: new Date('2025-01-01'),
   },
   {
-    id: 'provider-1', email: 'mit@scholarships.edu', name: 'MIT Research Lab', role: UserRole.EMPLOYER,
-    emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'PREMIUM' as any,
-    createdAt: new Date('2023-06-15'), updatedAt: new Date('2025-01-10'),
+    id: 'provider-1', 
+    username: 'mit_research', 
+    email: 'mit@scholarships.edu', 
+    firstName: 'MIT',
+    lastName: 'Research Lab',
+    name: 'MIT Research Lab', 
+    role: UserRole.EMPLOYER,
+    enabled: true,
+    organizationId: 'org-mit',
+    emailVerified: true, 
+    status: 'ACTIVE' as any, 
+    subscriptionType: 'PREMIUM' as any,
+    createdAt: new Date('2023-06-15'), 
+    updatedAt: new Date('2025-01-10'),
   },
   {
-    id: 'provider-2', email: 'stanford@scholarships.edu', name: 'Stanford University', role: UserRole.EMPLOYER,
-    emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'PREMIUM' as any,
-    createdAt: new Date('2023-07-01'), updatedAt: new Date('2025-01-09'),
+    id: 'provider-2', 
+    username: 'stanford_uni', 
+    email: 'stanford@scholarships.edu', 
+    firstName: 'Stanford',
+    lastName: 'University',
+    name: 'Stanford University', 
+    role: UserRole.EMPLOYER,
+    enabled: true,
+    organizationId: 'org-stanford',
+    emailVerified: true, 
+    status: 'ACTIVE' as any, 
+    subscriptionType: 'PREMIUM' as any,
+    createdAt: new Date('2023-07-01'), 
+    updatedAt: new Date('2025-01-09'),
   },
   {
-    id: 'provider-3', email: 'google@scholarships.com', name: 'Google Education', role: UserRole.EMPLOYER,
-    emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'ENTERPRISE' as any,
-    createdAt: new Date('2023-08-10'), updatedAt: new Date('2025-01-08'),
+    id: 'provider-3', 
+    username: 'google_edu', 
+    email: 'google@scholarships.com', 
+    firstName: 'Google',
+    lastName: 'Education',
+    name: 'Google Education', 
+    role: UserRole.EMPLOYER,
+    enabled: true,
+    organizationId: 'org-google',
+    emailVerified: true, 
+    status: 'ACTIVE' as any, 
+    subscriptionType: 'ENTERPRISE' as any,
+    createdAt: new Date('2023-08-10'), 
+    updatedAt: new Date('2025-01-08'),
   },
   {
-    id: 'student-1', email: 'john.doe@student.edu', name: 'John Doe', role: UserRole.USER,
-    emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'FREE' as any,
-    createdAt: new Date('2024-09-01'), updatedAt: new Date('2025-01-12'),
+    id: 'student-1', 
+    username: 'john.doe', 
+    email: 'john.doe@student.edu', 
+    firstName: 'John',
+    lastName: 'Doe',
+    name: 'John Doe', 
+    sex: 'MALE',
+    role: UserRole.USER,
+    enabled: true,
+    emailVerified: true, 
+    status: 'ACTIVE' as any, 
+    subscriptionType: 'FREE' as any,
+    createdAt: new Date('2024-09-01'), 
+    updatedAt: new Date('2025-01-12'),
   },
   {
-    id: 'student-2', email: 'jane.smith@student.edu', name: 'Jane Smith', role: UserRole.USER,
-    emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'PREMIUM' as any,
-    createdAt: new Date('2024-08-15'), updatedAt: new Date('2025-01-11'),
+    id: 'student-2', 
+    username: 'jane.smith', 
+    email: 'jane.smith@student.edu', 
+    firstName: 'Jane',
+    lastName: 'Smith',
+    name: 'Jane Smith', 
+    sex: 'FEMALE',
+    role: UserRole.USER,
+    enabled: true,
+    emailVerified: true, 
+    status: 'ACTIVE' as any, 
+    subscriptionType: 'PREMIUM' as any,
+    createdAt: new Date('2024-08-15'), 
+    updatedAt: new Date('2025-01-11'),
   },
   {
-    id: 'student-3', email: 'alex.chen@student.edu', name: 'Alex Chen', role: UserRole.USER,
-    emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'FREE' as any,
-    createdAt: new Date('2024-10-01'), updatedAt: new Date('2025-01-10'),
+    id: 'student-3', 
+    username: 'alex.chen', 
+    email: 'alex.chen@student.edu', 
+    firstName: 'Alex',
+    lastName: 'Chen',
+    name: 'Alex Chen', 
+    sex: 'MALE',
+    role: UserRole.USER,
+    enabled: true,
+    emailVerified: true, 
+    status: 'ACTIVE' as any, 
+    subscriptionType: 'FREE' as any,
+    createdAt: new Date('2024-10-01'), 
+    updatedAt: new Date('2025-01-10'),
   },
   {
-    id: 'student-4', email: 'maria.g@student.edu', name: 'Maria Garcia', role: UserRole.USER,
-    emailVerified: true, status: 'ACTIVE' as any, subscriptionType: 'FREE' as any,
-    createdAt: new Date('2024-11-05'), updatedAt: new Date('2025-01-09'),
+    id: 'student-4', 
+    username: 'maria.garcia', 
+    email: 'maria.g@student.edu', 
+    firstName: 'Maria',
+    lastName: 'Garcia',
+    name: 'Maria Garcia', 
+    sex: 'FEMALE',
+    role: UserRole.USER,
+    enabled: true,
+    emailVerified: true, 
+    status: 'ACTIVE' as any, 
+    subscriptionType: 'FREE' as any,
+    createdAt: new Date('2024-11-05'), 
+    updatedAt: new Date('2025-01-09'),
+  },
+];
+
+// =============================================================================
+// ROLES (Bảng roles trong auth_db)
+// =============================================================================
+export const ROLES: Role[] = [
+  { id: 'role-1', name: 'USER' },
+  { id: 'role-2', name: 'EMPLOYER' },
+  { id: 'role-3', name: 'ADMIN' },
+];
+
+// =============================================================================
+// SKILLS (Bảng skills trong scholarship_db)
+// =============================================================================
+export const SKILLS: Skill[] = [
+  { id: 'skill-1', name: 'Python' },
+  { id: 'skill-2', name: 'React' },
+  { id: 'skill-3', name: 'TensorFlow' },
+  { id: 'skill-4', name: 'Figma' },
+  { id: 'skill-5', name: 'TypeScript' },
+  { id: 'skill-6', name: 'SQL' },
+  { id: 'skill-7', name: 'Tableau' },
+  { id: 'skill-8', name: 'MATLAB' },
+  { id: 'skill-9', name: 'Network Security' },
+  { id: 'skill-10', name: 'Cryptography' },
+  { id: 'skill-11', name: 'Linux' },
+  { id: 'skill-12', name: 'Quantum Physics' },
+];
+
+// =============================================================================
+// TAGS (Bảng tags trong scholarship_db)
+// =============================================================================
+export const TAGS: Tag[] = [
+  { id: 'tag-1', name: 'AI' },
+  { id: 'tag-2', name: 'Machine Learning' },
+  { id: 'tag-3', name: 'Research' },
+  { id: 'tag-4', name: 'Cybersecurity' },
+  { id: 'tag-5', name: 'Network Security' },
+  { id: 'tag-6', name: 'UX Design' },
+  { id: 'tag-7', name: 'UI Design' },
+  { id: 'tag-8', name: 'Quantum' },
+  { id: 'tag-9', name: 'Physics' },
+  { id: 'tag-10', name: 'Biotech' },
+  { id: 'tag-11', name: 'Engineering' },
+];
+
+// =============================================================================
+// BOOKMARKS (Bảng bookmarks trong scholarship_db)
+// =============================================================================
+export const BOOKMARKS: Bookmark[] = [
+  {
+    id: 'bookmark-1',
+    userId: 'student-1',
+    opportunityId: 'scholarship-2',
+    createdAt: new Date('2024-12-20'),
+  },
+  {
+    id: 'bookmark-2',
+    userId: 'student-1',
+    opportunityId: 'scholarship-5',
+    createdAt: new Date('2025-01-05'),
+  },
+  {
+    id: 'bookmark-3',
+    userId: 'student-2',
+    opportunityId: 'scholarship-1',
+    createdAt: new Date('2024-12-18'),
   },
 ];
 
@@ -76,6 +240,41 @@ export const USERS: AuthUser[] = [
 // USER PROFILES (Thêm cho student mới)
 // =============================================================================
 export const USER_PROFILES: UserProfile[] = [
+  // Provider Profiles
+  {
+    id: 'profile-provider-1', userId: 'provider-1',
+    email: 'mit@scholarships.edu', role: UserRole.EMPLOYER,
+    firstName: 'MIT', lastName: 'Research Lab',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=MIT',
+    bio: 'Leading research institution offering fellowships and scholarships in technology and science',
+    verified: true,
+    interests: ['AI Research', 'Computer Science', 'Engineering'],
+    languages: ['English'],
+    createdAt: new Date('2023-06-15'), updatedAt: new Date('2025-01-10'),
+  },
+  {
+    id: 'profile-provider-2', userId: 'provider-2',
+    email: 'stanford@scholarships.edu', role: UserRole.EMPLOYER,
+    firstName: 'Stanford', lastName: 'University',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Stanford',
+    bio: 'Premier university offering comprehensive scholarship programs across disciplines',
+    verified: true,
+    interests: ['Research', 'Innovation', 'Education'],
+    languages: ['English'],
+    createdAt: new Date('2023-07-01'), updatedAt: new Date('2025-01-09'),
+  },
+  {
+    id: 'profile-provider-3', userId: 'provider-3',
+    email: 'google@scholarships.com', role: UserRole.EMPLOYER,
+    firstName: 'Google', lastName: 'Education',
+    avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Google',
+    bio: 'Google Education offers scholarships and programs to support the next generation of technologists',
+    verified: true,
+    interests: ['Technology', 'Innovation', 'Diversity in Tech'],
+    languages: ['English'],
+    createdAt: new Date('2023-08-10'), updatedAt: new Date('2025-01-08'),
+  },
+  // Student Profiles
   {
     id: 'profile-student-1', userId: 'student-1', 
     email: 'john.doe@student.edu', role: UserRole.USER, // <-- THÊM VÀO
@@ -142,7 +341,7 @@ export const SCHOLARSHIPS: Scholarship[] = [
     status: ScholarshipStatus.PUBLISHED,
     isRemote: false,
 
-    applicationDeadline: formatDateString(new Date('2025-03-31')),
+    applicationDeadline: formatDateString(new Date('2025-12-31')),
     location: 'Cambridge, MA, USA',
     university: 'Massachusetts Institute of Technology',
     department: 'CSAIL', 
@@ -154,9 +353,14 @@ export const SCHOLARSHIPS: Scholarship[] = [
       documents: ['CV', 'Transcript', '3 Letters of Recommendation']
     },
     requiredSkills: ['Python', 'TensorFlow', 'Research'],
-    preferredSkills: ['PyTorch', 'NLP'], 
+    preferredSkills: ['PyTorch', 'NLP'],
+    preferredMajors: ['Computer Science', 'Artificial Intelligence', 'Data Science'],
+    researchAreas: ['Machine Learning', 'Natural Language Processing', 'Computer Vision'],
+    benefits: 'Full tuition coverage, monthly stipend of $2,500, health insurance, conference travel funding',
     viewCount: 1250, 
-    createdAt: new Date('2024-11-01'), 
+    createdAt: new Date('2024-11-01'),
+    updatedAt: new Date('2025-01-01'),
+    publishedAt: new Date('2024-11-01'),
     tags: ['AI', 'Machine Learning', 'Research'],
     website: 'https://web.mit.edu/fellowships',
     contactEmail: 'fellowships@mit.edu',
@@ -333,18 +537,38 @@ export const APPLICATIONS: Application[] = [
   // Student 1 (John Doe)
   {
     id: 'app-1',
-    applicantId: 'student-1',
+    opportunityId: 'scholarship-1',
     scholarshipId: 'scholarship-1',
+    applicantId: 'student-1',
+    applicantName: 'John Doe',
     status: ApplicationStatus.ACCEPTED,
+    coverLetter: 'I am passionate about AI research and have strong Python skills...',
+    cvUrl: 'https://storage.example.com/cvs/john-doe-cv.pdf',
+    gpa: 3.8,
+    major: 'Computer Science',
+    university: 'State University',
+    yearOfStudy: 3,
+    submittedAt: new Date('2024-12-10'),
+    reviewedAt: new Date('2025-01-08'),
+    reviewerNotes: 'Strong candidate with excellent GPA and relevant experience',
     additionalDocs: ['doc-cv.pdf', 'doc-transcript.pdf'],
     createdAt: new Date('2024-12-10'),
     updatedAt: new Date('2025-01-08'),
   },
   {
     id: 'app-2',
-    applicantId: 'student-1',
+    opportunityId: 'scholarship-2',
     scholarshipId: 'scholarship-2', // Nộp cho học bổng đang PENDING
+    applicantId: 'student-1',
+    applicantName: 'John Doe',
     status: ApplicationStatus.PENDING,
+    coverLetter: 'I am very interested in cybersecurity...',
+    cvUrl: 'https://storage.example.com/cvs/john-doe-cv.pdf',
+    gpa: 3.8,
+    major: 'Computer Science',
+    university: 'State University',
+    yearOfStudy: 3,
+    submittedAt: new Date('2024-12-15'),
     additionalDocs: ['doc-cv.pdf', 'doc-essay.pdf'],
     createdAt: new Date('2024-12-15'),
     updatedAt: new Date('2024-12-15'),
@@ -353,18 +577,36 @@ export const APPLICATIONS: Application[] = [
   // Student 2 (Jane Smith)
   {
     id: 'app-3',
-    applicantId: 'student-2',
+    opportunityId: 'scholarship-3',
     scholarshipId: 'scholarship-3', // Nộp cho học bổng DRAFT (vô lý, nhưng để test)
+    applicantId: 'student-2',
+    applicantName: 'Jane Smith',
     status: ApplicationStatus.PENDING,
+    coverLetter: 'As a UX Designer, I am passionate about...',
+    gpa: 3.9,
+    major: 'Design',
+    university: 'Design Institute',
+    yearOfStudy: 4,
+    submittedAt: new Date('2024-12-20'),
     additionalDocs: ['doc-portfolio.url', 'doc-essay.pdf'],
     createdAt: new Date('2024-12-20'),
     updatedAt: new Date('2024-12-20'),
   },
   {
     id: 'app-4',
-    applicantId: 'student-2',
+    opportunityId: 'scholarship-1',
     scholarshipId: 'scholarship-1',
+    applicantId: 'student-2',
+    applicantName: 'Jane Smith',
     status: ApplicationStatus.REJECTED,
+    coverLetter: 'I am interested in AI research...',
+    gpa: 3.9,
+    major: 'Design',
+    university: 'Design Institute',
+    yearOfStudy: 4,
+    submittedAt: new Date('2024-12-11'),
+    reviewedAt: new Date('2025-01-05'),
+    reviewerNotes: 'Candidate has strong design skills but lacks AI research experience',
     additionalDocs: ['doc-portfolio.url'],
     createdAt: new Date('2024-12-11'),
     updatedAt: new Date('2025-01-05'),
@@ -373,18 +615,36 @@ export const APPLICATIONS: Application[] = [
   // Student 3 (Alex Chen)
   {
     id: 'app-5',
-    applicantId: 'student-3',
+    opportunityId: 'scholarship-1',
     scholarshipId: 'scholarship-1',
+    applicantId: 'student-3',
+    applicantName: 'Alex Chen',
     status: ApplicationStatus.PENDING,
+    coverLetter: 'I have strong data science skills and want to apply them to AI...',
+    cvUrl: 'https://storage.example.com/cvs/alex-chen-cv.pdf',
+    gpa: 3.7,
+    major: 'Data Science',
+    university: 'Tech University',
+    yearOfStudy: 2,
+    submittedAt: new Date('2025-01-05'),
     additionalDocs: ['doc-cv-alex.pdf', 'doc-transcript-alex.pdf'],
     createdAt: new Date('2025-01-05'),
     updatedAt: new Date('2025-01-05'),
   },
   {
     id: 'app-6',
-    applicantId: 'student-3',
+    opportunityId: 'scholarship-2',
     scholarshipId: 'scholarship-2',
+    applicantId: 'student-3',
+    applicantName: 'Alex Chen',
     status: ApplicationStatus.PENDING,
+    coverLetter: 'I am interested in network security and have experience with...',
+    cvUrl: 'https://storage.example.com/cvs/alex-chen-cv.pdf',
+    gpa: 3.7,
+    major: 'Data Science',
+    university: 'Tech University',
+    yearOfStudy: 2,
+    submittedAt: new Date('2025-01-06'),
     additionalDocs: ['doc-cv-alex.pdf', 'doc-essay-alex.pdf'],
     createdAt: new Date('2025-01-06'),
     updatedAt: new Date('2025-01-06'),
@@ -393,21 +653,73 @@ export const APPLICATIONS: Application[] = [
   // Student 4 (Maria Garcia)
   {
     id: 'app-7',
-    applicantId: 'student-4',
+    opportunityId: 'scholarship-5',
     scholarshipId: 'scholarship-5', // Nộp cho học bổng Bioengineering
+    applicantId: 'student-4',
+    applicantName: 'Maria Garcia',
     status: ApplicationStatus.ACCEPTED,
+    coverLetter: 'As a Biomedical Engineering student, I am excited about...',
+    cvUrl: 'https://storage.example.com/cvs/maria-garcia-cv.pdf',
+    gpa: 3.85,
+    major: 'Biomedical Engineering',
+    university: 'Medical University',
+    yearOfStudy: 3,
+    submittedAt: new Date('2025-01-01'),
+    reviewedAt: new Date('2025-01-10'),
+    reviewerNotes: 'Excellent candidate with strong biomedical background',
     additionalDocs: ['doc-cv-maria.pdf', 'doc-project-maria.pdf'],
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-10'),
   },
   {
     id: 'app-8',
-    applicantId: 'student-4',
+    opportunityId: 'scholarship-1',
     scholarshipId: 'scholarship-1',
+    applicantId: 'student-4',
+    applicantName: 'Maria Garcia',
     status: ApplicationStatus.REJECTED,
+    coverLetter: 'I want to transition to AI research...',
+    cvUrl: 'https://storage.example.com/cvs/maria-garcia-cv.pdf',
+    gpa: 3.85,
+    major: 'Biomedical Engineering',
+    university: 'Medical University',
+    yearOfStudy: 3,
+    submittedAt: new Date('2025-01-02'),
+    reviewedAt: new Date('2025-01-09'),
+    reviewerNotes: 'Strong academic record but lacks AI-specific experience',
     additionalDocs: ['doc-cv-maria.pdf'],
     createdAt: new Date('2025-01-02'),
     updatedAt: new Date('2025-01-09'),
+  },
+];
+
+// =============================================================================
+// APPLICATION DOCUMENTS (Bảng application_documents trong scholarship_db)
+// =============================================================================
+export const APPLICATION_DOCUMENTS: ApplicationDocument[] = [
+  {
+    id: 'doc-1',
+    applicationId: 'app-1',
+    fileName: 'john-doe-cv.pdf',
+    fileUrl: 'https://storage.example.com/docs/john-doe-cv.pdf',
+    fileType: 'PDF',
+    uploadedAt: new Date('2024-12-10'),
+  },
+  {
+    id: 'doc-2',
+    applicationId: 'app-1',
+    fileName: 'john-doe-transcript.pdf',
+    fileUrl: 'https://storage.example.com/docs/john-doe-transcript.pdf',
+    fileType: 'PDF',
+    uploadedAt: new Date('2024-12-10'),
+  },
+  {
+    id: 'doc-3',
+    applicationId: 'app-3',
+    fileName: 'jane-smith-portfolio.pdf',
+    fileUrl: 'https://storage.example.com/docs/jane-smith-portfolio.pdf',
+    fileType: 'PDF',
+    uploadedAt: new Date('2024-12-20'),
   },
 ];
 
@@ -461,45 +773,185 @@ export const REPORTS: Report[] = [
 
 
 // =============================================================================
+// CONVERSATIONS (Bảng conversations trong chat_db)
+// =============================================================================
+export const CONVERSATIONS: Conversation[] = [
+  {
+    id: 'conv-1',
+    user1Id: 'student-1',
+    user2Id: 'provider-1',
+    createdAt: new Date('2024-12-01'),
+    updatedAt: new Date('2025-01-12'),
+    lastMessage: 'Thank you for considering my application!',
+    lastMessageAt: new Date('2025-01-12'),
+  },
+  {
+    id: 'conv-2',
+    user1Id: 'student-2',
+    user2Id: 'provider-2',
+    createdAt: new Date('2024-12-05'),
+    updatedAt: new Date('2025-01-11'),
+    lastMessage: 'When will the results be announced?',
+    lastMessageAt: new Date('2025-01-11'),
+  },
+  {
+    id: 'conv-3',
+    user1Id: 'student-3',
+    user2Id: 'provider-1',
+    createdAt: new Date('2025-01-05'),
+    updatedAt: new Date('2025-01-10'),
+    lastMessage: 'I have a question about the application requirements...',
+    lastMessageAt: new Date('2025-01-10'),
+  },
+];
+
+// =============================================================================
+// MESSAGES (Bảng messages trong chat_db)
+// =============================================================================
+export const MESSAGES: Message[] = [
+  {
+    id: 'msg-1',
+    conversationId: 'conv-1',
+    senderId: 'student-1',
+    receiverId: 'provider-1',
+    content: 'Hello, I have a question about the AI Research Fellowship...',
+    type: 'TEXT',
+    readStatus: true,
+    sentAt: new Date('2024-12-01T10:00:00'),
+    readAt: new Date('2024-12-01T10:30:00'),
+  },
+  {
+    id: 'msg-2',
+    conversationId: 'conv-1',
+    senderId: 'provider-1',
+    receiverId: 'student-1',
+    content: 'Sure, what would you like to know?',
+    type: 'TEXT',
+    readStatus: true,
+    sentAt: new Date('2024-12-01T10:35:00'),
+    readAt: new Date('2024-12-01T10:40:00'),
+  },
+  {
+    id: 'msg-3',
+    conversationId: 'conv-1',
+    senderId: 'student-1',
+    receiverId: 'provider-1',
+    content: 'Thank you for considering my application!',
+    type: 'TEXT',
+    readStatus: false,
+    sentAt: new Date('2025-01-12T14:00:00'),
+  },
+  {
+    id: 'msg-4',
+    conversationId: 'conv-2',
+    senderId: 'student-2',
+    receiverId: 'provider-2',
+    content: 'When will the results be announced?',
+    type: 'TEXT',
+    readStatus: true,
+    sentAt: new Date('2025-01-11T09:00:00'),
+    readAt: new Date('2025-01-11T09:15:00'),
+  },
+];
+
+// =============================================================================
+// FCM TOKENS (Bảng fcm_tokens trong chat_db)
+// =============================================================================
+export const FCM_TOKENS: FcmToken[] = [
+  {
+    id: 'token-1',
+    userId: 'student-1',
+    token: 'fcm-token-12345-student1-web',
+    deviceType: 'WEB',
+    createdAt: new Date('2024-09-01'),
+    updatedAt: new Date('2025-01-12'),
+  },
+  {
+    id: 'token-2',
+    userId: 'student-2',
+    token: 'fcm-token-67890-student2-android',
+    deviceType: 'ANDROID',
+    createdAt: new Date('2024-08-15'),
+    updatedAt: new Date('2025-01-11'),
+  },
+];
+
+// =============================================================================
 // NOTIFICATIONS (Thêm cho các đơn mới)
 // =============================================================================
 export const NOTIFICATIONS: Notification[] = [
   {
     id: 'notif-1',
     userId: 'student-1',
+    type: 'APPLICATION',
     title: 'Application Update: Accepted!',
+    content: 'Congratulations! Your application for "MIT AI Research Fellowship 2025" has been accepted.',
     message: 'Congratulations! Your application for "MIT AI Research Fellowship 2025" has been accepted.',
-    type: 'SUCCESS',
+    data: JSON.stringify({ scholarshipId: 'scholarship-1', applicationId: 'app-1', status: 'ACCEPTED' }),
+    readStatus: false,
     read: false,
     createdAt: new Date('2025-01-08'),
   },
   {
     id: 'notif-2',
     userId: 'student-2',
+    type: 'APPLICATION',
     title: 'Application Update: Rejected',
+    content: 'We regret to inform you that your application for "MIT AI Research Fellowship 2025" was not successful.',
     message: 'We regret to inform you that your application for "MIT AI Research Fellowship 2025" was not successful.',
-    type: 'ERROR',
+    data: JSON.stringify({ scholarshipId: 'scholarship-1', applicationId: 'app-4', status: 'REJECTED' }),
+    readStatus: true,
     read: true,
     createdAt: new Date('2025-01-05'),
   },
   {
     id: 'notif-3',
     userId: 'student-4',
+    type: 'APPLICATION',
     title: 'Application Update: Accepted!',
+    content: 'Congratulations! Your application for "Bioengineering Innovators Scholarship" has been accepted.',
     message: 'Congratulations! Your application for "Bioengineering Innovators Scholarship" has been accepted.',
-    type: 'SUCCESS',
+    data: JSON.stringify({ scholarshipId: 'scholarship-5', applicationId: 'app-7', status: 'ACCEPTED' }),
+    readStatus: false,
     read: false,
     createdAt: new Date('2025-01-10'),
   },
   {
     id: 'notif-4',
     userId: 'student-1',
+    type: 'APPLICATION',
     title: 'Application Received',
+    content: 'Your application for "Stanford Cybersecurity Excellence Program" has been received.',
     message: 'Your application for "Stanford Cybersecurity Excellence Program" has been received.',
-    type: 'INFO',
+    data: JSON.stringify({ scholarshipId: 'scholarship-2', applicationId: 'app-2', status: 'PENDING' }),
+    readStatus: true,
     read: true,
     createdAt: new Date('2024-12-15'),
-  }
+  },
+  {
+    id: 'notif-5',
+    userId: 'provider-1',
+    type: 'MESSAGE',
+    title: 'New Message',
+    content: 'You have a new message from John Doe',
+    message: 'You have a new message from John Doe',
+    data: JSON.stringify({ conversationId: 'conv-1', senderId: 'student-1' }),
+    readStatus: false,
+    read: false,
+    createdAt: new Date('2025-01-12'),
+  },
+  {
+    id: 'notif-6',
+    userId: 'admin-1',
+    type: 'SYSTEM',
+    title: 'System Maintenance',
+    content: 'The system will undergo maintenance on January 20, 2025 from 2:00 AM to 4:00 AM.',
+    message: 'The system will undergo maintenance on January 20, 2025 from 2:00 AM to 4:00 AM.',
+    data: JSON.stringify({ maintenanceStart: '2025-01-20T02:00:00', maintenanceEnd: '2025-01-20T04:00:00' }),
+    readStatus: false,
+    read: false,
+    createdAt: new Date('2025-01-15'),
+  },
 ];
 
 // =============================================================================
@@ -511,8 +963,37 @@ const delay = (ms: number = 300) => new Promise(resolve => setTimeout(resolve, m
 
 export const shouldUseMockApi = true;
 
+// Helper: Get current mock user from localStorage or default
+const getStoredMockUser = (): AuthUser | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const stored = localStorage.getItem('mock_current_user');
+    if (stored) {
+      const userId = stored;
+      return USERS.find(u => u.id === userId) || null;
+    }
+  } catch (e) {
+    // Ignore
+  }
+  return null;
+};
+
+// Helper: Set current mock user to localStorage
+const setStoredMockUser = (user: AuthUser | null) => {
+  if (typeof window === 'undefined') return;
+  try {
+    if (user) {
+      localStorage.setItem('mock_current_user', user.id);
+    } else {
+      localStorage.removeItem('mock_current_user');
+    }
+  } catch (e) {
+    // Ignore
+  }
+};
+
 // Helper helper
-let currentMockUser: AuthUser | null = USERS.find(u => u.id === 'admin-1') || null; // Đổi user mặc định thành admin
+let currentMockUser: AuthUser | null = getStoredMockUser();
 
 export const mockApi = {
   auth: {
@@ -521,6 +1002,7 @@ export const mockApi = {
       const user = USERS.find(u => u.email === credentials.email);
       if (user) {
         currentMockUser = user;
+        setStoredMockUser(user);
         return { success: true, data: { user, token: `mock-token-${user.id}` } };
       }
       return { success: false, error: 'Invalid credentials' };
@@ -532,10 +1014,17 @@ export const mockApi = {
     async logout(): Promise<ApiResponse> {
       await delay(300);
       currentMockUser = null;
+      setStoredMockUser(null);
       return { success: true };
     },
     async getCurrentUser(): Promise<ApiResponse<AuthUser>> {
       await delay(200);
+      // Always try to get from localStorage first
+      const storedUser = getStoredMockUser();
+      if (storedUser) {
+        currentMockUser = storedUser;
+        return { success: true, data: storedUser };
+      }
       if (currentMockUser) return { success: true, data: currentMockUser };
       return { success: false, error: 'Not authenticated' };
     },
@@ -736,30 +1225,60 @@ export const TRANSACTIONS: Transaction[] = [
 export const AUDIT_LOGS: AuditLog[] = [
   {
     id: 'log-1',
+    userId: 'admin-1',
     adminId: 'admin-1',
     action: 'APPROVE_SCHOLARSHIP',
+    details: 'Approved scholarship "MIT AI Research Fellowship 2025" (ID: scholarship-1). Reason: Meets all requirements.',
+    ipAddress: '192.168.1.100',
+    timestamp: new Date('2024-11-01T10:30:00'),
+    createdAt: new Date('2024-11-01T10:30:00'),
     targetId: 'scholarship-1',
     targetType: 'SCHOLARSHIP',
     reason: 'Meets all requirements',
-    createdAt: new Date('2024-11-01'),
   },
   {
     id: 'log-2',
+    userId: 'admin-1',
     adminId: 'admin-1',
     action: 'REJECT_SCHOLARSHIP',
+    details: 'Rejected scholarship "Quantum Computing Grant" (ID: scholarship-4). Reason: Incomplete documentation.',
+    ipAddress: '192.168.1.100',
+    timestamp: new Date('2024-10-20T14:15:00'),
+    createdAt: new Date('2024-10-20T14:15:00'),
     targetId: 'scholarship-4',
     targetType: 'SCHOLARSHIP',
     reason: 'Incomplete documentation',
-    createdAt: new Date('2024-10-20'),
   },
   {
     id: 'log-3',
+    userId: 'admin-1',
     adminId: 'admin-1',
     action: 'SUSPEND_USER',
+    details: 'Suspended user Maria Garcia (ID: student-4). Reason: Violation of terms of service.',
+    ipAddress: '192.168.1.100',
+    timestamp: new Date('2025-01-05T09:00:00'),
+    createdAt: new Date('2025-01-05T09:00:00'),
     targetId: 'student-4',
     targetType: 'USER',
     reason: 'Violation of terms of service',
-    createdAt: new Date('2025-01-05'),
+  },
+  {
+    id: 'log-4',
+    userId: 'student-1',
+    action: 'LOGIN',
+    details: 'User john.doe logged in successfully',
+    ipAddress: '10.0.0.25',
+    timestamp: new Date('2025-01-12T08:00:00'),
+    createdAt: new Date('2025-01-12T08:00:00'),
+  },
+  {
+    id: 'log-5',
+    userId: 'student-2',
+    action: 'REGISTER',
+    details: 'New user jane.smith registered',
+    ipAddress: '10.0.0.30',
+    timestamp: new Date('2024-08-15T12:00:00'),
+    createdAt: new Date('2024-08-15T12:00:00'),
   },
 ];
 

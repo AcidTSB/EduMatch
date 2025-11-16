@@ -40,11 +40,27 @@ export default function UsersManagement() {
   const itemsPerPage = 10;
 
   // Handlers
-  const handleAddNewUser = (userData: any) => {
-    toast.success(t('adminUsers.userCreated'), {
-      description: t('adminUsers.userCreatedDesc').replace('{name}', userData.name).replace('{role}', userData.role),
-    });
-    console.log('New user created:', userData);
+  const handleAddNewUser = async (userData: any) => {
+    try {
+      const response = await fetch('/api/v1/admin/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: JSON.stringify(userData),
+      });
+      
+      if (response.ok) {
+        toast.success(t('adminUsers.userCreated'), {
+          description: t('adminUsers.userCreatedDesc').replace('{name}', userData.name).replace('{role}', userData.role),
+        });
+      } else {
+        toast.error('Failed to create user');
+      }
+    } catch (error) {
+      toast.error('Failed to create user');
+    }
   };
 
   const handleEditUser = (userId: string, userName: string) => {
@@ -62,11 +78,25 @@ export default function UsersManagement() {
     setDeleteModal({ isOpen: true, userId, userName });
   };
 
-  const confirmDeleteUser = () => {
-    toast.success(t('adminUsers.userDeleted'), {
-      description: t('adminUsers.userDeletedDesc').replace('{name}', deleteModal.userName),
-    });
-    console.log('Deleting user:', deleteModal.userId);
+  const confirmDeleteUser = async () => {
+    try {
+      const response = await fetch(`/api/v1/admin/users/${deleteModal.userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+      
+      if (response.ok) {
+        toast.success(t('adminUsers.userDeleted'), {
+          description: t('adminUsers.userDeletedDesc').replace('{name}', deleteModal.userName),
+        });
+      } else {
+        toast.error('Failed to delete user');
+      }
+    } catch (error) {
+      toast.error('Failed to delete user');
+    }
     setDeleteModal({ isOpen: false, userId: '', userName: '' });
   };
 

@@ -1,321 +1,364 @@
-// =============================================================================
-// ENUMS (Các hằng số)
-// =============================================================================
-
-/**
- * Vai trò của người dùng trong hệ thống.
- */
 export enum UserRole {
-  USER = 'USER',
-  EMPLOYER = 'EMPLOYER',
-  ADMIN = 'ADMIN',
+  USER = 'USER',
+  EMPLOYER = 'EMPLOYER',
+  ADMIN = 'ADMIN',
 }
 
-/**
- * Trạng thái của một học bổng.
- * (Thay thế cho ModerationStatus)
- */
 export enum ScholarshipStatus {
-  PUBLISHED = 'PUBLISHED',     // Đã đăng
-  PENDING = 'PENDING',       // Đang chờ duyệt
-  REJECTED = 'REJECTED',     // Bị từ chối
-  DRAFT = 'DRAFT',           // Bản nháp
-  CLOSED = 'CLOSED',         // Đã đóng (hết hạn hoặc provider tự đóng)
+  PUBLISHED = 'PUBLISHED',
+  PENDING = 'PENDING',
+  REJECTED = 'REJECTED',
+  DRAFT = 'DRAFT',
+  CLOSED = 'CLOSED',         // Đã đóng (hết hạn hoặc provider tự đóng)
 }
 
-/**
- * Cấp độ/Loại học bổng.
- * (Thay thế cho ScholarshipLevel)
- */
-// Sửa 'ScholarshipType' enum của bạn để bao gồm các bậc học này
 export enum ScholarshipType {
-  UNDERGRADUATE = 'UNDERGRADUATE',
-  MASTER = 'MASTER',
-  PHD = 'PHD',
-  POSTDOC = 'POSTDOC',
-  RESEARCH = 'RESEARCH',
+  UNDERGRADUATE = 'UNDERGRADUATE',
+  MASTER = 'MASTER',
+  PHD = 'PHD',
+  POSTDOC = 'POSTDOC',
+  RESEARCH = 'RESEARCH',
 }
 
-/**
- * Trạng thái của một đơn nộp (application).
- */
 export enum ApplicationStatus {
-  PENDING = 'PENDING',
-  ACCEPTED = 'ACCEPTED',
-  REJECTED = 'REJECTED',
-  VIEWED = 'VIEWED', // Provider đã xem
+  PENDING = 'PENDING',
+  ACCEPTED = 'ACCEPTED',
+  REJECTED = 'REJECTED',
+  VIEWED = 'VIEWED', // Provider đã xem
 }
 
-/**
- * Trạng thái của một báo cáo (report).
- */
 export enum ReportStatus {
-  PENDING = 'PENDING',
-  RESOLVED = 'RESOLVED',   // Đã giải quyết
-  DISMISSED = 'DISMISSED', // Bỏ qua (báo cáo không hợp lệ)
+  PENDING = 'PENDING',
+  RESOLVED = 'RESOLVED',   // Đã giải quyết
+  DISMISSED = 'DISMISSED', // Bỏ qua (báo cáo không hợp lệ)
 }
 
-/**
- * Hình thức học (ví dụ: toàn thời gian, bán thời gian).
- * (Giữ lại từ file mock-data gốc của bạn)
- */
 export enum StudyMode {
-  FULL_TIME = 'FULL_TIME',
-  PART_TIME = 'PART_TIME',
-  ONLINE = 'ONLINE',
-  HYBRID = 'HYBRID',
+  FULL_TIME = 'FULL_TIME',
+  PART_TIME = 'PART_TIME',
+  ONLINE = 'ONLINE',
+  HYBRID = 'HYBRID',
 }
 
 export enum ModerationStatus {
-  PENDING = 'PENDING',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED',
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
 }
 
-
-// =============================================================================
-// INTERFACES (Các cấu trúc dữ liệu)
-// =============================================================================
-
-/**
- * Thông tin xác thực cơ bản của người dùng.
- */
 export interface AuthUser {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  emailVerified: boolean;
-  status: 'ACTIVE' | 'SUSPENDED' | 'PENDING';
-  subscriptionType: 'FREE' | 'PREMIUM' | 'ENTERPRISE';
-  createdAt: Date;
-  updatedAt: Date;
+  id: string;
+  username: string;
+  email: string;
+  password?: string; // (không trả về từ API)
+  firstName?: string;
+  lastName?: string;
+  name?: string; // (computed field cho frontend)
+  sex?: 'MALE' | 'FEMALE' | 'OTHER';
+  role: UserRole;
+  enabled?: boolean;
+  emailVerified: boolean;
+  organizationId?: string; // ID tổ chức (nếu là EMPLOYER)
+  verificationCode?: string;
+  verificationExpiry?: Date;
+  status: 'ACTIVE' | 'SUSPENDED' | 'PENDING';
+  subscriptionType: 'FREE' | 'PREMIUM' | 'ENTERPRISE';
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-/**
- * Thông tin chi tiết (profile) của người dùng.
- */
+export interface Role {
+  id: string;
+  name: string;
+}
+
+export interface UserRoleMapping {
+  userId: string;
+  roleId: string;
+}
+
+export interface RefreshToken {
+  id: string;
+  token: string;
+  userId: string;
+  expiryDate: Date;
+  createdAt: Date;
+}
+
 export interface UserProfile {
-  id: string;
-  userId: string; // Khóa ngoại liên kết với AuthUser
-  email: string;
-  role: UserRole;
-  firstName: string;
-  lastName: string;
-  avatar?: string;
-  bio?: string;
-  gpa?: number;
-  skills?: string[];
-  verified: boolean;
-  interests?: string[];
-  languages?: string[];
-  createdAt: Date;
-  updatedAt: Date;
-  // Thêm các trường khác nếu cần (ví dụ: education, experience)
+  id: string;
+  userId: string;
+  email: string;
+  role: UserRole;
+  firstName: string;
+  lastName: string;
+  avatar?: string;
+  bio?: string;
+  gpa?: number;
+  skills?: string[];
+  verified: boolean;
+  interests?: string[];
+  languages?: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-/**
- * Cấu trúc dữ liệu chính của Học bổng.
- * (Đã được chuẩn hóa để khớp với mock-data và các component)
- */
 export interface Scholarship {
-  id: string;
-  providerId: string;
-  providerName: string;
-  title: string;
-  description: string;
-  amount: number; // ✅ Dùng 'amount', không phải 'scholarshipAmount'
-  type: ScholarshipType | string; // ✅ Đã thay thế 'level'
-  status: ScholarshipStatus | string; // ✅ Đã thay thế 'moderationStatus'
-  applicationDeadline: string;
-  location: string;
-  university: string;
-  department: string;
-  duration: number;
-  isRemote: boolean; // ✅ Đã thay thế 'studyMode'
-  minGpa: number;
-  requirements: {
-    minGpa?: number;
-    englishProficiency?: string;
-    documents?: string[];
-  };
-  requiredSkills: string[];
-  preferredSkills?: string[];
-  viewCount: number;
-  createdAt: Date;
- 
+  id: string;
+  title: string;
+  description: string;
+  type: ScholarshipType | string;
+  providerId: string;
+  providerName?: string;
+  amount: number;
+  currency?: string;
+  deadline?: string;
+  applicationDeadline?: string; // Alias for deadline
+  requirements?: string | { // có thể là JSON string hoặc object
+    minGpa?: number;
+    englishProficiency?: string;
+    documents?: string[];
+  };
+  benefits?: string;
+  location?: string;
+  studyMode?: StudyMode | string;
+  duration?: string | number;
+  minGpa?: number;
+  requiredSkills?: string | string[];
+  preferredMajors?: string | string[];
+  researchAreas?: string | string[];
+  status: ScholarshipStatus | string;
+  createdAt: Date;
+  updatedAt?: Date;
+  publishedAt?: Date;
 
-  // Các trường tùy chọn/cũ (vẫn giữ để linh hoạt)
-  tags?: string[];
-  website?: string;
-  contactEmail?: string;
-  isPublic?: boolean;
-  matchScore?: number;
-  startDate?: string; // 'YYYY-MM-DD'
-  endDate?: string; // 'YYYY-MM-DD'
-  level: ScholarshipType | string; // (string nếu API trả về string)
-  studyMode: StudyMode | string; // (string nếu API trả về string)
-  moderationStatus: ModerationStatus | string; // (string nếu API trả về string)
-  scholarshipAmount?: number;
-  currency?: string;
+  // Frontend-specific fields (không có trong DB)
+  university?: string;
+  department?: string;
+  isRemote?: boolean;
+  preferredSkills?: string[];
+  viewCount?: number;
+  tags?: string[];
+  website?: string;
+  contactEmail?: string;
+  isPublic?: boolean;
+  matchScore?: number;
+  
+  // Legacy fields for backward compatibility
+  level?: ScholarshipType | string;
+  moderationStatus?: ModerationStatus | string;
+  scholarshipAmount?: number;
 }
 
-/**
- * Cấu trúc đơn nộp (application) của sinh viên.
- */
 export interface Application {
-  id: string;
-  applicantId: string; // ID của student
-  scholarshipId: string;
-  status: ApplicationStatus;
-  additionalDocs: string[]; // Danh sách tên file hoặc URL
-  createdAt: Date;
-  updatedAt: Date;
+  id: string;
+  opportunityId: string;
+  scholarshipId?: string; // Alias for opportunityId
+  applicantId: string;
+  applicantName?: string;
+  status: ApplicationStatus;
+  coverLetter?: string;
+  cvUrl?: string;
+  gpa?: number;
+  major?: string;
+  university?: string;
+  yearOfStudy?: number;
+  submittedAt?: Date;
+  reviewedAt?: Date;
+  reviewerNotes?: string;
+  additionalDocs?: string[]; // Frontend field (không có trong DB)
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-/**
- * Cấu trúc một báo cáo (report) của người dùng.
- */
+export interface ApplicationDocument {
+  id: string;
+  applicationId: string;
+  fileName: string;
+  fileUrl: string;
+  fileType?: string;
+  uploadedAt: Date;
+}
+
+export interface Bookmark {
+  id: string;
+  userId: string;
+  opportunityId: string;
+  scholarshipId?: string; // Alias
+  createdAt: Date;
+}
+
+export interface Skill {
+  id: string;
+  name: string;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+}
+
+export interface OpportunitySkill {
+  opportunityId: string;
+  skillId: string;
+}
+
+export interface OpportunityTag {
+  opportunityId: string;
+  tagId: string;
+}
+
 export interface Report {
-  id: string;
-  targetId: string; // ID của scholarship hoặc user bị báo cáo
-  targetType: 'SCHOLARSHIP' | 'USER';
-  reporterId: string; // ID của người báo cáo
-  reporterName: string; // Tên của người báo cáo (để hiển thị)
-  reporterEmail?: string; // Email của người báo cáo
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'; // Mức độ ưu tiên
-  category: string; // Ví dụ: 'Spam', 'Misleading Information', 'Broken Link'
-  description: string;
-  status: ReportStatus;
-  createdAt: Date;
-  updatedAt: Date;
+  id: string;
+  targetId: string;
+  targetType: 'SCHOLARSHIP' | 'USER';
+  reporterId: string;
+  reporterName: string;
+  reporterEmail?: string;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  category: string;
+  description: string;
+  status: ReportStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-/**
- * Cấu trúc một thông báo (notification).
- */
 export interface Notification {
-  id: string;
-  userId: string;
-  title: string;
-  message: string;
-  type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR';
-  read: boolean;
-  createdAt: Date;
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  content?: string;
+  message?: string; // Alias for content
+  data?: string | any; // JSON
+  readStatus?: boolean;
+  read?: boolean; // Alias for readStatus
+  createdAt: Date;
 }
-
-// =============================================================================
-// CÁC TYPE PHỤ (Dùng cho API, Auth,...)
-// =============================================================================
 
 export interface Transaction {
-  id: string;
-  userId: string;
-  amount: number;
-  status: 'PENDING' | 'COMPLETED' | 'FAILED';
-  type: 'SUBSCRIPTION' | 'APPLICATION_FEE';
-  createdAt: Date;
+  id: string;
+  userId: string;
+  amount: number;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+  type: 'SUBSCRIPTION' | 'APPLICATION_FEE';
+  createdAt: Date;
 }
 
 export interface AuditLog {
-  id: string;
-  adminId: string;
-  action: string; // Ví dụ: 'APPROVE_SCHOLARSHIP', 'REJECT_SCHOLARSHIP', 'SUSPEND_USER'
-  targetId: string;
-  targetType: string;
-  reason?: string;
-  createdAt: Date;
+  id: string;
+  userId?: string; // User thực hiện hành động (NULL nếu là system)
+  adminId?: string; // Alias for userId
+  action: string;
+  details?: string;
+  ipAddress?: string;
+  timestamp?: Date; // alias for createdAt
+  createdAt?: Date;
+  
+  // Frontend fields
+  targetId?: string;
+  targetType?: string;
+  reason?: string;
 }
 
 export interface LoginCredentials {
-  email: string;
-  password?: string; // (Có thể login bằng Google,...)
+  email: string;
+  password?: string;
 }
 
 export interface RegisterCredentials {
-  email: string;
-  name: string;
-  password?: string;
-  role: UserRole;
+  email: string;
+  name: string;
+  password?: string;
+  role: UserRole;
 }
 
-/**
- * Type chung cho mọi phản hồi từ API (kể cả mock API).
- */
 export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }
 
-// Dùng cho authApi.login
 export interface LoginForm {
-  email: string;
-  password: string;
+  email: string;
+  password: string;
 }
 
-// Dùng cho authApi.register
 export interface SignupForm {
-  email: string;
-  password: string;
-  fullName: string; // Thêm các trường khác nếu cần
-  role: 'STUDENT' | 'PROVIDER';
+  email: string;
+  password: string;
+  fullName: string;
+  role: 'STUDENT' | 'PROVIDER';
 }
 
-// Dùng cho usersApi.updateProfile
 export interface ProfileForm {
-  fullName?: string;
-  bio?: string;
-  education?: string;
-  // Thêm các trường khác trong UserProfile mà bạn cho phép cập nhật
+  fullName?: string;
+  bio?: string;
+  education?: string;
 }
 
-// Dùng cho scholarshipsApi.createScholarship
 export interface ScholarshipForm {
-  title: string;
-  description: string;
-  amount: number;
-  deadline: string; // (hoặc Date)
-  educationLevel: string;
-  // Thêm các trường khác để tạo học bổng
+  title: string;
+  description: string;
+  amount: number;
+  deadline: string;
+  educationLevel: string;
 }
 
-// Dùng cho scholarshipsApi.getScholarships
 export interface ScholarshipFilters {
-  keyword?: string;
-  minAmount?: number;
-  maxAmount?: number;
-  educationLevel?: string[];
-  deadlineBefore?: string;
-  // Thêm các trường filter khác
+  keyword?: string;
+  minAmount?: number;
+  maxAmount?: number;
+  educationLevel?: string[];
+  deadlineBefore?: string;
 }
 
-// Dùng cho messagesApi
-export interface Message {
-  id: string;
-  content: string;
-  senderId: string;
-  conversationId: string;
-  createdAt: Date;
-  attachments?: { url: string; type: string }[];
-}
-
-// Dùng cho messagesApi
 export interface Conversation {
-  id: string;
-  participants: UserProfile[]; // Giả sử bạn đã có UserProfile
-  lastMessage: Message | null;
-  unreadCount: number;
-  updatedAt: Date
+  id: string;
+  user1Id: string;
+  user2Id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  lastMessage?: string;
+  lastMessageAt?: Date;
+  
+  // Frontend fields
+  participants?: UserProfile[];
+  unreadCount?: number;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  receiverId: string;
+  content: string;
+  type?: string;
+  readStatus?: boolean;
+  sentAt: Date;
+  readAt?: Date;
+  
+  // Frontend fields
+  createdAt?: Date; // Alias for sentAt
+  attachments?: { url: string; type: string }[];
+}
+
+export interface FcmToken {
+  id: string;
+  userId: string;
+  token: string;
+  deviceType?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
