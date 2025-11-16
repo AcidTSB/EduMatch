@@ -9,6 +9,10 @@ import lombok.Data;
 public class SignUpRequest {
     @NotBlank
     @Size(max = 60)
+    private String username;
+
+    @NotBlank
+    @Size(max = 60)
     @Email
     private String email;
 

@@ -92,6 +92,8 @@ http {
             # Compatibility rewrites for FE expectations
             # 1) Old FE path -> current auth path
             rewrite ^/api/auth/user/me$ /api/auth/me break;
+            # 2) Prefer richer user endpoint that includes roles
+            rewrite ^/api/auth/me$ /api/user/me break;
             
             limit_req zone=auth_limit burst=20 nodelay;
             
@@ -164,8 +166,11 @@ http {
                 add_header Content-Length 0;
                 return 204;
             }
+            add_header Access-Control-Allow-Origin $http_origin always;
+            add_header Access-Control-Allow-Credentials true always;
+            add_header Vary Origin always;
             
- limit_req zone=api_limit burst=20 nodelay;
+            limit_req zone=api_limit burst=20 nodelay;
             
             proxy_pass http://scholarship_service;
             proxy_hide_header Access-Control-Allow-Origin;
@@ -192,8 +197,11 @@ http {
                 add_header Content-Length 0;
                 return 204;
             }
+            add_header Access-Control-Allow-Origin $http_origin always;
+            add_header Access-Control-Allow-Credentials true always;
+            add_header Vary Origin always;
             
- limit_req zone=api_limit burst=20 nodelay;
+            limit_req zone=api_limit burst=20 nodelay;
             
             proxy_pass http://scholarship_service;
             proxy_hide_header Access-Control-Allow-Origin;
@@ -220,8 +228,11 @@ http {
                 add_header Content-Length 0;
                 return 204;
             }
+            add_header Access-Control-Allow-Origin $http_origin always;
+            add_header Access-Control-Allow-Credentials true always;
+            add_header Vary Origin always;
             
- limit_req zone=api_limit burst=20 nodelay;
+            limit_req zone=api_limit burst=20 nodelay;
             
             proxy_pass http://scholarship_service;
             proxy_hide_header Access-Control-Allow-Origin;
@@ -259,8 +270,11 @@ http {
                 add_header Content-Length 0;
                 return 204;
             }
+            add_header Access-Control-Allow-Origin $http_origin always;
+            add_header Access-Control-Allow-Credentials true always;
+            add_header Vary Origin always;
             
- limit_req zone=api_limit burst=20 nodelay;
+            limit_req zone=api_limit burst=20 nodelay;
             
             proxy_pass http://matching_service;
             proxy_hide_header Access-Control-Allow-Origin;

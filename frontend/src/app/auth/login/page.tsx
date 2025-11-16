@@ -166,14 +166,18 @@ export default function LoginPage() {
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  type="email"
-                  placeholder={t('login.emailPlaceholder')}
+                  type="text"
+                  placeholder="Username (e.g., admin, testuser)"
                   value={email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="pl-10"
                   error={errors.email}
+                  autoComplete="username"
                 />
               </div>
+              <p className="text-xs text-muted-foreground ml-1">
+                Default accounts: admin/admin123, testuser/test123
+              </p>
             </div>
 
             <div className="space-y-2">

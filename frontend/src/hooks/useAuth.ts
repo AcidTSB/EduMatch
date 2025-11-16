@@ -114,6 +114,8 @@ export const useAuth = (): UseAuthReturn => {
       isAuthenticated: true,
       role: user.role,
     });
+    // Invalidate cache để re-fetch user data
+    queryClient.invalidateQueries({ queryKey: ['currentUser'] });
   };
 
   /**

@@ -1,7 +1,12 @@
 # API Gateway - Nginx Configuration
 
 ## Overview
-This is the main entry point for the EduMatch microservices architecture. The Nginx API Gateway routes requests to 4 backend services and serves the React frontend.
+This is the main entry point for the EduMatch microservices architecture. The Nginx API Gateway routes requests to backend services (Auth, Scholarship, Matching, Notification) and serves the Next.js frontend.
+
+## ✅ **Current Configuration (Updated Nov 2025)**
+- **Gateway Port**: `8080` (host) → `80` (container)
+- **Frontend**: Next.js running locally or in Docker
+- **All API calls**: `http://localhost:8080/api/*` → routed to backend services
 
 ## Architecture
 

@@ -14,8 +14,10 @@ import {
   Conversation
 } from '@/types';
 
-// API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api';
+// API Configuration - Route through Nginx Gateway
+// Gateway routes: /api/auth, /api/scholarships, /api/matching, etc.
+const GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080';
+const API_BASE_URL = `${GATEWAY_URL}/api`;
 
 // Request configuration
 const defaultOptions: RequestInit = {
@@ -86,11 +88,26 @@ async function apiCall<T = any>(
 // Auth API
 export const authApi = {
   // Login user
-  login: (credentials: LoginForm) =>
-    apiCall<{ user: UserProfile; token: string }>('/auth/login', {
+  login: async (credentials: LoginForm): Promise<ApiResponse<{ token: string; user: UserProfile }>> => {
+    // Backend expects 'username' field, not 'email'
+    const response: any = await apiCall('/auth/login', {
       method: 'POST',
-      body: JSON.stringify(credentials),
-    }),
+      body: JSON.stringify({
+        username: credentials.email,
+        password: credentials.password,
+      }),
+    });
+    
+    // Backend returns: { accessToken, user, tokenType, refreshToken }
+    // Transform to frontend format: { data: { token, user } }
+    return {
+      success: true,
+      data: {
+        token: response.accessToken,
+        user: response.user,
+      }
+    };
+  },
 
   // Register user
   register: (userData: SignupForm) =>

@@ -218,8 +218,7 @@ services:
       - /app/node_modules
     networks:
       - test-network
-    depends_on:
-      - api-gateway
+    # NO DEPENDS_ON - Frontend can start independently
 
   # === API GATEWAY (Nginx) ===
   api-gateway:
@@ -231,10 +230,7 @@ services:
       - ./nginx-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - test-network
-    depends_on:
-      - auth-service
-      - scholarship-service
-      - matching-service
+    # NO DEPENDS_ON - Gateway can start independently, services will connect when ready
     restart: unless-stopped
 
   # ==================== COMMENTED OUT - NOT NEEDED FOR TESTING ====================
