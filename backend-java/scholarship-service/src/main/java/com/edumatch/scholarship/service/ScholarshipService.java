@@ -39,7 +39,9 @@ import org.springframework.data.domain.Pageable;
 import java.util.Map;
 import com.edumatch.scholarship.repository.specification.OpportunitySpecification;
 import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -377,12 +379,33 @@ public class ScholarshipService {
         return null;
     }
     /**
-     * Lấy TẤT CẢ cơ hội (bao gồm cả PENDING) cho Admin
+     * Lấy TẤT CẢ cơ hội (bao gồm cả PENDING) cho Admin với filter
      */
-    public Page<OpportunityDto> getAllOpportunitiesForAdmin(Pageable pageable) {
-        // Không lọc, lấy tất cả
-        return opportunityRepository.findAll(pageable)
-                .map(OpportunityDto::fromEntity);
+    public Page<OpportunityDto> getAllOpportunitiesForAdmin(String status, String keyword, Pageable pageable) {
+        Specification<Opportunity> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            
+            // Lọc theo status nếu có
+            if (status != null && !status.isEmpty()) {
+                predicates.add(criteriaBuilder.equal(root.get("moderationStatus"), status));
+            }
+            
+            // Lọc theo keyword nếu có
+            if (keyword != null && !keyword.isEmpty()) {
+                String keywordLike = "%" + keyword.toLowerCase() + "%";
+                predicates.add(
+                        criteriaBuilder.or(
+                                criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), keywordLike),
+                                criteriaBuilder.like(criteriaBuilder.lower(root.get("fullDescription")), keywordLike)
+                        )
+                );
+            }
+            
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+        
+        Page<Opportunity> page = opportunityRepository.findAll(spec, pageable);
+        return page.map(OpportunityDto::fromEntity);
     }
 
     /**
@@ -408,5 +431,92 @@ public class ScholarshipService {
         }
 
         return OpportunityDto.fromEntity(savedOpp);
+    }
+
+    /**
+     * Admin lấy chi tiết một cơ hội (cho phép xem cả PENDING)
+     */
+    public OpportunityDetailDto getOpportunityDetailsForAdmin(Long opportunityId) {
+        Opportunity opp = opportunityRepository.findById(opportunityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy cơ hội với ID: " + opportunityId));
+
+        OpportunityDto oppDto = OpportunityDto.fromEntity(opp);
+        OpportunityDetailDto detailDto = new OpportunityDetailDto(oppDto);
+        
+        // Admin không cần match score
+        detailDto.setMatchScore(null);
+        
+        return detailDto;
+    }
+
+    /**
+     * Admin xóa một cơ hội (không cần kiểm tra quyền sở hữu)
+     */
+    @Transactional
+    public void deleteOpportunityByAdmin(Long id) {
+        Opportunity opp = opportunityRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy cơ hội với ID: " + id));
+
+        // Xóa các liên kết
+        bookmarkRepository.deleteAllByOpportunityId(id);
+        List<Application> applications = applicationRepository.findByOpportunityId(id);
+        if (applications != null && !applications.isEmpty()) {
+            List<Long> appIds = applications.stream()
+                    .map(Application::getId)
+                    .collect(Collectors.toList());
+            applicationDocumentRepository.deleteAllByApplicationIdIn(appIds);
+            applicationRepository.deleteAll(applications);
+        }
+        opp.getTags().clear();
+        opp.getRequiredSkills().clear();
+        opportunityRepository.delete(opp);
+
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.EXCHANGE_NAME,
+                "scholarship.deleted",
+                Map.of("opportunityId", id)
+        );
+        log.info("Admin đã xóa cơ hội với ID: {}", id);
+    }
+
+    /**
+     * Lấy thống kê tổng quan cho admin dashboard
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getStats() {
+        Map<String, Object> stats = new java.util.HashMap<>();
+        
+        // Thống kê scholarships (opportunities)
+        long totalScholarships = opportunityRepository.count();
+        long activeScholarships = opportunityRepository.findAll().stream()
+                .filter(opp -> "APPROVED".equals(opp.getModerationStatus()))
+                .count();
+        long pendingScholarships = opportunityRepository.findAll().stream()
+                .filter(opp -> "PENDING".equals(opp.getModerationStatus()))
+                .count();
+        
+        // Thống kê applications
+        long totalApplications = applicationRepository.count();
+        long pendingApplications = applicationRepository.findAll().stream()
+                .filter(app -> "PENDING".equals(app.getStatus()) || 
+                              "SUBMITTED".equals(app.getStatus()) || 
+                              "UNDER_REVIEW".equals(app.getStatus()))
+                .count();
+        long acceptedApplications = applicationRepository.findAll().stream()
+                .filter(app -> "ACCEPTED".equals(app.getStatus()))
+                .count();
+        long rejectedApplications = applicationRepository.findAll().stream()
+                .filter(app -> "REJECTED".equals(app.getStatus()))
+                .count();
+        
+        stats.put("totalScholarships", totalScholarships);
+        stats.put("activeScholarships", activeScholarships);
+        stats.put("pendingScholarships", pendingScholarships);
+        stats.put("totalApplications", totalApplications);
+        stats.put("pendingApplications", pendingApplications);
+        stats.put("acceptedApplications", acceptedApplications);
+        stats.put("rejectedApplications", rejectedApplications);
+        
+        return stats;
     }
 }

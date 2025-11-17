@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/opportunities") // Đường dẫn gốc cho các API Opportunity
@@ -45,7 +46,7 @@ public class OpportunityController {
     }
     //API để Provider lấy danh sách các cơ hội HỌ ĐÃ TẠO.
     @GetMapping("/my")
-    @PreAuthorize("hasRole('ROLE_EMPLOYER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<OpportunityDto>> getMyOpportunities(
             @AuthenticationPrincipal UserDetails userDetails
     ) {
@@ -77,13 +78,16 @@ public class OpportunityController {
     }
 
     /**
-     * API (nội bộ) để Admin lấy TẤT CẢ cơ hội
+     * API (nội bộ) để Admin lấy TẤT CẢ cơ hội với filter
      * Endpoint: GET /api/opportunities/all
      */
     @GetMapping("/all")
     @PreAuthorize("hasRole('ROLE_ADMIN')") // Chỉ ADMIN
-    public ResponseEntity<Page<OpportunityDto>> getAllOpportunities(Pageable pageable) {
-        Page<OpportunityDto> page = scholarshipService.getAllOpportunitiesForAdmin(pageable);
+    public ResponseEntity<Page<OpportunityDto>> getAllOpportunities(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
+            Pageable pageable) {
+        Page<OpportunityDto> page = scholarshipService.getAllOpportunitiesForAdmin(status, keyword, pageable);
         return ResponseEntity.ok(page);
     }
 
@@ -99,5 +103,39 @@ public class OpportunityController {
 
         OpportunityDto dto = scholarshipService.moderateOpportunity(id, request.getStatus());
         return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * API để Admin lấy chi tiết một cơ hội (cho phép xem cả PENDING)
+     * Endpoint: GET /api/opportunities/{id}
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')") // Chỉ ADMIN
+    public ResponseEntity<com.edumatch.scholarship.dto.OpportunityDetailDto> getOpportunityByIdForAdmin(
+            @PathVariable Long id) {
+        com.edumatch.scholarship.dto.OpportunityDetailDto dto = scholarshipService.getOpportunityDetailsForAdmin(id);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * API để Admin xóa một cơ hội
+     * Endpoint: DELETE /api/opportunities/{id}/admin
+     */
+    @DeleteMapping("/{id}/admin")
+    @PreAuthorize("hasRole('ROLE_ADMIN')") // Chỉ ADMIN
+    public ResponseEntity<Void> deleteOpportunityByAdmin(@PathVariable Long id) {
+        scholarshipService.deleteOpportunityByAdmin(id);
+        return ResponseEntity.noContent().build(); // Trả về 204 No Content
+    }
+
+    /**
+     * API để Admin lấy thống kê scholarships và applications
+     * Endpoint: GET /api/opportunities/stats
+     */
+    @GetMapping("/stats")
+    @PreAuthorize("hasRole('ROLE_ADMIN')") // Chỉ ADMIN
+    public ResponseEntity<Map<String, Object>> getStats() {
+        Map<String, Object> stats = scholarshipService.getStats();
+        return ResponseEntity.ok(stats);
     }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -14,7 +14,8 @@ import {
   MapPin,
   Building,
   Users,
-  Flag
+  Flag,
+  Trash2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,92 +25,212 @@ import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { RejectModal } from '@/components/ui/reject-modal';
 import { RequestChangesModal } from '@/components/ui/request-changes-modal';
 import { toast } from 'sonner';
-import { 
-  SCHOLARSHIPS, 
-  APPLICATIONS, 
-  USERS, 
-  REPORTS,
-  getUserById,
-  getApplicationsByScholarship 
-} from '@/lib/mock-data';
-import { ScholarshipStatus, AuthUser } from '@/types';
+import adminService from '@/services/admin.service';
+import { mapOpportunityDtoToScholarship } from '@/lib/scholarship-mapper';
+
+interface ScholarshipData {
+  id: number;
+  title: string;
+  description?: string;
+  amount?: number;
+  applicationDeadline?: string;
+  location?: string;
+  university?: string;
+  department?: string;
+  moderationStatus?: string;
+  status?: string;
+  minGpa?: number;
+  studyMode?: string;
+  level?: string;
+  isPublic?: boolean;
+  requiredSkills?: string[];
+  tags?: string[];
+  viewsCnt?: number;
+  creatorUserId?: number;
+  organizationId?: number;
+  contactEmail?: string;
+  website?: string;
+  startDate?: string;
+  endDate?: string;
+  scholarshipAmount?: number;
+}
 
 export default function AdminScholarshipDetailPage() {
   const params = useParams();
   const router = useRouter();
   const scholarshipId = params.id as string;
 
+  const [scholarship, setScholarship] = useState<ScholarshipData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [applications, setApplications] = useState<any[]>([]);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showRequestChangesModal, setShowRequestChangesModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Get scholarship data from unified mock data
-  const scholarship = SCHOLARSHIPS.find(s => s.id === scholarshipId);
-  const applications = getApplicationsByScholarship(scholarshipId);
-  const provider = scholarship ? getUserById(scholarship.providerId) : null;
-  const reports = REPORTS.filter(r => r.targetId === scholarshipId && r.targetType === 'SCHOLARSHIP');
+  // Fetch scholarship data
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const id = parseInt(scholarshipId);
+        if (isNaN(id)) {
+          toast.error('Invalid scholarship ID');
+          router.push('/admin/scholarships');
+          return;
+        }
+
+        // Fetch scholarship details
+        const response = await adminService.getScholarshipById(id);
+        const opp = response.opportunity || response;
+        setScholarship(opp);
+
+        // Fetch applications for this scholarship
+        try {
+          const appsResponse = await adminService.getApplications({
+            opportunityId: id,
+            page: 0,
+            size: 100
+          });
+          setApplications(appsResponse.content || []);
+        } catch (error) {
+          console.error('Error fetching applications:', error);
+          setApplications([]);
+        }
+      } catch (error: any) {
+        console.error('Error fetching scholarship:', error);
+        toast.error('Không thể tải thông tin học bổng', {
+          description: error.message || 'Vui lòng thử lại sau'
+        });
+        router.push('/admin/scholarships');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (scholarshipId) {
+      fetchData();
+    }
+  }, [scholarshipId, router]);
+
+  const handleApprove = async () => {
+    try {
+      const id = parseInt(scholarshipId);
+      await adminService.moderateScholarship(id, 'APPROVED');
+      setShowApproveModal(false);
+      toast.success('Học bổng đã được duyệt!', {
+        description: `${scholarship?.title} đã được xuất bản và nhà cung cấp đã được thông báo.`,
+      });
+      // Refresh data
+      const response = await adminService.getScholarshipById(id);
+      const opp = response.opportunity || response;
+      setScholarship(opp);
+    } catch (error: any) {
+      toast.error('Không thể duyệt học bổng', {
+        description: error.message || 'Vui lòng thử lại sau'
+      });
+    }
+  };
+
+  const handleReject = async (reason: string) => {
+    try {
+      const id = parseInt(scholarshipId);
+      await adminService.moderateScholarship(id, 'REJECTED');
+      setShowRejectModal(false);
+      toast.error('Học bổng đã bị từ chối', {
+        description: `Nhà cung cấp sẽ được thông báo với lý do: ${reason}`,
+      });
+      // Refresh data
+      const response = await adminService.getScholarshipById(id);
+      const opp = response.opportunity || response;
+      setScholarship(opp);
+    } catch (error: any) {
+      toast.error('Không thể từ chối học bổng', {
+        description: error.message || 'Vui lòng thử lại sau'
+      });
+    }
+  };
+
+  const handleRequestChanges = (data: { subject: string; message: string }) => {
+    console.log('Requesting changes:', scholarshipId, data);
+    // TODO: Implement API call when available
+    setShowRequestChangesModal(false);
+    toast.info('Yêu cầu thay đổi đã được gửi', {
+      description: `Nhà cung cấp sẽ được thông báo để cập nhật học bổng.`,
+    });
+  };
+
+  const handleDelete = async () => {
+    try {
+      const id = parseInt(scholarshipId);
+      await adminService.deleteScholarship(id);
+      setShowDeleteModal(false);
+      toast.success('Học bổng đã bị xóa', {
+        description: `${scholarship?.title} đã được xóa vĩnh viễn.`,
+      });
+      setTimeout(() => router.push('/admin/scholarships'), 1500);
+    } catch (error: any) {
+      toast.error('Không thể xóa học bổng', {
+        description: error.message || 'Vui lòng thử lại sau'
+      });
+    }
+  };
+
+  const getStatusColor = (status?: string) => {
+    if (!status) return 'bg-gray-100 text-gray-700';
+    const upperStatus = status.toUpperCase();
+    if (upperStatus === 'APPROVED' || upperStatus === 'PUBLISHED') {
+      return 'bg-green-100 text-green-700';
+    }
+    if (upperStatus === 'PENDING') {
+      return 'bg-yellow-100 text-yellow-700';
+    }
+    if (upperStatus === 'REJECTED' || upperStatus === 'CLOSED') {
+      return 'bg-red-100 text-red-700';
+    }
+    return 'bg-gray-100 text-gray-700';
+  };
+
+  const getStatusLabel = (status?: string) => {
+    if (!status) return 'Unknown';
+    const upperStatus = status.toUpperCase();
+    if (upperStatus === 'APPROVED' || upperStatus === 'PUBLISHED') {
+      return 'Đã duyệt';
+    }
+    if (upperStatus === 'PENDING') {
+      return 'Chờ duyệt';
+    }
+    if (upperStatus === 'REJECTED') {
+      return 'Đã từ chối';
+    }
+    return status;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-gray-500">Đang tải...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!scholarship) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900">Scholarship not found</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Không tìm thấy học bổng</h2>
           <Button onClick={() => router.back()} className="mt-4">
-            Go Back
+            Quay lại
           </Button>
         </div>
       </div>
     );
   }
 
-  const handleApprove = () => {
-    console.log('Approving scholarship:', scholarshipId);
-    // TODO: API call + real-time socket broadcast
-    setShowApproveModal(false);
-    toast.success('Scholarship Approved!', {
-      description: `${scholarship.title} has been published and the provider has been notified.`,
-    });
-  };
-
-  const handleReject = (reason: string) => {
-    console.log('Rejecting scholarship:', scholarshipId, reason);
-    // TODO: API call + email notification
-    setShowRejectModal(false);
-    toast.error('Scholarship Rejected', {
-      description: `The provider will be notified with your reason.`,
-    });
-  };
-
-  const handleRequestChanges = (data: { subject: string; message: string }) => {
-    console.log('Requesting changes:', scholarshipId, data);
-    // TODO: API call + send message to provider
-    setShowRequestChangesModal(false);
-    toast.info('Change Request Sent', {
-      description: `Provider will be notified to update the scholarship.`,
-    });
-  };
-
-  const handleDelete = () => {
-    console.log('Deleting scholarship:', scholarshipId);
-    // TODO: API call
-    setShowDeleteModal(false);
-    toast.success('Scholarship Deleted', {
-      description: `${scholarship.title} has been permanently removed.`,
-    });
-    setTimeout(() => router.push('/admin/scholarships'), 1500);
-  };
-
-  const getStatusColor = (status: ScholarshipStatus) => {
-    switch (status) {
-      case ScholarshipStatus.PUBLISHED:
-        return 'bg-green-100 text-green-700';
-      case ScholarshipStatus.DRAFT:
-        return 'bg-yellow-100 text-yellow-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
+  const status = scholarship.moderationStatus || scholarship.status || 'PENDING';
+  const canModerate = status === 'PENDING';
 
   return (
     <div className="space-y-6">
@@ -120,23 +241,31 @@ export default function AdminScholarshipDetailPage() {
             <ArrowLeft className="w-4 h-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Scholarship Details</h1>
-            <p className="text-gray-500 mt-1">Review and moderate scholarship posting</p>
+            <h1 className="text-3xl font-bold text-gray-900">Chi tiết học bổng</h1>
+            <p className="text-gray-500 mt-1">Xem và quản lý học bổng</p>
           </div>
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowRequestChangesModal(true)}>
-            <MessageSquare className="w-4 h-4 mr-2" />
-            Request Changes
-          </Button>
-          <Button variant="destructive" onClick={() => setShowRejectModal(true)}>
-            <XCircle className="w-4 h-4 mr-2" />
-            Reject
-          </Button>
-          <Button onClick={() => setShowApproveModal(true)}>
-            <CheckCircle className="w-4 h-4 mr-2" />
-            Approve
+          {canModerate && (
+            <>
+              <Button variant="outline" onClick={() => setShowRequestChangesModal(true)}>
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Yêu cầu sửa đổi
+              </Button>
+              <Button variant="destructive" onClick={() => setShowRejectModal(true)}>
+                <XCircle className="w-4 h-4 mr-2" />
+                Từ chối
+              </Button>
+              <Button onClick={() => setShowApproveModal(true)}>
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Duyệt
+              </Button>
+            </>
+          )}
+          <Button variant="outline" onClick={() => setShowDeleteModal(true)}>
+            <Trash2 className="w-4 h-4 mr-2" />
+            Xóa
           </Button>
         </div>
       </div>
@@ -148,45 +277,53 @@ export default function AdminScholarshipDetailPage() {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h2 className="text-2xl font-bold text-gray-900">{scholarship.title}</h2>
-                <Badge className={getStatusColor(scholarship.status as ScholarshipStatus)}>
-                  {scholarship.status}
+                <Badge className={getStatusColor(status)}>
+                  {getStatusLabel(status)}
                 </Badge>
               </div>
-              <p className="text-gray-700 mb-4">{scholarship.description}</p>
+              <p className="text-gray-700 mb-4">{scholarship.description || 'Không có mô tả'}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="flex items-center gap-2 text-gray-600">
-              <DollarSign className="w-5 h-5" />
-              <div>
-                <p className="text-sm text-gray-500">Amount</p>
-                <p className="font-semibold">${scholarship.amount?.toLocaleString() || 'N/A'}</p>
+            {scholarship.scholarshipAmount && (
+              <div className="flex items-center gap-2 text-gray-600">
+                <DollarSign className="w-5 h-5" />
+                <div>
+                  <p className="text-sm text-gray-500">Số tiền</p>
+                  <p className="font-semibold">${scholarship.scholarshipAmount.toLocaleString()}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Calendar className="w-5 h-5" />
-              <div>
-                <p className="text-sm text-gray-500">Deadline</p>
-                <p className="font-semibold">
-                  {new Date(scholarship.applicationDeadline).toLocaleDateString()}
-                </p>
+            )}
+            {scholarship.applicationDeadline && (
+              <div className="flex items-center gap-2 text-gray-600">
+                <Calendar className="w-5 h-5" />
+                <div>
+                  <p className="text-sm text-gray-500">Hạn nộp</p>
+                  <p className="font-semibold">
+                    {new Date(scholarship.applicationDeadline).toLocaleDateString('vi-VN')}
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <MapPin className="w-5 h-5" />
-              <div>
-                <p className="text-sm text-gray-500">Location</p>
-                <p className="font-semibold">{scholarship.location}</p>
+            )}
+            {scholarship.location && (
+              <div className="flex items-center gap-2 text-gray-600">
+                <MapPin className="w-5 h-5" />
+                <div>
+                  <p className="text-sm text-gray-500">Địa điểm</p>
+                  <p className="font-semibold">{scholarship.location}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <Building className="w-5 h-5" />
-              <div>
-                <p className="text-sm text-gray-500">University</p>
-                <p className="font-semibold">{scholarship.university}</p>
+            )}
+            {scholarship.university && (
+              <div className="flex items-center gap-2 text-gray-600">
+                <Building className="w-5 h-5" />
+                <div>
+                  <p className="text-sm text-gray-500">Trường đại học</p>
+                  <p className="font-semibold">{scholarship.university}</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -194,10 +331,8 @@ export default function AdminScholarshipDetailPage() {
       {/* Tabs */}
       <Tabs defaultValue="details" className="w-full">
         <TabsList>
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="applications">Applications ({applications.length})</TabsTrigger>
-          <TabsTrigger value="provider">Provider Info</TabsTrigger>
-          <TabsTrigger value="reports">Reports ({reports.length})</TabsTrigger>
+          <TabsTrigger value="details">Chi tiết</TabsTrigger>
+          <TabsTrigger value="applications">Đơn ứng tuyển ({applications.length})</TabsTrigger>
         </TabsList>
 
         {/* Details Tab */}
@@ -205,35 +340,27 @@ export default function AdminScholarshipDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Requirements</CardTitle>
+                <CardTitle>Yêu cầu</CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2">
-                  {scholarship.requirements && typeof scholarship.requirements === 'object' ? (
-                    <>
-                      {scholarship.requirements.minGpa && (
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600 mt-1 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">Minimum GPA: {scholarship.requirements.minGpa}</span>
-                        </li>
-                      )}
-                      {scholarship.requirements.englishProficiency && (
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600 mt-1 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">English Proficiency: {scholarship.requirements.englishProficiency}</span>
-                        </li>
-                      )}
-                      {scholarship.requirements.documents && Array.isArray(scholarship.requirements.documents) && (
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600 mt-1 flex-shrink-0" />
-                          <span className="text-sm text-gray-700">
-                            Documents Required: {scholarship.requirements.documents.join(', ')}
-                          </span>
-                        </li>
-                      )}
-                    </>
-                  ) : (
-                    <li className="text-sm text-gray-500">No specific requirements listed</li>
+                  {scholarship.minGpa && (
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600 mt-1 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">GPA tối thiểu: {scholarship.minGpa}</span>
+                    </li>
+                  )}
+                  {scholarship.level && (
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600 mt-1 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">Cấp độ: {scholarship.level}</span>
+                    </li>
+                  )}
+                  {scholarship.studyMode && (
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600 mt-1 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">Chế độ học: {scholarship.studyMode}</span>
+                    </li>
                   )}
                 </ul>
               </CardContent>
@@ -241,27 +368,21 @@ export default function AdminScholarshipDetailPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Skills Required</CardTitle>
+                <CardTitle>Kỹ năng yêu cầu</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Required Skills</p>
-                    <div className="flex flex-wrap gap-2">
-                      {scholarship.requiredSkills.map((skill, index) => (
-                        <Badge key={index} variant="default">{skill}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                  {scholarship.preferredSkills && scholarship.preferredSkills.length > 0 && (
+                  {scholarship.requiredSkills && scholarship.requiredSkills.length > 0 ? (
                     <div>
-                      <p className="text-sm font-medium text-gray-700 mb-2">Preferred Skills</p>
+                      <p className="text-sm font-medium text-gray-700 mb-2">Kỹ năng bắt buộc</p>
                       <div className="flex flex-wrap gap-2">
-                        {scholarship.preferredSkills.map((skill, index) => (
-                          <Badge key={index} variant="secondary">{skill}</Badge>
+                        {scholarship.requiredSkills.map((skill, index) => (
+                          <Badge key={index} variant="default">{skill}</Badge>
                         ))}
                       </div>
                     </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Không có kỹ năng yêu cầu cụ thể</p>
                   )}
                 </div>
               </CardContent>
@@ -269,47 +390,65 @@ export default function AdminScholarshipDetailPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Program Details</CardTitle>
+                <CardTitle>Thông tin chương trình</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-500">Duration</p>
-                  <p className="font-medium">{scholarship.duration} months</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Department</p>
-                  <p className="font-medium">{scholarship.department}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Remote</p>
-                  <p className="font-medium">{scholarship.isRemote ? 'Yes' : 'No'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Minimum GPA</p>
-                  <p className="font-medium">{scholarship.minGpa || 'N/A'}</p>
-                </div>
+                {scholarship.department && (
+                  <div>
+                    <p className="text-sm text-gray-500">Khoa</p>
+                    <p className="font-medium">{scholarship.department}</p>
+                  </div>
+                )}
+                {scholarship.studyMode && (
+                  <div>
+                    <p className="text-sm text-gray-500">Chế độ học</p>
+                    <p className="font-medium">{scholarship.studyMode}</p>
+                  </div>
+                )}
+                {scholarship.startDate && scholarship.endDate && (
+                  <div>
+                    <p className="text-sm text-gray-500">Thời gian</p>
+                    <p className="font-medium">
+                      {new Date(scholarship.startDate).toLocaleDateString('vi-VN')} - {new Date(scholarship.endDate).toLocaleDateString('vi-VN')}
+                    </p>
+                  </div>
+                )}
+                {scholarship.minGpa && (
+                  <div>
+                    <p className="text-sm text-gray-500">GPA tối thiểu</p>
+                    <p className="font-medium">{scholarship.minGpa}</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Statistics</CardTitle>
+                <CardTitle>Thống kê</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-500">View Count</p>
-                  <p className="font-medium">{scholarship.viewCount}</p>
+                  <p className="text-sm text-gray-500">Lượt xem</p>
+                  <p className="font-medium">{scholarship.viewsCnt || 0}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500">Applications</p>
+                  <p className="text-sm text-gray-500">Đơn ứng tuyển</p>
                   <p className="font-medium">{applications.length}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Created</p>
-                  <p className="font-medium">
-                    {new Date(scholarship.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
+                {scholarship.contactEmail && (
+                  <div>
+                    <p className="text-sm text-gray-500">Email liên hệ</p>
+                    <p className="font-medium">{scholarship.contactEmail}</p>
+                  </div>
+                )}
+                {scholarship.website && (
+                  <div>
+                    <p className="text-sm text-gray-500">Website</p>
+                    <a href={scholarship.website} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">
+                      {scholarship.website}
+                    </a>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -319,112 +458,37 @@ export default function AdminScholarshipDetailPage() {
         <TabsContent value="applications">
           <Card>
             <CardHeader>
-              <CardTitle>Applications ({applications.length})</CardTitle>
+              <CardTitle>Đơn ứng tuyển ({applications.length})</CardTitle>
             </CardHeader>
             <CardContent>
               {applications.length > 0 ? (
                 <div className="space-y-3">
-                  {applications.map(app => {
-                    const applicant = USERS.find((u: AuthUser) => u.id === app.applicantId);
-                    return (
-                      <div key={app.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900">{applicant?.name || 'Unknown'}</h4>
-                          <p className="text-sm text-gray-500">{applicant?.email}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge variant={
-                            app.status === 'ACCEPTED' ? 'default' :
-                            app.status === 'REJECTED' ? 'destructive' :
-                            'secondary'
-                          }>
-                            {app.status}
-                          </Badge>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </div>
+                  {applications.map(app => (
+                    <div key={app.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{app.applicantUserName || 'Unknown'}</h4>
+                        <p className="text-sm text-gray-500">{app.applicantEmail || app.phone || 'N/A'}</p>
+                        {app.gpa && (
+                          <p className="text-sm text-gray-500">GPA: {app.gpa}</p>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-center text-gray-500 py-8">No applications yet</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Provider Tab */}
-        <TabsContent value="provider">
-          <Card>
-            <CardHeader>
-              <CardTitle>Provider Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {provider ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-xl font-bold">
-                      {provider.name?.split(' ').map(n => n[0]).join('') || 'P'}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{provider.name}</h3>
-                      <p className="text-sm text-gray-500">{provider.email}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Status</p>
-                      <Badge variant={provider.status === 'ACTIVE' ? 'default' : 'secondary'}>
-                        {provider.status}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Subscription</p>
-                      <p className="font-medium">{provider.subscriptionType}</p>
-                    </div>
-                  </div>
-                  <Button variant="outline" onClick={() => router.push(`/admin/users/${provider.id}`)}>
-                    View Full Profile
-                  </Button>
-                </div>
-              ) : (
-                <p className="text-gray-500">Provider information not available</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Reports Tab */}
-        <TabsContent value="reports">
-          <Card>
-            <CardHeader>
-              <CardTitle>Reports ({reports.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {reports.length > 0 ? (
-                <div className="space-y-3">
-                  {reports.map(report => (
-                    <div key={report.id} className="p-4 border rounded-lg">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Flag className="w-4 h-4 text-red-600" />
-                            <span className="font-semibold">{report.category}</span>
-                            <Badge variant="secondary">{report.status}</Badge>
-                          </div>
-                          <p className="text-sm text-gray-700">{report.description}</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Reported by {report.reporterName} • {new Date(report.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
+                      <div className="flex items-center gap-3">
+                        <Badge variant={
+                          app.status === 'ACCEPTED' ? 'default' :
+                          app.status === 'REJECTED' ? 'destructive' :
+                          'secondary'
+                        }>
+                          {app.status}
+                        </Badge>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-500 py-8">No reports filed</p>
+                <p className="text-center text-gray-500 py-8">Chưa có đơn ứng tuyển nào</p>
               )}
             </CardContent>
           </Card>
@@ -436,10 +500,10 @@ export default function AdminScholarshipDetailPage() {
         isOpen={showApproveModal}
         onClose={() => setShowApproveModal(false)}
         onConfirm={handleApprove}
-        title="Approve Scholarship"
-        description={`Are you sure you want to approve "${scholarship.title}"? This will publish the scholarship and send a real-time notification to the provider.`}
+        title="Duyệt học bổng"
+        description={`Bạn có chắc muốn duyệt "${scholarship.title}"? Học bổng này sẽ được xuất bản và nhà cung cấp sẽ được thông báo.`}
         variant="success"
-        confirmText="Approve & Publish"
+        confirmText="Duyệt và xuất bản"
       />
 
       {/* Reject Modal */}
@@ -447,8 +511,8 @@ export default function AdminScholarshipDetailPage() {
         isOpen={showRejectModal}
         onClose={() => setShowRejectModal(false)}
         onSubmit={handleReject}
-        title="Reject Scholarship"
-        placeholder="Explain why this scholarship is being rejected (minimum 10 characters)..."
+        title="Từ chối học bổng"
+        placeholder="Giải thích lý do từ chối học bổng này (tối thiểu 10 ký tự)..."
       />
 
       {/* Request Changes Modal */}
@@ -456,7 +520,7 @@ export default function AdminScholarshipDetailPage() {
         isOpen={showRequestChangesModal}
         onClose={() => setShowRequestChangesModal(false)}
         onSubmit={handleRequestChanges}
-        title="Request Changes"
+        title="Yêu cầu sửa đổi"
       />
 
       {/* Delete Modal */}
@@ -464,10 +528,10 @@ export default function AdminScholarshipDetailPage() {
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDelete}
-        title="Delete Scholarship"
-        description={`Are you sure you want to permanently delete "${scholarship.title}"? This action cannot be undone.`}
+        title="Xóa học bổng"
+        description={`Bạn có chắc muốn xóa vĩnh viễn "${scholarship.title}"? Hành động này không thể hoàn tác.`}
         variant="danger"
-        confirmText="Delete Permanently"
+        confirmText="Xóa vĩnh viễn"
       />
     </div>
   );

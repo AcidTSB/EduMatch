@@ -43,24 +43,15 @@ public class JwtTokenProvider {
                 .getPayload();
 
         String username = claims.getSubject();
-        Object rolesClaim = claims.get("roles");
-        log.debug("JWT Token - Subject: {}, Roles claim: {} (type: {})", 
-            username, rolesClaim, rolesClaim != null ? rolesClaim.getClass().getSimpleName() : "null");
 
         // Lấy danh sách quyền (roles) từ token
-        String rolesString = rolesClaim != null ? rolesClaim.toString() : "";
-        log.debug("JWT Token - Roles string: '{}'", rolesString);
-        
         Collection<? extends GrantedAuthority> authorities =
-                Arrays.stream(rolesString.split(","))
+                Arrays.stream(claims.get("roles").toString().split(","))
                         .filter(auth -> !auth.trim().isEmpty())
-                        .map(role -> {
-                            log.debug("JWT Token - Creating authority: '{}'", role.trim());
-                            return new SimpleGrantedAuthority(role.trim());
-                        })
+                        .map(String::trim)
+                        .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toList());
-
-        log.debug("JWT Token - Final authorities: {}", authorities);
+        log.info("DEBUG_AUTH: Authorities loaded: {}", authorities); // Kiểm tra xem ROLE_EMPLOYER có ở đây không
 
         // Tạo một đối tượng UserDetails (principal) từ thông tin token
         // Chúng ta không cần mật khẩu ở đây
@@ -72,22 +63,18 @@ public class JwtTokenProvider {
     // Hàm này kiểm tra xem token có hợp lệ không (còn hạn, đúng chữ ký)
     public boolean validateToken(String authToken) {
         try {
-            Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(authToken).getPayload();
-            log.debug("JWT Token validated successfully. Subject: {}, Expiration: {}, Roles: {}", 
-                claims.getSubject(), claims.getExpiration(), claims.get("roles"));
+            Jwts.parser().verifyWith(key).build().parseSignedClaims(authToken);
             return true;
         } catch (SecurityException ex) {
-            log.error("Invalid JWT signature: {}", ex.getMessage());
+            log.error("Invalid JWT signature");
         } catch (MalformedJwtException ex) {
-            log.error("Invalid JWT token: {}", ex.getMessage());
+            log.error("Invalid JWT token");
         } catch (ExpiredJwtException ex) {
-            log.error("Expired JWT token: expired at {}", ex.getClaims().getExpiration());
+            log.error("Expired JWT token");
         } catch (UnsupportedJwtException ex) {
-            log.error("Unsupported JWT token: {}", ex.getMessage());
+            log.error("Unsupported JWT token");
         } catch (IllegalArgumentException ex) {
-            log.error("JWT claims string is empty: {}", ex.getMessage());
-        } catch (Exception ex) {
-            log.error("Unexpected error validating JWT token: {}", ex.getMessage(), ex);
+            log.error("JWT claims string is empty");
         }
         return false;
     }

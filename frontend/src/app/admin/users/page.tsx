@@ -19,10 +19,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { mockUsers } from '@/lib/mock-data';
 import { UserRole } from '@/types';
 import { AddUserModal } from '@/components/admin/AddUserModal';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { adminService, AdminUser, PaginatedResponse } from '@/services/admin.service';
+import { useEffect } from 'react';
 
 export default function UsersManagement() {
   const { t } = useLanguage();
@@ -37,14 +38,97 @@ export default function UsersManagement() {
     userId: '',
     userName: ''
   });
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [pagination, setPagination] = useState<{ totalItems: number; totalPages: number }>({
+    totalItems: 0,
+    totalPages: 0
+  });
   const itemsPerPage = 10;
 
+  // Fetch users from API
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setIsLoading(true);
+        const role = selectedRole === 'all' ? undefined : 
+          selectedRole === 'Admin' ? 'ROLE_ADMIN' :
+          selectedRole === 'Provider' ? 'ROLE_EMPLOYER' : 'ROLE_USER';
+        const enabled = selectedStatus === 'all' ? undefined : selectedStatus === 'Active';
+        
+        const response = await adminService.getUsers({
+          page: currentPage - 1,
+          size: itemsPerPage,
+          role,
+          enabled,
+          keyword: searchQuery || undefined
+        });
+        
+        setUsers(response.users as AdminUser[]);
+        setPagination({
+          totalItems: response.totalItems,
+          totalPages: response.totalPages
+        });
+      } catch (error: any) {
+        console.error('Failed to fetch users:', error);
+        toast.error('Không thể tải danh sách người dùng', {
+          description: error.message || 'Vui lòng thử lại sau'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [currentPage, selectedRole, selectedStatus, searchQuery]);
+
   // Handlers
-  const handleAddNewUser = (userData: any) => {
-    toast.success(t('adminUsers.userCreated'), {
-      description: t('adminUsers.userCreatedDesc').replace('{name}', userData.name).replace('{role}', userData.role),
-    });
-    console.log('New user created:', userData);
+  const handleAddNewUser = async (userData: any) => {
+    try {
+      const isEmployer = userData.role === UserRole.EMPLOYER;
+      if (isEmployer) {
+        await adminService.createEmployer({
+          username: userData.email,
+          email: userData.email,
+          password: userData.password,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          organizationId: userData.organizationId
+        });
+      } else {
+        await adminService.createUser({
+          username: userData.email,
+          email: userData.email,
+          password: userData.password,
+          firstName: userData.firstName,
+          lastName: userData.lastName
+        });
+      }
+      
+      toast.success(t('adminUsers.userCreated'), {
+        description: t('adminUsers.userCreatedDesc').replace('{name}', userData.name || userData.email).replace('{role}', userData.role),
+      });
+      
+      // Refresh users list
+      const response = await adminService.getUsers({
+        page: currentPage - 1,
+        size: itemsPerPage,
+        role: selectedRole === 'all' ? undefined : 
+          selectedRole === 'Admin' ? 'ROLE_ADMIN' :
+          selectedRole === 'Provider' ? 'ROLE_EMPLOYER' : 'ROLE_USER',
+        enabled: selectedStatus === 'all' ? undefined : selectedStatus === 'Active',
+        keyword: searchQuery || undefined
+      });
+      setUsers(response.users as AdminUser[]);
+      setPagination({
+        totalItems: response.totalItems,
+        totalPages: response.totalPages
+      });
+    } catch (error: any) {
+      toast.error('Không thể tạo người dùng', {
+        description: error.message || 'Vui lòng thử lại sau'
+      });
+    }
   };
 
   const handleEditUser = (userId: string, userName: string) => {
@@ -62,32 +146,61 @@ export default function UsersManagement() {
     setDeleteModal({ isOpen: true, userId, userName });
   };
 
-  const confirmDeleteUser = () => {
-    toast.success(t('adminUsers.userDeleted'), {
-      description: t('adminUsers.userDeletedDesc').replace('{name}', deleteModal.userName),
-    });
-    console.log('Deleting user:', deleteModal.userId);
-    setDeleteModal({ isOpen: false, userId: '', userName: '' });
+  const confirmDeleteUser = async () => {
+    try {
+      await adminService.deleteUser(Number(deleteModal.userId));
+      toast.success(t('adminUsers.userDeleted'), {
+        description: t('adminUsers.userDeletedDesc').replace('{name}', deleteModal.userName),
+      });
+      
+      // Refresh users list
+      const response = await adminService.getUsers({
+        page: currentPage - 1,
+        size: itemsPerPage,
+        role: selectedRole === 'all' ? undefined : 
+          selectedRole === 'Admin' ? 'ROLE_ADMIN' :
+          selectedRole === 'Provider' ? 'ROLE_EMPLOYER' : 'ROLE_USER',
+        enabled: selectedStatus === 'all' ? undefined : selectedStatus === 'Active',
+        keyword: searchQuery || undefined
+      });
+      setUsers(response.users as AdminUser[]);
+      setPagination({
+        totalItems: response.totalItems,
+        totalPages: response.totalPages
+      });
+      
+      setDeleteModal({ isOpen: false, userId: '', userName: '' });
+    } catch (error: any) {
+      toast.error('Không thể xóa người dùng', {
+        description: error.message || 'Vui lòng thử lại sau'
+      });
+    }
   };
 
-  // Use real mock users
-  const users = mockUsers.map(user => {
-    const initials = (user.name || 'U')
+  // Transform API users to display format
+  const displayUsers = users.map(user => {
+    const initials = ((user.firstName || '') + ' ' + (user.lastName || '')).trim() || user.username || 'U';
+    const nameInitials = initials
       .split(' ')
       .map(n => n[0])
       .join('')
-      .toUpperCase();
+      .toUpperCase()
+      .substring(0, 2);
+
+    const primaryRole = user.roles?.[0] || 'ROLE_USER';
+    const roleName = primaryRole === 'ROLE_ADMIN' ? t('adminUsers.roleAdmin') : 
+                     primaryRole === 'ROLE_EMPLOYER' ? t('adminUsers.roleProvider') : 
+                     t('adminUsers.roleStudent');
 
     return {
-      id: user.id,
-      name: user.name || 'Unknown',
+      id: String(user.id),
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Unknown',
       email: user.email,
-      role: user.role === UserRole.ADMIN ? t('adminUsers.roleAdmin') : user.role === UserRole.USER ? t('adminUsers.roleStudent') : t('adminUsers.roleProvider'),
-      status: user.status || t('adminUsers.statusActive'),
-      joinDate: new Date(user.createdAt).toISOString().split('T')[0],
-      applications: user.role === UserRole.USER ? 5 : undefined,
-      scholarships: user.role === UserRole.EMPLOYER ? 10 : undefined,
-      avatar: initials
+      role: roleName,
+      status: user.enabled ? t('adminUsers.statusActive') : t('adminUsers.statusInactive'),
+      joinDate: user.createdAt ? new Date(user.createdAt).toISOString().split('T')[0] : '',
+      avatar: nameInitials,
+      rawUser: user
     };
   });
 
@@ -110,19 +223,11 @@ export default function UsersManagement() {
       : 'bg-gray-100 text-gray-700';
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = 
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRole = selectedRole === 'all' || user.role === selectedRole;
-    const matchesStatus = selectedStatus === 'all' || user.status === selectedStatus;
-    
-    return matchesSearch && matchesRole && matchesStatus;
-  });
-
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  // Filtering is done on the backend, but we can do client-side filtering for display
+  const filteredUsers = displayUsers;
+  const totalPages = pagination.totalPages;
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedUsers = filteredUsers;
 
   return (
     <div className="space-y-6">
@@ -146,14 +251,16 @@ export default function UsersManagement() {
         <Card className="card-minimal">
           <CardContent className="p-4">
             <p className="text-sm text-gray-500">{t('adminUsers.totalUsers')}</p>
-            <h3 className="text-2xl font-bold text-gray-900 mt-1">{users.length}</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mt-1">
+              {isLoading ? '...' : pagination.totalItems}
+            </h3>
           </CardContent>
         </Card>
         <Card className="card-minimal">
           <CardContent className="p-4">
             <p className="text-sm text-gray-500">{t('adminUsers.students')}</p>
             <h3 className="text-2xl font-bold text-gray-900 mt-1">
-              {users.filter(u => u.role === t('adminUsers.roleStudent')).length}
+              {isLoading ? '...' : users.filter(u => u.roles?.includes('ROLE_USER')).length}
             </h3>
           </CardContent>
         </Card>
@@ -161,7 +268,7 @@ export default function UsersManagement() {
           <CardContent className="p-4">
             <p className="text-sm text-gray-500">{t('adminUsers.providers')}</p>
             <h3 className="text-2xl font-bold text-gray-900 mt-1">
-              {users.filter(u => u.role === t('adminUsers.roleProvider')).length}
+              {isLoading ? '...' : users.filter(u => u.roles?.includes('ROLE_EMPLOYER')).length}
             </h3>
           </CardContent>
         </Card>
@@ -169,7 +276,7 @@ export default function UsersManagement() {
           <CardContent className="p-4">
             <p className="text-sm text-gray-500">{t('adminUsers.activeUsers')}</p>
             <h3 className="text-2xl font-bold text-gray-900 mt-1">
-              {users.filter(u => String(u.status).includes('ACTIVE') || String(u.status).includes('Active')).length}
+              {isLoading ? '...' : users.filter(u => u.enabled).length}
             </h3>
           </CardContent>
         </Card>
@@ -245,7 +352,20 @@ export default function UsersManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {paginatedUsers.map((user) => (
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                      Đang tải...
+                    </td>
+                  </tr>
+                ) : paginatedUsers.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                      Không có người dùng nào
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -300,7 +420,8 @@ export default function UsersManagement() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -310,8 +431,8 @@ export default function UsersManagement() {
             <p className="text-sm text-gray-500">
               {t('adminUsers.showingResults')
                 .replace('{start}', (startIndex + 1).toString())
-                .replace('{end}', Math.min(startIndex + itemsPerPage, filteredUsers.length).toString())
-                .replace('{total}', filteredUsers.length.toString())}
+                .replace('{end}', Math.min(startIndex + itemsPerPage, pagination.totalItems).toString())
+                .replace('{total}', pagination.totalItems.toString())}
             </p>
             <div className="flex items-center gap-2">
               <Button

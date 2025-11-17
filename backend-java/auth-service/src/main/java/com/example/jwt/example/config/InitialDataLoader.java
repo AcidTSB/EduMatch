@@ -29,7 +29,7 @@ public class InitialDataLoader implements CommandLineRunner {
         createRoleIfNotFound("ROLE_ADMIN", "Administrator role");
 
         // Create admin user if it doesn't exist
-        if (!userRepository.existsByUsername("admin")) {
+        if (!userRepository.existsByUsername("admin") && !userRepository.existsByEmail("admin@example.com")) {
             Role adminRole = roleRepository.findByName("ROLE_ADMIN")
                     .orElseThrow(() -> new RuntimeException("Error: Admin Role not found."));
             Role userRole = roleRepository.findByName("ROLE_USER")
@@ -50,6 +50,8 @@ public class InitialDataLoader implements CommandLineRunner {
                     .lastName("User")
                     .roles(roles)
                     .enabled(true)
+                    .status("ACTIVE")
+                    .subscriptionType("FREE")
                     .build();
 
             userRepository.save(adminUser);

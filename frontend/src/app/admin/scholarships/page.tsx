@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Search, 
@@ -21,12 +21,11 @@ import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { mockScholarships, mockApplications } from '@/lib/mock-data';
-import { ScholarshipStatus } from '@/types';
 import { CreateScholarshipModal } from '@/components/admin/CreateScholarshipModal';
 import { EditScholarshipModal } from '@/components/admin/EditScholarshipModal';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
 import { useLanguage } from '@/contexts/LanguageContext';
+import adminService, { AdminScholarship } from '@/services/admin.service';
 
 export default function ScholarshipsManagement() {
   const router = useRouter();
@@ -36,133 +35,178 @@ export default function ScholarshipsManagement() {
   const [selectedType, setSelectedType] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [editModal, setEditModal] = useState<{ isOpen: boolean; scholarship: any | null }>({
+  const [isLoading, setIsLoading] = useState(true);
+  const [scholarships, setScholarships] = useState<AdminScholarship[]>([]);
+  const [pagination, setPagination] = useState({ totalItems: 0, totalPages: 0 });
+  const [editModal, setEditModal] = useState<{ isOpen: boolean; scholarship: AdminScholarship | null }>({
     isOpen: false,
     scholarship: null
   });
-  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; scholarshipId: string; scholarshipTitle: string }>({
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; scholarshipId: number; scholarshipTitle: string }>({
     isOpen: false,
-    scholarshipId: '',
+    scholarshipId: 0,
     scholarshipTitle: ''
   });
   const itemsPerPage = 8;
+
+  // Fetch scholarships from API
+  useEffect(() => {
+    const fetchScholarships = async () => {
+      try {
+        setIsLoading(true);
+        const status = selectedStatus === 'all' ? undefined : 
+          selectedStatus === 'Active' ? 'APPROVED' :
+          selectedStatus === 'Pending' ? 'PENDING' : 'REJECTED';
+        
+        const response = await adminService.getScholarships({
+          page: currentPage - 1,
+          size: itemsPerPage,
+          status,
+          keyword: searchQuery || undefined
+        });
+        
+        setScholarships(response.content);
+        setPagination({
+          totalItems: response.totalElements,
+          totalPages: response.totalPages
+        });
+      } catch (error: any) {
+        console.error('Failed to fetch scholarships:', error);
+        toast.error('Không thể tải danh sách học bổng', {
+          description: error.message || 'Vui lòng thử lại sau'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchScholarships();
+  }, [currentPage, selectedStatus, searchQuery]);
 
   // Handlers
   const handleCreateScholarship = (scholarshipData: any) => {
     toast.success(t('adminScholarships.scholarshipCreated'), {
       description: t('adminScholarships.scholarshipCreatedDesc').replace('{title}', scholarshipData.title),
     });
-    console.log('New scholarship created:', scholarshipData);
+    // Refresh list
+    setCurrentPage(1);
   };
 
-  const handleViewScholarship = (scholarshipId: string) => {
+  const handleViewScholarship = (scholarshipId: number) => {
     router.push(`/admin/scholarships/${scholarshipId}`);
   };
 
-  const handleEditScholarship = (scholarshipId: string, scholarshipTitle: string) => {
-    // Find the scholarship data
+  const handleEditScholarship = (scholarshipId: number, scholarshipTitle: string) => {
     const scholarship = scholarships.find(s => s.id === scholarshipId);
     if (scholarship) {
       setEditModal({ isOpen: true, scholarship });
     }
   };
 
-  const confirmEditScholarship = (scholarshipData: any) => {
-    toast.success(t('adminScholarships.scholarshipUpdated'), {
-      description: t('adminScholarships.scholarshipUpdatedDesc').replace('{title}', scholarshipData.title),
-    });
-    console.log('Updating scholarship:', editModal.scholarship?.id, scholarshipData);
-    setEditModal({ isOpen: false, scholarship: null });
+  const confirmEditScholarship = async (scholarshipData: any) => {
+    try {
+      if (editModal.scholarship) {
+        // TODO: Implement update API when available
+        toast.success(t('adminScholarships.scholarshipUpdated'), {
+          description: t('adminScholarships.scholarshipUpdatedDesc').replace('{title}', scholarshipData.title),
+        });
+        setEditModal({ isOpen: false, scholarship: null });
+        // Refresh list
+        setCurrentPage(1);
+      }
+    } catch (error: any) {
+      toast.error('Không thể cập nhật học bổng', {
+        description: error.message || 'Vui lòng thử lại sau'
+      });
+    }
   };
 
-  const handleDeleteScholarship = (scholarshipId: string, scholarshipTitle: string) => {
+  const handleDeleteScholarship = (scholarshipId: number, scholarshipTitle: string) => {
     setDeleteModal({ isOpen: true, scholarshipId, scholarshipTitle });
   };
 
-  const confirmDeleteScholarship = () => {
-    toast.success(t('adminScholarships.scholarshipDeleted'), {
-      description: t('adminScholarships.scholarshipDeletedDesc').replace('{title}', deleteModal.scholarshipTitle),
-    });
-    console.log('Deleting scholarship:', deleteModal.scholarshipId);
-    setDeleteModal({ isOpen: false, scholarshipId: '', scholarshipTitle: '' });
-  };
-
-  // Use real mock scholarships with application counts
-  const scholarships = mockScholarships.map(scholarship => {
-    const applicants = mockApplications.filter(app => app.scholarshipId === scholarship.id).length;
-    const approved = mockApplications.filter(app => app.scholarshipId === scholarship.id && app.status === 'ACCEPTED').length;
-    
-    return {
-      id: scholarship.id,
-      title: scholarship.title,
-      provider: scholarship.providerName || scholarship.university || 'Unknown Provider',
-      amount: `$${(scholarship.amount || 0).toLocaleString()}`,
-      type: scholarship.type || 'General',
-      deadline: scholarship.applicationDeadline ? new Date(scholarship.applicationDeadline).toISOString().split('T')[0] : '2024-12-31',
-      applicants,
-      status: scholarship.status === ScholarshipStatus.PUBLISHED ? 'Active' : scholarship.status === ScholarshipStatus.DRAFT ? 'Pending' : 'Expired',
-      approved
-    };
-  });
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'bg-green-100 text-green-700';
-      case 'Pending':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'Expired':
-        return 'bg-red-100 text-red-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
+  const confirmDeleteScholarship = async () => {
+    try {
+      await adminService.deleteScholarship(deleteModal.scholarshipId);
+      toast.success(t('adminScholarships.scholarshipDeleted'), {
+        description: t('adminScholarships.scholarshipDeletedDesc').replace('{title}', deleteModal.scholarshipTitle),
+      });
+      setDeleteModal({ isOpen: false, scholarshipId: 0, scholarshipTitle: '' });
+      // Refresh list
+      setCurrentPage(1);
+    } catch (error: any) {
+      toast.error('Không thể xóa học bổng', {
+        description: error.message || 'Vui lòng thử lại sau'
+      });
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'Pending':
-        return <Clock className="w-4 h-4" />;
-      case 'Expired':
-        return <XCircle className="w-4 h-4" />;
-      default:
-        return null;
+  const handleModerateScholarship = async (id: number, status: 'APPROVED' | 'REJECTED') => {
+    try {
+      await adminService.moderateScholarship(id, status);
+      toast.success('Đã cập nhật trạng thái học bổng');
+      // Refresh list
+      setCurrentPage(1);
+    } catch (error: any) {
+      toast.error('Không thể cập nhật trạng thái', {
+        description: error.message || 'Vui lòng thử lại sau'
+      });
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return t('adminScholarships.statusActive');
-      case 'Pending':
-        return t('adminScholarships.statusPending');
-      case 'Expired':
-        return t('adminScholarships.statusExpired');
-      default:
-        return status;
+  const getStatusColor = (status?: string) => {
+    if (!status) return 'bg-gray-100 text-gray-700';
+    const upperStatus = status.toUpperCase();
+    if (upperStatus === 'APPROVED' || upperStatus === 'PUBLISHED') {
+      return 'bg-green-100 text-green-700';
     }
+    if (upperStatus === 'PENDING') {
+      return 'bg-yellow-100 text-yellow-700';
+    }
+    if (upperStatus === 'REJECTED' || upperStatus === 'CLOSED') {
+      return 'bg-red-100 text-red-700';
+    }
+    return 'bg-gray-100 text-gray-700';
   };
 
-  const filteredScholarships = scholarships.filter(scholarship => {
-    const matchesSearch = 
-      scholarship.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      scholarship.provider.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = selectedStatus === 'all' || scholarship.status === selectedStatus;
-    const matchesType = selectedType === 'all' || scholarship.type === selectedType;
-    
-    return matchesSearch && matchesStatus && matchesType;
-  });
+  const getStatusIcon = (status?: string) => {
+    if (!status) return null;
+    const upperStatus = status.toUpperCase();
+    if (upperStatus === 'APPROVED' || upperStatus === 'PUBLISHED') {
+      return <CheckCircle className="w-4 h-4" />;
+    }
+    if (upperStatus === 'PENDING') {
+      return <Clock className="w-4 h-4" />;
+    }
+    if (upperStatus === 'REJECTED' || upperStatus === 'CLOSED') {
+      return <XCircle className="w-4 h-4" />;
+    }
+    return null;
+  };
 
-  const totalPages = Math.ceil(filteredScholarships.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedScholarships = filteredScholarships.slice(startIndex, startIndex + itemsPerPage);
+  const getStatusLabel = (status?: string) => {
+    if (!status) return 'Unknown';
+    const upperStatus = status.toUpperCase();
+    if (upperStatus === 'APPROVED' || upperStatus === 'PUBLISHED') {
+      return t('adminScholarships.statusActive');
+    }
+    if (upperStatus === 'PENDING') {
+      return t('adminScholarships.statusPending');
+    }
+    if (upperStatus === 'REJECTED') {
+      return t('adminScholarships.statusRejected');
+    }
+    if (upperStatus === 'CLOSED') {
+      return t('adminScholarships.statusExpired');
+    }
+    return status;
+  };
 
   const stats = {
-    total: scholarships.length,
-    active: scholarships.filter(s => s.status === 'Active').length,
-    pending: scholarships.filter(s => s.status === 'Pending').length,
-    totalApplicants: scholarships.reduce((sum, s) => sum + s.applicants, 0)
+    total: pagination.totalItems,
+    active: scholarships.filter(s => s.moderationStatus === 'APPROVED' || s.status === 'PUBLISHED').length,
+    pending: scholarships.filter(s => s.moderationStatus === 'PENDING' || s.status === 'PENDING').length,
+    totalApplicants: 0 // TODO: Get from API when available
   };
 
   return (
@@ -243,8 +287,21 @@ export default function ScholarshipsManagement() {
       </Card>
 
       {/* Scholarships Grid */}
+      {isLoading ? (
+        <Card className="card-minimal">
+          <CardContent className="p-6 text-center">
+            <p className="text-gray-500">Đang tải...</p>
+          </CardContent>
+        </Card>
+      ) : scholarships.length === 0 ? (
+        <Card className="card-minimal">
+          <CardContent className="p-6 text-center">
+            <p className="text-gray-500">Không có học bổng nào</p>
+          </CardContent>
+        </Card>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {paginatedScholarships.map((scholarship) => (
+        {scholarships.map((scholarship) => (
           <Card key={scholarship.id} className="card-minimal card-hover">
             <CardContent className="p-6">
               {/* Header */}
@@ -255,34 +312,38 @@ export default function ScholarshipsManagement() {
                   </h3>
                   <p className="text-sm text-gray-600">{scholarship.provider}</p>
                 </div>
-                <Badge className={`${getStatusColor(scholarship.status)} flex items-center gap-1`}>
-                  {getStatusIcon(scholarship.status)}
-                  {getStatusLabel(scholarship.status)}
+                <Badge className={`${getStatusColor(scholarship.moderationStatus || scholarship.status)} flex items-center gap-1`}>
+                  {getStatusIcon(scholarship.moderationStatus || scholarship.status)}
+                  {getStatusLabel(scholarship.moderationStatus || scholarship.status)}
                 </Badge>
               </div>
 
               {/* Details */}
               <div className="space-y-3 mb-4">
-                <div className="flex items-center text-sm text-gray-600">
-                  <DollarSign className="w-4 h-4 mr-2" />
-                  <span className="font-semibold text-gray-900">{scholarship.amount}</span>
-                  <span className="mx-2">•</span>
-                  <Badge variant="secondary">{scholarship.type}</Badge>
-                </div>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  {t('adminScholarships.deadline')}: {new Date(scholarship.deadline).toLocaleDateString()}
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <Users className="w-4 h-4 mr-2" />
-                    {t('adminScholarships.applicantsCount').replace('{count}', scholarship.applicants.toString())}
+                {scholarship.amount && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    <span className="font-semibold text-gray-900">${scholarship.amount.toLocaleString()}</span>
+                    {scholarship.type && (
+                      <>
+                        <span className="mx-2">•</span>
+                        <Badge variant="secondary">{scholarship.type}</Badge>
+                      </>
+                    )}
                   </div>
-                  <div className="flex items-center text-green-600">
-                    <CheckCircle className="w-4 h-4 mr-1" />
-                    {t('adminScholarships.approvedCount').replace('{count}', scholarship.approved.toString())}
+                )}
+                {scholarship.applicationDeadline && (
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    {t('adminScholarships.deadline')}: {new Date(scholarship.applicationDeadline).toLocaleDateString()}
                   </div>
-                </div>
+                )}
+                {scholarship.university && (
+                  <div className="text-sm text-gray-600">
+                    {scholarship.university}
+                    {scholarship.department && ` - ${scholarship.department}`}
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
@@ -296,27 +357,34 @@ export default function ScholarshipsManagement() {
                   <Eye className="w-4 h-4 mr-2" />
                   {t('adminScholarships.view')}
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => handleEditScholarship(scholarship.id, scholarship.title)}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  {t('adminScholarships.edit')}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleDeleteScholarship(scholarship.id, scholarship.title)}
-                >
-                  <Trash2 className="w-4 h-4 text-red-600" />
-                </Button>
+                {(scholarship.moderationStatus === 'PENDING' || !scholarship.moderationStatus) && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-green-600 hover:text-green-700"
+                      onClick={() => handleModerateScholarship(scholarship.id, 'APPROVED')}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-1" />
+                      Duyệt
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-red-600 hover:text-red-700"
+                      onClick={() => handleModerateScholarship(scholarship.id, 'REJECTED')}
+                    >
+                      <XCircle className="w-4 h-4 mr-1" />
+                      Từ chối
+                    </Button>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+      )}
 
       {/* Pagination */}
       <Card className="card-minimal">
@@ -324,28 +392,28 @@ export default function ScholarshipsManagement() {
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">
               {t('adminScholarships.showingResults')
-                .replace('{start}', (startIndex + 1).toString())
-                .replace('{end}', Math.min(startIndex + itemsPerPage, filteredScholarships.length).toString())
-                .replace('{total}', filteredScholarships.length.toString())}
+                .replace('{start}', ((currentPage - 1) * itemsPerPage + 1).toString())
+                .replace('{end}', Math.min(currentPage * itemsPerPage, pagination.totalItems).toString())
+                .replace('{total}', pagination.totalItems.toString())}
             </p>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
+                disabled={currentPage === 1 || isLoading}
               >
                 <ChevronLeft className="w-4 h-4" />
                 {t('adminScholarships.previous')}
               </Button>
               <span className="text-sm text-gray-700">
-                Page {currentPage} of {totalPages}
+                Page {currentPage} of {pagination.totalPages || 1}
               </span>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages || 1, prev + 1))}
+                disabled={currentPage >= (pagination.totalPages || 1) || isLoading}
               >
                 {t('adminScholarships.next')}
                 <ChevronRight className="w-4 h-4" />
@@ -373,10 +441,10 @@ export default function ScholarshipsManagement() {
       {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ isOpen: false, scholarshipId: '', scholarshipTitle: '' })}
+        onClose={() => setDeleteModal({ isOpen: false, scholarshipId: 0, scholarshipTitle: '' })}
         onConfirm={confirmDeleteScholarship}
         title={t('adminScholarships.confirmDelete')}
-        description={t('adminScholarships.confirmDeleteDesc').replace('{title}', deleteModal.scholarshipTitle)}
+        description={t('adminScholarships.confirmDeleteDesc')?.replace('{title}', deleteModal.scholarshipTitle) || `Bạn có chắc muốn xóa "${deleteModal.scholarshipTitle}"?`}
         variant="danger"
         confirmText={t('adminScholarships.confirmDeleteBtn')}
       />

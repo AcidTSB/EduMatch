@@ -53,37 +53,43 @@ public class AuthService {
      * @return JwtAuthenticationResponse with access token and refresh token
      */
     public JwtAuthenticationResponse authenticateUser(LoginRequest loginRequest) {
-        log.info("Authenticating user: {}", loginRequest.getUsername());
-        
-        // Authenticate with Spring Security
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginRequest.getUsername(),
-                        loginRequest.getPassword()
-                )
-        );
+    String usernameOrEmail = loginRequest.getUsername();
+    log.info("Authenticating user: {}", usernameOrEmail);
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        User user = (User) authentication.getPrincipal();
+    // --- NEW: Find user by username or email ---
+    User user = userRepository.findByUsername(usernameOrEmail)
+            .orElseGet(() -> userRepository.findByEmail(usernameOrEmail)
+                    .orElseThrow(() ->
+                            new BadRequestException("Invalid username/email or password")
+                    )
+            );
 
-        // Generate JWT token
-        String jwt = tokenProvider.generateToken(authentication);
-        
-        // Create refresh token
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+    // Now authenticate using REAL username
+    Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                    user.getUsername(),   // FIX: Spring Security requires REAL username
+                    loginRequest.getPassword()
+            )
+    );
 
-        // Log successful login
-        auditLogService.logAction(
-                user.getId(),
-                user.getUsername(),
-                "LOGIN",
-                "User",
-                "Đăng nhập thành công vào hệ thống"
-        );
+    SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        log.info("User {} authenticated successfully", loginRequest.getUsername());
-        return new JwtAuthenticationResponse(jwt, refreshToken.getToken());
-    }
+    // Generate tokens
+    String jwt = tokenProvider.generateToken(authentication);
+    RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+    auditLogService.logAction(
+            user.getId(),
+            user.getUsername(),
+            "LOGIN",
+            "User",
+            "Đăng nhập thành công vào hệ thống"
+    );
+
+    log.info("User {} authenticated successfully", user.getUsername());
+    return new JwtAuthenticationResponse(jwt, refreshToken.getToken());
+}
+
 
     /**
      * Register new user with ROLE_USER
