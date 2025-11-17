@@ -266,13 +266,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const logout = async (): Promise<void> => {
     try {
       await apiClient.auth.logout();
+      
+      // Clear all state
       dispatch({ type: 'SET_USER', payload: null });
       dispatch({ type: 'SET_SCHOLARSHIPS', payload: [] });
       dispatch({ type: 'SET_APPLICATIONS', payload: [] });
       dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
       dispatch({ type: 'SET_SAVED_SCHOLARSHIPS', payload: [] });
+      
+      // Clear storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Clear cookies
+      if (typeof document !== 'undefined') {
+        document.cookie = 'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'auth_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      }
+      
+      // Redirect to home
+      window.location.href = '/';
     } catch (error) {
-      // Logout failed
+      // Force logout even if API call fails
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/';
     }
   };
 

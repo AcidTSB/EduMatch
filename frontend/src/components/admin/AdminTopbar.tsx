@@ -3,12 +3,14 @@
 import React, { useState } from 'react';
 import { Search, Bell, User, Settings, LogOut, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function AdminTopbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const router = useRouter();
+  const { logout } = useAuth();
 
   const notifications = [
     { id: 1, title: 'New report submitted', time: '5 min ago', type: 'warning' },
@@ -23,9 +25,8 @@ export default function AdminTopbar() {
     // TODO: Implement global search
   };
 
-  const handleLogout = () => {
-    // TODO: Implement logout
-    router.push('/auth/login');
+  const handleLogout = async () => {
+    await logout();
   };
 
   return (

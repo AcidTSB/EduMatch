@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCurrentUser } from './useApi'; // Hook của bạn
 import { UserProfile, UserRole } from '@/types'; // Vẫn import UserProfile và UserRole
-import api from '@/lib/api';
+import { authService } from '@/services/auth.service';
 import { useQueryClient } from '@tanstack/react-query'; 
 
 // ĐỊNH NGHĨA CÁC TYPE BỊ THIẾU TẠI ĐÂY
@@ -121,28 +121,31 @@ export const useAuth = (): UseAuthReturn => {
   /**
    * Đăng xuất người dùng.
    */
-  const logout = () => {
-    // Xóa token và cookies
-    localStorage.removeItem('auth_token');
-    document.cookie = 'auth_token=; path=/; max-age=0';
-    document.cookie = 'auth_user=; path=/; max-age=0';
-    
-    api.auth.logout().catch(err => {
-      // Logout error silently handled
-    });
-
-    setAuthState({
-      user: null,
-      profile: null,
-      isLoading: false,
-      isAuthenticated: false,
-      role: null,
-    });
-
-    queryClient.removeQueries({ queryKey: ['currentUser'] });
-    
-    // Redirect về trang chủ
-    window.location.href = '/';
+  const logout = async () => {
+    try {
+      // Gọi logout service để clear tất cả storage
+      await authService.logout();
+      
+      // Clear React Query cache
+      queryClient.removeQueries({ queryKey: ['currentUser'] });
+      
+      // Update local state
+      setAuthState({
+        user: null,
+        profile: null,
+        isLoading: false,
+        isAuthenticated: false,
+        role: null,
+      });
+      
+      // Redirect về trang chủ
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force logout anyway
+      localStorage.clear();
+      window.location.href = '/';
+    }
   };
 
   /**
