@@ -21,7 +21,6 @@ export default function AdminTopbar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Implement global search
-    console.log('Searching for:', searchQuery);
   };
 
   const handleLogout = () => {

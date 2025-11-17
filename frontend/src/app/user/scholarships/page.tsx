@@ -67,14 +67,14 @@ export default function ScholarshipsPage() {
         scholarship.title.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
         scholarship.providerName?.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
         scholarship.description.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        scholarship.requiredSkills?.some((skill: string) => skill.toLowerCase().includes(filters.searchTerm.toLowerCase()))
+        (Array.isArray(scholarship.requiredSkills) ? scholarship.requiredSkills : []).some((skill: string) => skill.toLowerCase().includes(filters.searchTerm.toLowerCase()))
       );
     }
 
     // Categories filter (field of study)
     if (filters.categories.length > 0) {
       filtered = filtered.filter(scholarship => 
-        scholarship.requiredSkills?.some((skill: string) => filters.categories.includes(skill))
+        (Array.isArray(scholarship.requiredSkills) ? scholarship.requiredSkills : []).some((skill: string) => filters.categories.includes(skill))
       );
     }
 

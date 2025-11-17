@@ -166,7 +166,6 @@ export default function AdminTransactionsPage() {
   ];
 
   const handleRefund = () => {
-    console.log('Processing refund for transaction:', selectedTransaction?.id);
     // TODO: API call to process refund
     setShowRefundModal(false);
     toast.success(t('adminTransactions.toast.refundSuccess'), {

@@ -67,7 +67,6 @@ export default function AdminSettingsPage() {
   });
 
   const handleSaveSettings = () => {
-    console.log('Saving settings...');
     // TODO: API call to save all settings
     setShowSaveConfirm(false);
     setUnsavedChanges(false);

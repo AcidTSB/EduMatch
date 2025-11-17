@@ -150,7 +150,7 @@ export default function ProviderScholarshipsPage() {
             <div>
               <p className="text-sm text-muted-foreground mb-2">{t('providerScholarships.details.fields')}</p>
               <div className="flex flex-wrap gap-2">
-                {scholarship.requiredSkills?.map((field: string, index: number) => (
+                {(Array.isArray(scholarship.requiredSkills) ? scholarship.requiredSkills : []).map((field: string, index: number) => (
                   <Badge key={index} variant="outline">{field}</Badge>
                 ))}
               </div>

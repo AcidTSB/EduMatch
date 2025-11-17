@@ -2,17 +2,17 @@
 
 import { ReactNode, createContext, useContext } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { User, UserProfile, UserRole } from '@/types';
+import { AuthUser, UserProfile, UserRole } from '@/types';
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   profile: UserProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   role: UserRole | null;
-  login: (token: string, user: User) => void;
+  login: (token: string, user: AuthUser) => void;
   logout: () => void;
-  updateUser: (user: Partial<User>) => void;
+  updateUser: (user: Partial<AuthUser>) => void;
   updateProfile: (profile: Partial<UserProfile>) => void;
   hasRole: (role: UserRole) => boolean;
   hasAnyRole: (roles: UserRole[]) => boolean;

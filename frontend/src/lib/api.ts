@@ -1,3 +1,12 @@
+/**
+ * 🚀 MAIN API CLIENT WITH AUTO-FALLBACK
+ * =========================================
+ * ✅ Real API when backend online
+ * ✅ Mock data when backend offline
+ * ✅ All endpoints organized by service
+ * =========================================
+ */
+
 import { 
   ApiResponse, 
   PaginatedResponse, 
@@ -15,9 +24,10 @@ import {
 } from '@/types';
 import { apiWrapper } from './api-wrapper';
 import { mockApi } from './mock-data';
+import API_CONFIG from './api-config';
 
-// API Configuration - FIXED: Now points to correct Nginx Gateway port
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+const { BASE_URL } = API_CONFIG;
+const { AUTH, USERS, SCHOLARSHIPS, APPLICATIONS, NOTIFICATIONS, MESSAGES, ADMIN } = API_CONFIG.ENDPOINTS;
 
 // Helper function to get auth token
 const getAuthToken = (): string | null => {
@@ -45,7 +55,7 @@ async function apiCall<T = any>(
   options: RequestInit = {},
   mockFallback?: () => Promise<any>
 ): Promise<ApiResponse<T>> {
-  const url = `${API_BASE_URL}${endpoint}`;
+  const url = `${BASE_URL}${endpoint}`;
   
   return apiWrapper<ApiResponse<T>>(
     url,
@@ -64,45 +74,155 @@ async function apiCall<T = any>(
 export const authApi = {
   // Login user
   login: (credentials: LoginForm) =>
-    apiCall<{ user: UserProfile; token: string }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    }),
+    apiCall<{ user: UserProfile; token: string }>(
+      AUTH.SIGNIN,
+      {
+        method: 'POST',
+        body: JSON.stringify(credentials),
+      },
+      async () => {
+        const mockResponse = await mockApi.auth.login({
+          email: credentials.email,
+          password: credentials.password,
+        });
+        
+        if (!mockResponse.success || !mockResponse.data) {
+          throw new Error(mockResponse.error || 'Invalid credentials');
+        }
+        
+        const mockUser = mockResponse.data.user;
+        const userProfile: any = {
+          id: mockUser.id,
+          userId: mockUser.id,
+          email: mockUser.email,
+          role: mockUser.role,
+          firstName: mockUser.firstName,
+          lastName: mockUser.lastName,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${mockUser.username}`,
+          verified: mockUser.emailVerified,
+          createdAt: mockUser.createdAt,
+          updatedAt: mockUser.updatedAt,
+        };
+        
+        return {
+          success: true,
+          data: {
+            user: userProfile,
+            token: mockResponse.data.token,
+          },
+        };
+      }
+    ),
 
   // Register user
   register: (userData: SignupForm) =>
-    apiCall<{ user: UserProfile; token: string }>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    }),
+    apiCall<{ user: UserProfile; token: string }>(
+      AUTH.SIGNUP,
+      {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      },
+      async () => {
+        const mockResponse = await mockApi.auth.register({
+          email: userData.email,
+          name: userData.fullName || userData.email,
+          password: userData.password,
+          role: 1,
+        } as any);
+        
+        if (!mockResponse.success || !mockResponse.data) {
+          throw new Error(mockResponse.error || 'Registration failed');
+        }
+        
+        const mockUser = mockResponse.data.user;
+        const nameParts = (userData.fullName || '').split(' ');
+        const userProfile: any = {
+          id: mockUser.id,
+          userId: mockUser.id,
+          email: mockUser.email,
+          role: mockUser.role,
+          firstName: nameParts[0] || mockUser.firstName,
+          lastName: nameParts.slice(1).join(' ') || mockUser.lastName,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${mockUser.username}`,
+          verified: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        
+        return {
+          success: true,
+          data: {
+            user: userProfile,
+            token: mockResponse.data.token,
+          },
+        };
+      }
+    ),
 
   // Logout user
   logout: () =>
-    apiCall('/auth/logout', {
-      method: 'POST',
-    }),
+    apiCall(
+      AUTH.LOGOUT,
+      {
+        method: 'POST',
+      },
+      async () => {
+        const mockResponse = await mockApi.auth.logout();
+        return { success: true };
+      }
+    ),
 
   // Get current user
   me: () =>
-    apiCall<UserProfile>('/auth/me'),
+    apiCall<UserProfile>(
+      AUTH.ME,
+      {},
+      async () => {
+        const mockResponse = await mockApi.auth.getCurrentUser();
+        
+        if (!mockResponse.success || !mockResponse.data) {
+          throw new Error(mockResponse.error || 'Not authenticated');
+        }
+        
+        const mockUser = mockResponse.data;
+        const userProfile: any = {
+          id: mockUser.id,
+          userId: mockUser.id,
+          email: mockUser.email,
+          role: mockUser.role,
+          firstName: mockUser.firstName,
+          lastName: mockUser.lastName,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${mockUser.username}`,
+          bio: '',
+          verified: mockUser.emailVerified,
+          createdAt: mockUser.createdAt,
+          updatedAt: mockUser.updatedAt,
+        };
+        
+        return {
+          success: true,
+          data: userProfile,
+        };
+      }
+    ),
 
   // Verify email
   verifyEmail: (token: string) =>
-    apiCall('/auth/verify-email', {
+    apiCall(AUTH.VERIFY, {
       method: 'POST',
       body: JSON.stringify({ token }),
     }),
 
   // Reset password
   requestPasswordReset: (email: string) =>
-    apiCall('/auth/forgot-password', {
+    apiCall(AUTH.FORGOT_PASSWORD, {
       method: 'POST',
       body: JSON.stringify({ email }),
     }),
 
   // Reset password with token
   resetPassword: (token: string, password: string) =>
-    apiCall('/auth/reset-password', {
+    apiCall(AUTH.RESET_PASSWORD, {
       method: 'POST',
       body: JSON.stringify({ token, password }),
     }),
@@ -112,11 +232,11 @@ export const authApi = {
 export const usersApi = {
   // Get user profile
   getProfile: (userId?: string) =>
-    apiCall<UserProfile>(userId ? `/users/${userId}` : '/users/profile'),
+    apiCall<UserProfile>(userId ? USERS.BY_ID(userId) : USERS.PROFILE),
 
   // Update user profile
   updateProfile: (profileData: Partial<ProfileForm>) =>
-    apiCall<UserProfile>('/users/profile', {
+    apiCall<UserProfile>(USERS.PROFILE, {
       method: 'PUT',
       body: JSON.stringify(profileData),
     }),
@@ -126,19 +246,18 @@ export const usersApi = {
     const formData = new FormData();
     formData.append('avatar', file);
     
-    return apiCall<{ avatarUrl: string }>('/users/avatar', {
+    return apiCall<{ avatarUrl: string }>(USERS.AVATAR, {
       method: 'POST',
       body: formData,
       headers: {
         Authorization: `Bearer ${getAuthToken()}`,
-        // Don't set Content-Type for FormData
       },
     });
   },
 
   // Delete account
   deleteAccount: () =>
-    apiCall('/users/account', {
+    apiCall(USERS.ACCOUNT, {
       method: 'DELETE',
     }),
 };
@@ -164,67 +283,67 @@ export const scholarshipsApi = {
     searchParams.append('page', page.toString());
     searchParams.append('limit', limit.toString());
     
-    return apiCall<PaginatedResponse<Scholarship>>(`/scholarships?${searchParams.toString()}`);
+    return apiCall<PaginatedResponse<Scholarship>>(`${SCHOLARSHIPS.BASE}?${searchParams.toString()}`);
   },
 
   // Get scholarship by ID
   getScholarship: (id: string) =>
-    apiCall<Scholarship>(`/scholarships/${id}`),
+    apiCall<Scholarship>(SCHOLARSHIPS.BY_ID(id)),
 
   // Create scholarship (provider only)
   createScholarship: (scholarshipData: ScholarshipForm) =>
-    apiCall<Scholarship>('/scholarships', {
+    apiCall<Scholarship>(SCHOLARSHIPS.BASE, {
       method: 'POST',
       body: JSON.stringify(scholarshipData),
     }),
 
   // Update scholarship (provider only)
   updateScholarship: (id: string, scholarshipData: Partial<ScholarshipForm>) =>
-    apiCall<Scholarship>(`/scholarships/${id}`, {
+    apiCall<Scholarship>(SCHOLARSHIPS.BY_ID(id), {
       method: 'PUT',
       body: JSON.stringify(scholarshipData),
     }),
 
   // Delete scholarship (provider only)
   deleteScholarship: (id: string) =>
-    apiCall(`/scholarships/${id}`, {
+    apiCall(SCHOLARSHIPS.BY_ID(id), {
       method: 'DELETE',
     }),
 
   // Get scholarship recommendations
   getRecommendations: (limit = 10) =>
-    apiCall<Scholarship[]>(`/scholarships/recommendations?limit=${limit}`),
+    apiCall<Scholarship[]>(SCHOLARSHIPS.RECOMMENDATIONS + `?limit=${limit}`),
 
   // Save/bookmark scholarship
   saveScholarship: (scholarshipId: string) =>
-    apiCall(`/scholarships/${scholarshipId}/save`, {
+    apiCall(SCHOLARSHIPS.SAVE(scholarshipId), {
       method: 'POST',
     }),
 
   // Unsave scholarship
   unsaveScholarship: (scholarshipId: string) =>
-    apiCall(`/scholarships/${scholarshipId}/save`, {
+    apiCall(SCHOLARSHIPS.SAVE(scholarshipId), {
       method: 'DELETE',
     }),
 
   // Get saved scholarships
   getSavedScholarships: (page = 1, limit = 20) =>
-    apiCall<PaginatedResponse<Scholarship>>(`/scholarships/saved?page=${page}&limit=${limit}`),
+    apiCall<PaginatedResponse<Scholarship>>(SCHOLARSHIPS.SAVED + `?page=${page}&limit=${limit}`),
 };
 
 // Applications API
 export const applicationsApi = {
   // Get user's applications
   getApplications: (page = 1, limit = 20) =>
-    apiCall<PaginatedResponse<Application>>(`/applications?page=${page}&limit=${limit}`),
+    apiCall<PaginatedResponse<Application>>(APPLICATIONS.BASE + `?page=${page}&limit=${limit}`),
 
   // Get application by ID
   getApplication: (id: string) =>
-    apiCall<Application>(`/applications/${id}`),
+    apiCall<Application>(APPLICATIONS.BY_ID(id)),
 
   // Create application
   createApplication: (scholarshipId: string, applicationData: any) =>
-    apiCall<Application>('/applications', {
+    apiCall<Application>(APPLICATIONS.BASE, {
       method: 'POST',
       body: JSON.stringify({
         scholarshipId,
@@ -234,20 +353,20 @@ export const applicationsApi = {
 
   // Update application
   updateApplication: (id: string, applicationData: any) =>
-    apiCall<Application>(`/applications/${id}`, {
+    apiCall<Application>(APPLICATIONS.BY_ID(id), {
       method: 'PUT',
       body: JSON.stringify(applicationData),
     }),
 
   // Submit application
   submitApplication: (id: string) =>
-    apiCall<Application>(`/applications/${id}/submit`, {
+    apiCall<Application>(APPLICATIONS.SUBMIT(id), {
       method: 'POST',
     }),
 
   // Withdraw application
   withdrawApplication: (id: string) =>
-    apiCall<Application>(`/applications/${id}/withdraw`, {
+    apiCall<Application>(APPLICATIONS.WITHDRAW(id), {
       method: 'POST',
     }),
 
@@ -257,7 +376,7 @@ export const applicationsApi = {
     formData.append('document', file);
     formData.append('type', documentType);
     
-    return apiCall<{ url: string }>(`/applications/${applicationId}/documents`, {
+    return apiCall<{ url: string }>(APPLICATIONS.DOCUMENTS(applicationId), {
       method: 'POST',
       body: formData,
       headers: {
@@ -268,11 +387,11 @@ export const applicationsApi = {
 
   // Get scholarship applications (for providers)
   getScholarshipApplications: (scholarshipId: string, page = 1, limit = 20) =>
-    apiCall<PaginatedResponse<Application>>(`/scholarships/${scholarshipId}/applications?page=${page}&limit=${limit}`),
+    apiCall<PaginatedResponse<Application>>(SCHOLARSHIPS.APPLICATIONS(scholarshipId) + `?page=${page}&limit=${limit}`),
 
   // Update application status (for providers)
   updateApplicationStatus: (applicationId: string, status: string, feedback?: string) =>
-    apiCall<Application>(`/applications/${applicationId}/status`, {
+    apiCall<Application>(APPLICATIONS.STATUS(applicationId), {
       method: 'PUT',
       body: JSON.stringify({ status, feedback }),
     }),
@@ -282,40 +401,40 @@ export const applicationsApi = {
 export const notificationsApi = {
   // Get notifications
   getNotifications: (page = 1, limit = 20) =>
-    apiCall<PaginatedResponse<Notification>>(`/notifications?page=${page}&limit=${limit}`),
+    apiCall<PaginatedResponse<Notification>>(NOTIFICATIONS.BASE + `?page=${page}&limit=${limit}`),
 
   // Mark notification as read
   markAsRead: (id: string) =>
-    apiCall(`/notifications/${id}/read`, {
+    apiCall(NOTIFICATIONS.MARK_READ(id), {
       method: 'PUT',
     }),
 
   // Mark all notifications as read
   markAllAsRead: () =>
-    apiCall('/notifications/read-all', {
+    apiCall(NOTIFICATIONS.MARK_ALL_READ, {
       method: 'PUT',
     }),
 
   // Delete notification
   deleteNotification: (id: string) =>
-    apiCall(`/notifications/${id}`, {
+    apiCall(NOTIFICATIONS.BY_ID(id), {
       method: 'DELETE',
     }),
 
   // Get unread count
   getUnreadCount: () =>
-    apiCall<{ count: number }>('/notifications/unread-count'),
+    apiCall<{ count: number }>(NOTIFICATIONS.UNREAD_COUNT),
 };
 
 // Messages API
 export const messagesApi = {
   // Get conversations
   getConversations: (page = 1, limit = 20) =>
-    apiCall<PaginatedResponse<Conversation>>(`/messages/conversations?page=${page}&limit=${limit}`),
+    apiCall<PaginatedResponse<Conversation>>(MESSAGES.CONVERSATIONS + `?page=${page}&limit=${limit}`),
 
   // Get conversation messages
   getMessages: (conversationId: string, page = 1, limit = 50) =>
-    apiCall<PaginatedResponse<Message>>(`/messages/conversations/${conversationId}?page=${page}&limit=${limit}`),
+    apiCall<PaginatedResponse<Message>>(MESSAGES.CONVERSATION_MESSAGES(conversationId) + `?page=${page}&limit=${limit}`),
 
   // Send message
   sendMessage: (conversationId: string, content: string, attachments?: File[]) => {
@@ -324,7 +443,7 @@ export const messagesApi = {
       formData.append('content', content);
       attachments.forEach(file => formData.append('attachments', file));
       
-      return apiCall<Message>(`/messages/conversations/${conversationId}`, {
+      return apiCall<Message>(MESSAGES.CONVERSATION_MESSAGES(conversationId), {
         method: 'POST',
         body: formData,
         headers: {
@@ -332,7 +451,7 @@ export const messagesApi = {
         },
       });
     } else {
-      return apiCall<Message>(`/messages/conversations/${conversationId}`, {
+      return apiCall<Message>(MESSAGES.CONVERSATION_MESSAGES(conversationId), {
         method: 'POST',
         body: JSON.stringify({ content }),
       });
@@ -341,14 +460,14 @@ export const messagesApi = {
 
   // Create conversation
   createConversation: (participantId: string) =>
-    apiCall<Conversation>('/messages/conversations', {
+    apiCall<Conversation>(MESSAGES.CONVERSATIONS, {
       method: 'POST',
       body: JSON.stringify({ participantId }),
     }),
 
   // Mark messages as read
   markAsRead: (conversationId: string) =>
-    apiCall(`/messages/conversations/${conversationId}/read`, {
+    apiCall(MESSAGES.MARK_READ(conversationId), {
       method: 'PUT',
     }),
 };
@@ -369,7 +488,7 @@ export const adminApi = {
       });
     }
     
-    return apiCall<PaginatedResponse<UserProfile>>(`/admin/users?${searchParams.toString()}`);
+    return apiCall<PaginatedResponse<UserProfile>>(ADMIN.USERS + `?${searchParams.toString()}`);
   },
 
   // Get scholarships (admin only)
@@ -386,50 +505,50 @@ export const adminApi = {
       });
     }
     
-    return apiCall<PaginatedResponse<Scholarship>>(`/admin/scholarships?${searchParams.toString()}`);
+    return apiCall<PaginatedResponse<Scholarship>>(ADMIN.SCHOLARSHIPS + `?${searchParams.toString()}`);
   },
 
   updateUserStatus: (userId: string) =>
-    apiCall(`/admin/users/${userId}/toggle-status`, {
+    apiCall(ADMIN.TOGGLE_USER_STATUS(userId), {
       method: 'PATCH',
     }),
 
   createUser: (userData: any) =>
-    apiCall('/admin/create-user', {
+    apiCall(ADMIN.CREATE_USER, {
       method: 'POST',
       body: JSON.stringify(userData),
     }),
 
   createEmployer: (employerData: any) =>
-    apiCall('/admin/create-employer', {
+    apiCall(ADMIN.CREATE_EMPLOYER, {
       method: 'POST',
       body: JSON.stringify(employerData),
     }),
 
   deleteUser: (userId: string) =>
-    apiCall(`/admin/users/${userId}`, {
+    apiCall(ADMIN.DELETE_USER(userId), {
       method: 'DELETE',
     }),
 
   approveScholarship: (scholarshipId: string) =>
-    apiCall(`/admin/scholarships/${scholarshipId}/approve`, {
+    apiCall(ADMIN.APPROVE_SCHOLARSHIP(scholarshipId), {
       method: 'PATCH',
     }),
 
   rejectScholarship: (scholarshipId: string, reason: string) =>
-    apiCall(`/admin/scholarships/${scholarshipId}/reject`, {
+    apiCall(ADMIN.REJECT_SCHOLARSHIP(scholarshipId), {
       method: 'PATCH',
       body: JSON.stringify({ reason }),
     }),
 
   getAuditLogs: () =>
-    apiCall('/admin/audit/logs'),
+    apiCall(ADMIN.AUDIT_LOGS),
 
   getAuditLogsByUser: (userId: string) =>
-    apiCall(`/admin/audit/users/${userId}`),
+    apiCall(ADMIN.AUDIT_USER(userId)),
 
   getAnalytics: () =>
-    apiCall('/admin/analytics'),
+    apiCall(ADMIN.ANALYTICS),
 };
 
 // Export all APIs

@@ -7,10 +7,11 @@ import { useQueryClient } from '@tanstack/react-query';
 // ĐỊNH NGHĨA CÁC TYPE BỊ THIẾU TẠI ĐÂY
 export interface User {
   id: string;
+  username: string;
   email: string;
   role: UserRole;
-  status: string; 
-  subscriptionType: string;
+  status: 'ACTIVE' | 'SUSPENDED' | 'PENDING';
+  subscriptionType: 'FREE' | 'PREMIUM' | 'ENTERPRISE';
   emailVerified: boolean;
   createdAt: Date; 
   updatedAt: Date; 
@@ -77,10 +78,11 @@ export const useAuth = (): UseAuthReturn => {
     // có nghĩa là bạn đã sửa file types/index.ts của mình
     const user: User = {
       id: profile.id,
+      username: profile.email || profile.userId || '',
       email: profile.email || '', 
       role: profile.role || UserRole.USER,
-      status: 'ACTIVE' as any,
-      subscriptionType: 'FREE' as any,
+      status: 'ACTIVE',
+      subscriptionType: 'FREE',
       emailVerified: profile.verified || false,
       createdAt: profile.createdAt, 
       updatedAt: profile.updatedAt, 
@@ -126,7 +128,7 @@ export const useAuth = (): UseAuthReturn => {
     document.cookie = 'auth_user=; path=/; max-age=0';
     
     api.auth.logout().catch(err => {
-      console.warn("Lỗi khi gọi API logout:", err);
+      // Logout error silently handled
     });
 
     setAuthState({

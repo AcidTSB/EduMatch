@@ -64,8 +64,6 @@ export default function AdminScholarshipDetailPage() {
   }
 
   const handleApprove = () => {
-    console.log('Approving scholarship:', scholarshipId);
-    // TODO: API call + real-time socket broadcast
     setShowApproveModal(false);
     toast.success('Scholarship Approved!', {
       description: `${scholarship.title} has been published and the provider has been notified.`,
@@ -73,8 +71,6 @@ export default function AdminScholarshipDetailPage() {
   };
 
   const handleReject = (reason: string) => {
-    console.log('Rejecting scholarship:', scholarshipId, reason);
-    // TODO: API call + email notification
     setShowRejectModal(false);
     toast.error('Scholarship Rejected', {
       description: `The provider will be notified with your reason.`,
@@ -82,8 +78,6 @@ export default function AdminScholarshipDetailPage() {
   };
 
   const handleRequestChanges = (data: { subject: string; message: string }) => {
-    console.log('Requesting changes:', scholarshipId, data);
-    // TODO: API call + send message to provider
     setShowRequestChangesModal(false);
     toast.info('Change Request Sent', {
       description: `Provider will be notified to update the scholarship.`,
@@ -91,8 +85,6 @@ export default function AdminScholarshipDetailPage() {
   };
 
   const handleDelete = () => {
-    console.log('Deleting scholarship:', scholarshipId);
-    // TODO: API call
     setShowDeleteModal(false);
     toast.success('Scholarship Deleted', {
       description: `${scholarship.title} has been permanently removed.`,
@@ -169,7 +161,9 @@ export default function AdminScholarshipDetailPage() {
               <div>
                 <p className="text-sm text-gray-500">Deadline</p>
                 <p className="font-semibold">
-                  {new Date(scholarship.applicationDeadline).toLocaleDateString()}
+                  {scholarship.applicationDeadline 
+                    ? new Date(scholarship.applicationDeadline).toLocaleDateString()
+                    : 'No deadline'}
                 </p>
               </div>
             </div>
@@ -248,16 +242,20 @@ export default function AdminScholarshipDetailPage() {
                   <div>
                     <p className="text-sm font-medium text-gray-700 mb-2">Required Skills</p>
                     <div className="flex flex-wrap gap-2">
-                      {scholarship.requiredSkills.map((skill, index) => (
-                        <Badge key={index} variant="default">{skill}</Badge>
-                      ))}
+                      {scholarship.requiredSkills && Array.isArray(scholarship.requiredSkills) && scholarship.requiredSkills.length > 0 ? (
+                        scholarship.requiredSkills.map((skill: string, index: number) => (
+                          <Badge key={index} variant="default">{skill}</Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-500">No required skills specified</p>
+                      )}
                     </div>
                   </div>
                   {scholarship.preferredSkills && scholarship.preferredSkills.length > 0 && (
                     <div>
                       <p className="text-sm font-medium text-gray-700 mb-2">Preferred Skills</p>
                       <div className="flex flex-wrap gap-2">
-                        {scholarship.preferredSkills.map((skill, index) => (
+                        {scholarship.preferredSkills.map((skill: string, index: number) => (
                           <Badge key={index} variant="secondary">{skill}</Badge>
                         ))}
                       </div>

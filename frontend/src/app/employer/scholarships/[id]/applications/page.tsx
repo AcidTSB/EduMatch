@@ -100,7 +100,6 @@ export default function ScholarshipApplicationsPage() {
   const handleStatusUpdate = async (applicationId: string, newStatus: string) => {
     try {
       // This would update the application status in real implementation
-      console.log('Updating application', applicationId, 'to status', newStatus);
       toast.success(`Application ${newStatus} successfully!`);
     } catch (error) {
       toast.error('Failed to update application status');

@@ -1,17 +1,25 @@
-﻿// File: src/services/auth.service.ts (Using fetch API with smart fallback)
+﻿/**
+ * 🔐 AUTH SERVICE WITH AUTO-FALLBACK
+ * =========================================
+ * ✅ Real API when backend online
+ * ✅ Mock data when backend offline
+ * ✅ Seamless user experience
+ * =========================================
+ */
+
+'use client';
 
 import { apiWrapper } from '@/lib/api-wrapper';
 import { mockApi } from '@/lib/mock-data';
+import API_CONFIG from '@/lib/api-config';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080';
-const AUTH_API_URL = `${API_BASE_URL}/api/auth`;
+const { AUTH } = API_CONFIG.ENDPOINTS;
 
 // Helper: Decode JWT token and extract roles
 const decodeJWT = (token: string): { roles: string[] } | null => {
   try {
     const payload = token.split('.')[1];
     const decoded = JSON.parse(atob(payload));
-    // JWT has roles as "USER,ADMIN,EMPLOYER" string
     const rolesStr = decoded.roles || '';
     const roles = rolesStr.split(',').map((r: string) => r.trim()).filter(Boolean);
     return { roles };
@@ -51,10 +59,13 @@ export interface UserResponse {
 }
 
 export const authService = {
+  /**
+   * 🔓 LOGIN
+   */
   login: async (data: LoginCredentials): Promise<LoginResponse & { user: UserResponse }> => {
     try {
       const loginData = await apiWrapper<LoginResponse>(
-        `${AUTH_API_URL}/signin`,
+        AUTH.SIGNIN,
         {
           method: 'POST',
           body: JSON.stringify({
@@ -67,8 +78,13 @@ export const authService = {
             email: data.email,
             password: data.password,
           });
+          
+          if (!mockResponse.success || !mockResponse.data) {
+            throw new Error(mockResponse.error || 'Invalid credentials');
+          }
+          
           return {
-            accessToken: mockResponse.data?.token || 'mock-token',
+            accessToken: mockResponse.data.token || 'mock-token-' + Date.now(),
             tokenType: 'Bearer',
           };
         }
@@ -86,7 +102,7 @@ export const authService = {
       }
       
       const userData = await apiWrapper<UserResponse>(
-        `${AUTH_API_URL}/me`,
+        AUTH.ME,
         {
           method: 'GET',
           headers: {
@@ -95,25 +111,19 @@ export const authService = {
         },
         async () => {
           const mockResponse = await mockApi.auth.getCurrentUser();
-          if (mockResponse.data) {
-            // Map AuthUser from mock to UserResponse format
-            const mockUser = mockResponse.data;
-            return {
-              id: parseInt(mockUser.id.replace(/\D/g, '')) || 1,
-              username: mockUser.username,
-              email: mockUser.email,
-              firstName: mockUser.firstName,
-              lastName: mockUser.lastName,
-              roles: [mockUser.role], // Use actual role from mock user
-              enabled: mockUser.enabled ?? true,
-            };
+          if (!mockResponse.success || !mockResponse.data) {
+            throw new Error(mockResponse.error || 'Not authenticated');
           }
+          
+          const mockUser = mockResponse.data;
           return {
-            id: 1,
-            username: data.email,
-            email: data.email,
-            roles: ['USER'],
-            enabled: true,
+            id: parseInt(mockUser.id.replace(/\D/g, '')) || 1,
+            username: mockUser.username,
+            email: mockUser.email,
+            firstName: mockUser.firstName,
+            lastName: mockUser.lastName,
+            roles: [mockUser.role],
+            enabled: mockUser.enabled ?? true,
           };
         }
       );
@@ -130,10 +140,7 @@ export const authService = {
         lastName: userData.lastName || userData.username?.split(' ').slice(1).join(' ') || '',
       };
       
-      // Store user in localStorage for persistence
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(enrichedUser));
-      }
+      localStorage.setItem('user', JSON.stringify(enrichedUser));
       
       return {
         ...loginData,
@@ -144,10 +151,13 @@ export const authService = {
     }
   },
 
+  /**
+   * 📝 REGISTER
+   */
   register: async (data: RegisterCredentials): Promise<LoginResponse & { user: UserResponse }> => {
     try {
       const registerData = await apiWrapper<LoginResponse>(
-        `${AUTH_API_URL}/signup`,
+        AUTH.SIGNUP,
         {
           method: 'POST',
           body: JSON.stringify({
@@ -166,8 +176,13 @@ export const authService = {
             password: data.password,
             role: 1,
           } as any);
+          
+          if (!mockResponse.success || !mockResponse.data) {
+            throw new Error(mockResponse.error || 'Registration not implemented in mock');
+          }
+          
           return {
-            accessToken: mockResponse.data?.token || 'mock-token',
+            accessToken: mockResponse.data.token || 'mock-token-' + Date.now(),
             tokenType: 'Bearer',
           };
         }
@@ -185,7 +200,7 @@ export const authService = {
       }
       
       const userData = await apiWrapper<UserResponse>(
-        `${AUTH_API_URL}/me`,
+        AUTH.ME,
         {
           method: 'GET',
           headers: {
@@ -193,8 +208,7 @@ export const authService = {
           },
         },
         async () => {
-          const mockResponse = await mockApi.auth.getCurrentUser();
-          return mockResponse.data || {
+          return {
             id: 1,
             username: data.email,
             email: data.email,
@@ -218,6 +232,8 @@ export const authService = {
         lastName: data.lastName,
       };
       
+      localStorage.setItem('user', JSON.stringify(enrichedUser));
+      
       return {
         ...registerData,
         user: enrichedUser,
@@ -227,12 +243,15 @@ export const authService = {
     }
   },
 
+  /**
+   * 🚪 LOGOUT
+   */
   logout: async (): Promise<void> => {
     try {
       const token = localStorage.getItem('auth_token');
       if (token) {
         await apiWrapper(
-          `${AUTH_API_URL}/logout`,
+          AUTH.LOGOUT,
           {
             method: 'POST',
             headers: {
@@ -246,12 +265,13 @@ export const authService = {
         );
       }
     } catch (error) {
+      // Ignore errors during logout
     } finally {
       localStorage.removeItem('auth_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
       localStorage.removeItem('auth_user');
-      localStorage.removeItem('mock_current_user'); // Clear mock user
+      localStorage.removeItem('mock_current_user');
       if (typeof document !== 'undefined') {
         document.cookie = 'auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
         document.cookie = 'auth_user=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -259,10 +279,13 @@ export const authService = {
     }
   },
 
+  /**
+   * 👤 GET CURRENT USER
+   */
   getCurrentUser: async (): Promise<UserResponse> => {
     const token = localStorage.getItem('auth_token');
     return await apiWrapper<UserResponse>(
-      `${AUTH_API_URL}/me`,
+      AUTH.ME,
       {
         method: 'GET',
         headers: {
@@ -271,30 +294,28 @@ export const authService = {
       },
       async () => {
         const mockResponse = await mockApi.auth.getCurrentUser();
-        if (mockResponse.data) {
-          // Map AuthUser from mock to UserResponse format
-          const mockUser = mockResponse.data;
-          return {
-            id: parseInt(mockUser.id.replace(/\D/g, '')) || 1,
-            username: mockUser.username,
-            email: mockUser.email,
-            firstName: mockUser.firstName,
-            lastName: mockUser.lastName,
-            roles: [mockUser.role], // Use actual role from mock user
-            enabled: mockUser.enabled ?? true,
-          };
+        
+        if (!mockResponse.success || !mockResponse.data) {
+          throw new Error(mockResponse.error || 'Not authenticated');
         }
+        
+        const mockUser = mockResponse.data;
         return {
-          id: 1,
-          username: 'mockuser',
-          email: 'mock@example.com',
-          roles: ['USER'],
-          enabled: true,
+          id: parseInt(mockUser.id.replace(/\D/g, '')) || 1,
+          username: mockUser.username,
+          email: mockUser.email,
+          firstName: mockUser.firstName,
+          lastName: mockUser.lastName,
+          roles: [mockUser.role],
+          enabled: mockUser.enabled ?? true,
         };
       }
     );
   },
 
+  /**
+   * 🎭 GET USER ROLE
+   */
   getUserRole: (): string | null => {
     try {
       const userStr = localStorage.getItem('user');
@@ -309,6 +330,9 @@ export const authService = {
     }
   },
 
+  /**
+   * 💾 GET STORED USER
+   */
   getStoredUser: (): UserResponse | null => {
     try {
       const userStr = localStorage.getItem('user');

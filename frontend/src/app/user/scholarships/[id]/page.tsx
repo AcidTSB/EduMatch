@@ -73,7 +73,6 @@ export default function ScholarshipDetailPage() {
           setScholarship(null);
         }
       } catch (error) {
-        console.error('Error fetching scholarship:', error);
         toast.error(t('scholarshipDetail.loadError'));
       } finally {
         setIsLoading(false);
@@ -179,16 +178,16 @@ export default function ScholarshipDetailPage() {
                 <div className="flex flex-wrap gap-2 mb-4">
                   {/* SỬA 4: Các lỗi 'level', 'studyMode', 'moderationStatus' được sửa trong file types */}
                   <Badge
-                    className={cn('border', getLevelColor(scholarship.level))}
+                    className={cn('border', scholarship.level ? getLevelColor(scholarship.level) : '')}
                   >
-                    {scholarship.level.replace('_', ' ')}
+                    {scholarship.level?.replace('_', ' ')}
                   </Badge>
                   <Badge variant="outline" className="flex items-center">
                     <Briefcase className="h-3 w-3 mr-1" />
-                    {scholarship.studyMode.replace('_', ' ')}
+                    {scholarship.studyMode?.replace('_', ' ')}
                   </Badge>
                   <Badge
-                    className={getStatusColor(scholarship.moderationStatus)}
+                    className={scholarship.moderationStatus ? getStatusColor(scholarship.moderationStatus) : ''}
                   >
                     {scholarship.moderationStatus}
                   </Badge>
@@ -347,7 +346,7 @@ export default function ScholarshipDetailPage() {
                             {t('scholarshipDetail.requiredSkills')}:
                           </span>
                           <div className="flex flex-wrap gap-2">
-                            {scholarship.requiredSkills.map((skill, index) => (
+                            {(Array.isArray(scholarship.requiredSkills) ? scholarship.requiredSkills : []).map((skill: string, index: number) => (
                               <Badge
                                 key={index}
                                 variant="secondary"

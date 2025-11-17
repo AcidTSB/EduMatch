@@ -124,7 +124,6 @@ export default function AdminNotificationsPage() {
   ];
 
   const handleSendNotification = (data: Record<string, any>) => {
-    console.log('Sending notification:', data);
     // TODO: API call to send notification
     // - If targetAudience === 'SPECIFIC', send to specificEmail
     // - Otherwise, send to all matching users

@@ -206,7 +206,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           dispatch({ type: 'SET_LOADING', payload: false });
         }
       } catch (error) {
-        console.error('Failed to initialize app:', error);
         dispatch({ type: 'SET_LOADING', payload: false });
       }
     };

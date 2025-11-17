@@ -43,8 +43,16 @@ export function NotificationDropdown() {
       </Button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg border z-50">
-          <div className="p-4 border-b flex justify-between items-center">
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setIsOpen(false)}
+          />
+          
+          {/* Dropdown */}
+          <div className="absolute right-0 mt-2 w-80 bg-white rounded-md shadow-lg border z-50">
+            <div className="p-4 border-b flex justify-between items-center">
             <h3 className="font-semibold">{t('notificationDropdown.title')}</h3>
             {unreadCount > 0 && (
               <Button
@@ -109,6 +117,7 @@ export function NotificationDropdown() {
             </div>
           )}
         </div>
+        </>
       )}
     </div>
   );

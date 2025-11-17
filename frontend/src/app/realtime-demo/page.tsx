@@ -13,6 +13,7 @@ import { UserDirectory } from '@/components/UserDirectory';
 import { useRealTime } from '@/providers/RealTimeProvider';
 import { useNotificationPermission } from '@/providers/RealTimeProvider';
 import { useAuth } from '@/lib/auth';
+import { UserRole } from '@/types';
 import { 
   MessageCircle, 
   Wifi, 
@@ -84,10 +85,10 @@ export default function RealTimeDemoPage() {
     try {
       let email = '';
       switch(role) {
-        case 'applicant':
+        case 'user':
           email = 'student@demo.com';
           break;
-        case 'provider':
+        case 'employer':
           email = 'provider@demo.com';
           break;
         case 'admin':
@@ -128,7 +129,7 @@ export default function RealTimeDemoPage() {
           <CardContent className="space-y-4">
             <div className="space-y-3">
               <Button 
-                onClick={() => handleQuickLogin('applicant')}
+                onClick={() => handleQuickLogin('user')}
                 className="w-full flex items-center gap-2"
                 variant="outline"
                 disabled={isLoading}
@@ -137,7 +138,7 @@ export default function RealTimeDemoPage() {
                 {isLoading ? 'Logging in...' : 'Login as Student'}
               </Button>
               <Button 
-                onClick={() => handleQuickLogin('provider')}
+                onClick={() => handleQuickLogin('employer')}
                 className="w-full flex items-center gap-2"
                 variant="outline"
                 disabled={isLoading}
@@ -273,7 +274,7 @@ export default function RealTimeDemoPage() {
           {/* Right Column - Dashboard & Applications */}
           <div className="lg:col-span-2 space-y-6">
             {/* Dashboard Stats */}
-            {(user?.role === 'employer' || user?.role === 'admin') && (
+            {(user?.role === UserRole.EMPLOYER || user?.role === UserRole.ADMIN) && (
               <div>
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-purple-600" />
@@ -284,7 +285,7 @@ export default function RealTimeDemoPage() {
             )}
 
             {/* Application Status */}
-            {user?.role === 'user' && (
+            {user?.role === UserRole.USER && (
               <div>
                 <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                   <Users className="h-5 w-5 text-blue-600" />
@@ -355,7 +356,7 @@ export default function RealTimeDemoPage() {
       )}
 
       {/* Match Toast (only for students) */}
-      {user?.role === 'user' && <MatchToast />}
+      {user?.role === UserRole.USER && <MatchToast />}
     </div>
   );
 }

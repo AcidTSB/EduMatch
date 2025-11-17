@@ -52,7 +52,6 @@ export default function ProviderApplicationsPage() {
   // Mock functions for provider-specific actions
   const updateApplicationStatus = async (applicationId: string, status: string) => {
     // This would update the application status in real implementation
-    console.log('Updating application', applicationId, 'to status', status);
     return true;
   };
 

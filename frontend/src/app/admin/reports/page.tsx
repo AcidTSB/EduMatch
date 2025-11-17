@@ -31,7 +31,7 @@ export default function AdminReportsPage() {
         { label: t('adminReports.status.new'), value: 'NEW' },
         { label: t('adminReports.status.inReview'), value: 'IN_REVIEW' },
         { label: t('adminReports.status.resolved'), value: 'RESOLVED' },
-        { label: t('adminReports.status.dismissed'), value: 'DISMISSED' }
+        { label: t('adminReports.status.dismissed'), value: 'DISMISSED' },
         { label: t('adminReports.status.new'), value: 'PENDING' },
         { label: t('adminReports.status.inReview'), value: 'PENDING' }, // If you have an 'IN_REVIEW' status, add to ReportStatus enum and mock-data
         { label: t('adminReports.status.resolved'), value: 'RESOLVED' },
@@ -46,7 +46,7 @@ export default function AdminReportsPage() {
         { label: t('adminReports.priority.low'), value: 'LOW' },
         { label: t('adminReports.priority.medium'), value: 'MEDIUM' },
         { label: t('adminReports.priority.high'), value: 'HIGH' },
-        { label: t('adminReports.priority.urgent'), value: 'URGENT' }
+        { label: t('adminReports.priority.urgent'), value: 'URGENT' },
         { label: t('adminReports.priority.low'), value: 'LOW' },
         { label: t('adminReports.priority.medium'), value: 'MEDIUM' },
         { label: t('adminReports.priority.high'), value: 'HIGH' },
@@ -62,7 +62,7 @@ export default function AdminReportsPage() {
         { label: t('adminReports.category.harassment'), value: 'HARASSMENT' },
         { label: t('adminReports.category.fakeInfo'), value: 'FAKE_INFO' },
         { label: t('adminReports.category.inappropriate'), value: 'INAPPROPRIATE' },
-        { label: t('adminReports.category.other'), value: 'OTHER' }
+        { label: t('adminReports.category.other'), value: 'OTHER' },
         { label: t('adminReports.category.spam'), value: 'Spam' },
         { label: t('adminReports.category.harassment'), value: 'Harassment' },
         { label: t('adminReports.category.fakeInfo'), value: 'Misleading Information' },
@@ -76,7 +76,7 @@ export default function AdminReportsPage() {
       type: 'select',
       options: [
         { label: t('adminReports.targetType.user'), value: 'USER' },
-        { label: t('adminReports.targetType.scholarship'), value: 'SCHOLARSHIP' }
+        { label: t('adminReports.targetType.scholarship'), value: 'SCHOLARSHIP' },
         { label: t('adminReports.targetType.user'), value: 'USER' },
         { label: t('adminReports.targetType.scholarship'), value: 'SCHOLARSHIP' }
       ]
@@ -234,7 +234,6 @@ export default function AdminReportsPage() {
   ];
 
   const handleResolve = (data: Record<string, any>) => {
-    console.log('Resolving report:', selectedReport?.id, data);
     // TODO: API call
     setShowResolveModal(false);
     setSelectedReport(null);

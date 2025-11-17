@@ -112,25 +112,27 @@ export default function ProfilePage() {
         setIsLoading(true);
         const response = await apiClient.profile.getById(user.id);
         if (response.success && response.data) {
-          // Merge user data with profile data
+          // Merge user data with profile data (using any to allow extended fields)
+          const profileData = response.data as any;
+          const userData = user as any;
           setProfile({
-            ...response.data,
+            ...profileData,
             email: user.email,
-            phone: response.data.phone || user.phone || '+1 234 567 8900',
-            dateOfBirth: response.data.dateOfBirth || '1995-06-15',
-            nationality: response.data.nationality || 'American',
-            currentLocation: response.data.currentLocation || 'New York, USA',
-            university: response.data.university || '',
-            major: response.data.major || '',
-            gpa: response.data.gpa || 0,
-            graduationYear: response.data.graduationYear,
-            currentLevel: response.data.currentLevel || 'Senior',
-            skills: response.data.skills || [],
-            interests: response.data.interests || [],
-            languages: response.data.languages || ['English'],
-            education: response.data.education || [],
-            experience: response.data.experience || [],
-            achievements: response.data.achievements || [],
+            phone: profileData.phone || userData.phone || '+1 234 567 8900',
+            dateOfBirth: profileData.dateOfBirth || '1995-06-15',
+            nationality: profileData.nationality || 'American',
+            currentLocation: profileData.currentLocation || 'New York, USA',
+            university: profileData.university || '',
+            major: profileData.major || '',
+            gpa: profileData.gpa || 0,
+            graduationYear: profileData.graduationYear,
+            currentLevel: profileData.currentLevel || 'Senior',
+            skills: profileData.skills || [],
+            interests: profileData.interests || [],
+            languages: profileData.languages || ['English'],
+            education: profileData.education || [],
+            experience: profileData.experience || [],
+            achievements: profileData.achievements || [],
           });
         } else {
           // Fallback to basic user data
@@ -159,8 +161,6 @@ export default function ProfilePage() {
           });
         }
       } catch (error) {
-        console.error('Failed to load profile:', error);
-        // Set basic fallback
         if (user) {
           setProfile({
             id: user.id,
@@ -181,7 +181,7 @@ export default function ProfilePage() {
   }, [user]);
 
   const handleInputChange = (field: string, value: string | string[] | number) => {
-    setProfile(prev => ({
+    setProfile((prev: any) => ({
       ...prev,
       [field]: value
     }));
@@ -197,8 +197,6 @@ export default function ProfilePage() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      console.log('Profile updated:', profile);
-      
       toast.success('Cập nhật hồ sơ thành công!', {
         id: toastId,
         description: 'Thông tin của bạn đã được lưu'
@@ -206,7 +204,6 @@ export default function ProfilePage() {
       
       setIsEditing(false);
     } catch (error) {
-      console.error('Profile update failed:', error);
       toast.error('Cập nhật hồ sơ thất bại', {
         id: toastId,
         description: t('applicantProfile.errorMessage')
@@ -239,7 +236,7 @@ export default function ProfilePage() {
       setPhotoFile(file);
       // Create preview URL
       const previewUrl = URL.createObjectURL(file);
-      setProfile(prev => ({
+      setProfile((prev: any) => ({
         ...prev,
         avatar: previewUrl
       }));
@@ -515,7 +512,7 @@ export default function ProfilePage() {
                   {t('applicantProfile.skills')}
                 </label>
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {profile.skills.map((skill, index) => (
+                  {profile.skills.map((skill: string, index: number) => (
                     <Badge key={index} variant="secondary">
                       {skill}
                     </Badge>
@@ -536,7 +533,7 @@ export default function ProfilePage() {
                   {t('applicantProfile.interests')}
                 </label>
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {profile.interests.map((interest, index) => (
+                  {profile.interests.map((interest: string, index: number) => (
                     <Badge key={index} variant="outline">
                       {interest}
                     </Badge>
@@ -557,7 +554,7 @@ export default function ProfilePage() {
                   {t('applicantProfile.languages')}
                 </label>
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {profile.languages.map((language, index) => (
+                  {profile.languages.map((language: string, index: number) => (
                     <Badge key={index} variant="secondary">
                       {language}
                     </Badge>
@@ -581,7 +578,7 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {profile.achievements.map((achievement, index) => (
+                {profile.achievements.map((achievement: string, index: number) => (
                   <div key={index} className="flex items-center space-x-3">
                     <Award className="h-5 w-5 text-yellow-600" />
                     <span className="text-gray-700">{achievement}</span>

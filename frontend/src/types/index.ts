@@ -112,9 +112,11 @@ export interface Scholarship {
   providerName?: string;
   amount: number;
   currency?: string;
-  deadline?: string;
-  applicationDeadline?: string; // Alias for deadline
-  requirements?: string | { // có thể là JSON string hoặc object
+  deadline?: string;
+  applicationDeadline?: string; // Alias for deadline
+  startDate?: string;
+  endDate?: string;
+  requirements?: string | { // có thể là JSON string hoặc object
     minGpa?: number;
     englishProficiency?: string;
     documents?: string[];
@@ -132,22 +134,27 @@ export interface Scholarship {
   updatedAt?: Date;
   publishedAt?: Date;
 
-  // Frontend-specific fields (không có trong DB)
-  university?: string;
-  department?: string;
-  isRemote?: boolean;
-  preferredSkills?: string[];
-  viewCount?: number;
-  tags?: string[];
-  website?: string;
-  contactEmail?: string;
-  isPublic?: boolean;
-  matchScore?: number;
-  
-  // Legacy fields for backward compatibility
-  level?: ScholarshipType | string;
-  moderationStatus?: ModerationStatus | string;
-  scholarshipAmount?: number;
+  // Frontend-specific fields (không có trong DB)
+  university?: string;
+  department?: string;
+  isRemote?: boolean;
+  preferredSkills?: string[];
+  viewCount?: number;
+  tags?: string[];
+  website?: string;
+  contactEmail?: string;
+  isPublic?: boolean;
+  matchScore?: number;
+  isPaidMonthly?: boolean;
+  eligibility?: any;
+  isVisible?: boolean;
+  stipend?: number;
+  field?: string[];
+
+  // Legacy fields for backward compatibility
+  level?: ScholarshipType | string;
+  moderationStatus?: ModerationStatus | string;
+  scholarshipAmount?: number;
 }
 
 export interface Application {
@@ -246,22 +253,27 @@ export interface Transaction {
 }
 
 export interface AuditLog {
-  id: string;
-  userId?: string; // User thực hiện hành động (NULL nếu là system)
-  adminId?: string; // Alias for userId
-  action: string;
-  details?: string;
-  ipAddress?: string;
-  timestamp?: Date; // alias for createdAt
-  createdAt?: Date;
-  
-  // Frontend fields
-  targetId?: string;
-  targetType?: string;
-  reason?: string;
-}
-
-export interface LoginCredentials {
+  id: string;
+  userId?: string; // User thực hiện hành động (NULL nếu là system)
+  adminId?: string; // Alias for userId
+  adminName?: string; // Admin name for display
+  action: string;
+  actionType?: string; // Alias for action
+  details?: string;
+  ipAddress?: string;
+  timestamp?: Date; // alias for createdAt
+  createdAt?: Date;
+  
+  // Frontend fields
+  targetId?: string;
+  targetType?: string;
+  entityId?: string; // Alias for targetId
+  entityType?: string; // Alias for targetType
+  reason?: string;
+  success?: boolean; // Action success status
+  changes?: Record<string, any>; // Changed fields
+  userAgent?: string; // Browser user agent
+}export interface LoginCredentials {
   email: string;
   password?: string;
 }
@@ -355,10 +367,32 @@ export interface Message {
 }
 
 export interface FcmToken {
-  id: string;
-  userId: string;
-  token: string;
-  deviceType?: string;
-  createdAt: Date;
-  updatedAt: Date;
+  id: string;
+  userId: string;
+  token: string;
+  deviceType?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Type aliases for backward compatibility
+export type User = AuthUser;
+
+// UI Component Types
+export type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+export interface ToastProps {
+  id?: string;
+  type: ToastType;
+  message: string;
+  title?: string;
+  duration?: number;
+  onClose?: () => void;
+}
+
+export interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  children: React.ReactNode;
 }

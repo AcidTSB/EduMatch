@@ -90,8 +90,6 @@ export default function CreateScholarshipPage() {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      console.log('Creating scholarship with API body:', apiBody);
-
       toast.success(t('createScholarship.success'));
       router.push('/employer/scholarships');
     } catch (error) {

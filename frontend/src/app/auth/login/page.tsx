@@ -9,13 +9,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation'; // 1. Import router
-import { useQueryClient } from '@tanstack/react-query'; // 2. Import query client
+import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 
-// 3. Import ĐÚNG hook useAuth và file api
-import { useAuth, User } from '@/hooks/useAuth'; // ✅ SỬA LỖI 1: Import 'User' type
+// Import các hook và type
+import { useAuth, User } from '@/hooks/useAuth';
 import api from '@/lib/api';
-import { UserRole } from '@/types'; // ✅ SỬA LỖI 1: Import 'UserRole'
+import { UserRole } from '@/types';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -25,14 +25,11 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // 4. Lấy các hàm và state
-  // ✅ SỬA LỖI 1: Xóa 'error: authError' vì useAuth không cung cấp nó.
-  const { login: setAuthState } = useAuth(); 
+  const { login: setAuthState } = useAuth();
   const { t } = useLanguage();
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // validateForm() và handleInputChange() giữ nguyên
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
@@ -56,6 +53,7 @@ export default function LoginPage() {
     if (field === 'email') setEmail(value);
     if (field === 'password') setPassword(value);
     
+    // Xóa lỗi khi người dùng bắt đầu gõ lại
     if (errors[field]) {
       setErrors((prev) => ({
         ...prev,
@@ -64,7 +62,6 @@ export default function LoginPage() {
     }
   };
 
-  // 5. SỬA LẠI HOÀN TOÀN handleSubmit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -79,23 +76,17 @@ export default function LoginPage() {
     const toastId = toast.loading('Đang đăng nhập...');
     
     try {
-<<<<<<< Updated upstream
-      // 6. TỰ GỌI API login
       const response = await api.auth.login({ email, password });
       
-      // ✅ SỬA LỖI 2 & 3: Thêm kiểm tra 'response.data'
-      // Lỗi này xảy ra vì 'data' có thể là optional (data?: T)
       if (!response.data) {
         throw new Error('Không nhận được dữ liệu từ server');
       }
 
-      // 'user' từ API trả về thực chất là 'UserProfile'
-      const { token, user: profile } = response.data; // Đổi tên 'user' thành 'profile'
+      const { token, user: profile } = response.data;
 
-      // 7. ✅ SỬA LỖI 1: Xây dựng object 'User' đầy đủ
-      // Object này khớp với định nghĩa 'User' trong useAuth.ts
       const userToAuth: User = {
         id: profile.id,
+        username: profile.email || profile.userId || '',
         email: profile.email || '',
         role: profile.role || UserRole.USER,
         status: 'ACTIVE' as any,
@@ -103,24 +94,19 @@ export default function LoginPage() {
         emailVerified: profile.verified || false,
         createdAt: profile.createdAt,
         updatedAt: profile.updatedAt,
-        profile: profile, // Gắn profile vào user
+        profile: profile,
       };
 
-      // 8. Lưu token và user vào localStorage và cookies
       localStorage.setItem('auth_token', token);
       
-      // Lưu vào cookies để middleware có thể đọc
-      document.cookie = `auth_token=${token}; path=/; max-age=86400`; // 24 hours
+      document.cookie = `auth_token=${token}; path=/; max-age=86400`;
       document.cookie = `auth_user=${encodeURIComponent(JSON.stringify({ 
         id: userToAuth.id,
         email: userToAuth.email,
         role: userToAuth.role 
       }))}; path=/; max-age=86400`;
 
-      // 9. GỌI HÀM setAuthState với object 'User' đầy đủ
       setAuthState(token, userToAuth);
-
-      // 10. Cập nhật cache với 'profile'
       queryClient.setQueryData(['currentUser'], { data: profile });
 
       toast.success('Đăng nhập thành công!', {
@@ -128,7 +114,6 @@ export default function LoginPage() {
         description: `Chào mừng bạn trở lại, ${email}`
       });
 
-      // 11. CHUYỂN HƯỚNG - dùng window.location để force reload và trigger middleware
       const dashboardUrl = userToAuth.role === 'ADMIN' 
         ? '/admin/dashboard'
         : userToAuth.role === 'EMPLOYER'
@@ -137,16 +122,7 @@ export default function LoginPage() {
       
       window.location.href = dashboardUrl;
       
-
     } catch (error: any) {
-      console.error('Login failed:', error);
-      // Lấy message lỗi từ API response nếu có
-      // ✅ SỬA LỖI 1: Xóa 'authError' và lấy lỗi trực tiếp
-=======
-      await login({ email, password });
-      
-    } catch (error: any) {
->>>>>>> Stashed changes
       const errorMessage = error.message || t('login.invalidCredentials');
       toast.error('Đăng nhập thất bại', {
         id: toastId,
@@ -174,36 +150,47 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Lỗi chung của Form */}
             {errors.submit && (
-              <div className="bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded-lg text-sm mb-4">
                 {errors.submit}
               </div>
             )}
 
-            <div className="space-y-2">
+            {/* EMAIL FIELD */}
+            {/* Thêm mb-6 để tạo khoảng trống cho dòng lỗi absolute */}
+            <div className="space-y-2 mb-6 relative"> 
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${errors.email ? 'text-red-500' : 'text-muted-foreground'}`} />
                 <Input
                   type="email"
                   placeholder={t('login.emailPlaceholder')}
                   value={email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="pl-10"
-                  error={errors.email}
+                  // Tự handle style lỗi, bỏ prop error để tránh nhảy layout
+                  className={`pl-10 ${errors.email ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
+                
+                {/* Error Message: Absolute Position */}
+                {errors.email && (
+                  <span className="absolute -bottom-5 left-0 text-xs text-red-500 font-medium animate-in fade-in slide-in-from-top-1">
+                    {errors.email}
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="space-y-2">
+            {/* PASSWORD FIELD */}
+            {/* Thêm mb-6 tương tự */}
+            <div className="space-y-2 mb-6 relative">
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${errors.password ? 'text-red-500' : 'text-muted-foreground'}`} />
                 <Input
                   type={showPassword ? 'text' : 'password'}
                   placeholder={t('login.passwordPlaceholder')}
                   value={password}
                   onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="pl-10 pr-10"
-                  error={errors.password}
+                  className={`pl-10 pr-10 ${errors.password ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                 />
                 <Button
                   type="button"
@@ -218,9 +205,17 @@ export default function LoginPage() {
                     <Eye className="h-4 w-4 text-muted-foreground" />
                   )}
                 </Button>
+
+                {/* Error Message: Absolute Position */}
+                {errors.password && (
+                  <span className="absolute -bottom-5 left-0 text-xs text-red-500 font-medium animate-in fade-in slide-in-from-top-1">
+                    {errors.password}
+                  </span>
+                )}
               </div>
             </div>
 
+            {/* Các phần còn lại giữ nguyên */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Checkbox

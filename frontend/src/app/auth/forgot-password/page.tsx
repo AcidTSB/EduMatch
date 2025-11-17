@@ -43,7 +43,6 @@ export default function ForgotPasswordPage() {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // In a real app, you would make an API call here
-      console.log('Reset password for:', email);
       
       setIsSuccess(true);
       toast.success(t('forgotPassword.success'));

@@ -75,7 +75,6 @@ export default function ProviderAnalyticsPage() {
     
     applications.forEach(app => {
       const profile = USER_PROFILES.find((p: any) => p.userId === app.applicantId);
-      // UserProfile does not have university/major, fallback to 'N/A'
       universityStats.set('N/A', (universityStats.get('N/A') || 0) + 1);
       majorStats.set('N/A', (majorStats.get('N/A') || 0) + 1);
     });
@@ -276,7 +275,6 @@ export default function ProviderAnalyticsPage() {
                 variant="outline"
                 onClick={() => {
                   // Export functionality
-                  console.log('Exporting report...');
                   const csvContent = generateReportCSV();
                   downloadCSV(csvContent, `analytics-report-${new Date().toISOString().split('T')[0]}.csv`);
                 }}

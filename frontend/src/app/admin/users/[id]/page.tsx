@@ -55,7 +55,7 @@ export default function AdminUserProfilePage() {
     details: log.reason || '',
     entityType: log.targetType,
     entityName: USERS.find(u => u.id === log.targetId)?.name || '',
-    createdAt: log.createdAt,
+    createdAt: log.createdAt || new Date(),
     success: true,
   }));
 
@@ -73,13 +73,11 @@ export default function AdminUserProfilePage() {
   }
 
   const handleImpersonate = () => {
-    console.log('Impersonating user:', userId);
     // TODO: Implement impersonation logic
     setShowImpersonateModal(false);
   };
 
   const handleBanUser = () => {
-    console.log('Banning user:', userId);
     // TODO: Implement ban logic
     setShowBanModal(false);
   };

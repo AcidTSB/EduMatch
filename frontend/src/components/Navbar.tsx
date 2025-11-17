@@ -148,15 +148,24 @@ export function Navbar() {
   };
 
   const getInitials = () => {
-    if (!user?.name) return 'U';
-    const nameParts = user.name.split(' ');
-    const firstName = nameParts[0] || '';
-    const lastName = nameParts[1] || '';
-    return (firstName[0] || '') + (lastName[0] || '');
+    const firstName = user?.profile?.firstName || '';
+    const lastName = user?.profile?.lastName || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    const name = fullName || user?.email || 'U';
+    
+    if (firstName && lastName) {
+      return (firstName[0] || '') + (lastName[0] || '');
+    }
+    
+    const nameParts = name.split(' ');
+    return (nameParts[0]?.[0] || 'U') + (nameParts[1]?.[0] || '');
   };
 
   const getUserFullName = () => {
-    return user?.name || user?.email || 'User';
+    const firstName = user?.profile?.firstName || '';
+    const lastName = user?.profile?.lastName || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+    return fullName || user?.email || 'User';
   };
 
   return (

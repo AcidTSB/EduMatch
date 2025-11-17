@@ -82,7 +82,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       await logout();
       router.push('/auth/login');
     } catch (error) {
-      console.error('Logout failed:', error);
+      // Logout error silently handled
     }
   };
 

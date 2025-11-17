@@ -87,12 +87,10 @@ export default function ProviderProfilePage() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
-      console.log('Saving profile:', profileData);
       setIsEditing(false);
       alert(t('providerProfile.successMessage'));
     } catch (error) {
       alert(t('providerProfile.errorMessage'));
-      console.error('Error updating profile:', error);
     } finally {
       setLoading(false);
     }

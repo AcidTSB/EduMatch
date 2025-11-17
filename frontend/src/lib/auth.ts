@@ -1,11 +1,18 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { AuthUser, AuthState, LoginCredentials, RegisterCredentials } from '@/types';
-// import { api } from '@/lib/api';
-import { mockApi, shouldUseMockApi } from '@/lib/mock-data';
+import { AuthUser, LoginCredentials, RegisterCredentials, UserRole } from '@/types';
+import { mockApi } from '@/lib/mock-data';
 import { getFromLocalStorage, setToLocalStorage, removeFromLocalStorage } from '@/lib/utils';
 import { setCookie, getCookie, deleteCookie } from '@/lib/cookies';
+
+interface AuthState {
+  user: AuthUser | null;
+  profile: any | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  role: UserRole | null;
+}
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -117,14 +124,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const login = async (credentials: LoginCredentials) => {
     try {
       setError(null);
-      setAuthState(prev => ({ ...prev, isLoading: true }));
+      setAuthState((prev: AuthState) => ({ ...prev, isLoading: true }));
 
       const response = await mockApi.auth.login(credentials);
 
       if (response.success && response.data) {
         const { user, token } = response.data;
 
-<<<<<<< Updated upstream
         // Store in localStorage
         setToLocalStorage('auth_token', token);
         setToLocalStorage('auth_user', JSON.stringify(user));
@@ -134,32 +140,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setCookie('auth_user', JSON.stringify(user), 7);
 
         setAuthState(createAuthenticatedState(user));
-=======
-        // Transform backend user to AuthUser format
-        const roleStr = user.roles?.[0]?.replace('ROLE_', '') || 'USER';
-        const authUser: AuthUser = {
-          id: String(user.id),
-          email: user.email,
-          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
-          role: roleStr as UserRole,
-          emailVerified: user.enabled,
-          status: 'ACTIVE',
-          subscriptionType: 'FREE',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-
-        const userStr = JSON.stringify(authUser);
-        setToLocalStorage('auth_user', userStr);
-        setCookie('auth_user', userStr, 7);
->>>>>>> Stashed changes
 
         // Wait a bit then redirect to let cookies set
         setTimeout(() => {
           // Redirect based on user role
-          if (user.role === 'admin') {
+          if (user.role === 'ADMIN') {
             window.location.href = '/admin';
-          } else if (user.role === 'employer') {
+          } else if (user.role === 'EMPLOYER') {
             window.location.href = '/employer/dashboard';
           } else {
             window.location.href = '/user/dashboard';
@@ -167,7 +154,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }, 100);
       } else {
         // Handle failed login response
-        setAuthState(prev => ({ ...prev, isLoading: false }));
+        setAuthState((prev: AuthState) => ({ ...prev, isLoading: false }));
         const errorMessage = response.error || 'Login failed';
         setError(errorMessage);
         throw new Error(errorMessage);
@@ -183,7 +170,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const register = async (credentials: RegisterCredentials) => {
     try {
       setError(null);
-      setAuthState(prev => ({ ...prev, isLoading: true }));
+      setAuthState((prev: AuthState) => ({ ...prev, isLoading: true }));
 
       const response = await mockApi.auth.register(credentials);
 
@@ -237,14 +224,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const refreshToken = async () => {
     try {
-<<<<<<< Updated upstream
-      const response = await mockApi.auth.refreshToken();
-
-      if (response.success && response.data) {
-        setToLocalStorage('auth_token', response.data.token);
+      // Refresh token implementation
+      const token = getCookie('auth_token');
+      if (token) {
+        // Token is still valid, keep it
+        setToLocalStorage('auth_token', token);
       }
-=======
->>>>>>> Stashed changes
     } catch (err) {
       // If refresh fails, logout user
       await logout();

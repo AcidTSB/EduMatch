@@ -129,7 +129,6 @@ export function useSavedScholarships() {
       }
     } catch (err) {
       setError('Failed to fetch saved scholarships');
-      console.error(err);
     } finally {
       setLoading(false);
     }
