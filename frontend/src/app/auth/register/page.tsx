@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth';
 
 export default function RegisterPage() {
   const { t } = useLanguage();
@@ -35,6 +36,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
+  const { register } = useAuth();
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -99,26 +101,24 @@ export default function RegisterPage() {
     const toastId = toast.loading('Đang tạo tài khoản...');
 
     try {
-      // Mock API call - replace with actual registration
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Mock successful registration
-      localStorage.setItem('auth_token', 'mock-jwt-token');
-      // Mặc định vai trò là 'user' vì trường chọn đã bị xóa
-      localStorage.setItem('user_role', 'user');
+      // Use real auth service to register
+      await register({
+        email: formData.email,
+        password: formData.password,
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        role: 'USER' as any, // Backend will assign ROLE_USER automatically
+      });
 
       toast.success('Đăng ký thành công!', {
         id: toastId,
         description: `Chào mừng ${formData.firstName} ${formData.lastName} đến với EduMatch!`,
       });
 
-      // Chuyển hướng đến dashboard của user
-      setTimeout(() => {
-        router.push('/user/dashboard');
-      }, 1000);
-    } catch (error) {
+      // Auth context will handle redirect automatically
+      // No need to manually redirect here
+    } catch (error: any) {
       console.error('Registration failed:', error);
-      const errorMessage = t('register.errors.submitFailed');
+      const errorMessage = error?.message || t('register.errors.submitFailed');
       toast.error('Đăng ký thất bại', {
         id: toastId,
         description: errorMessage,

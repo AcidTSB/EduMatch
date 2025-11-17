@@ -11,18 +11,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { mockScholarships } from '@/lib/mock-data';
-import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext';
+import { useApplicationsData } from '@/contexts/AppContext';
 import { Scholarship, ScholarshipStatus } from '@/types';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Pagination } from '@/components/Pagination';
+import { scholarshipServiceApi } from '@/services/scholarship.service';
+import { toast } from 'react-hot-toast';
 
 export default function ProviderScholarshipsPage() {
   const { t } = useLanguage();
-  // Use AppContext data
   const { applications } = useApplicationsData();
-  const { scholarships: allScholarships } = useScholarshipsData();
   
   // Animation variants
   const cardVariants = {
@@ -31,18 +30,74 @@ export default function ProviderScholarshipsPage() {
     hover: { y: -4, transition: { duration: 0.2 } }
   };
   
-  // Mock provider scholarships (filter by a mock provider)
-  const [scholarships] = useState<Scholarship[]>(
-    allScholarships.filter(s => s.providerId === 'provider1' || s.providerId === '2').map(s => ({
-      ...s,
-      status: s.status || ScholarshipStatus.PUBLISHED,
-      applicationCount: applications.filter(app => app.scholarshipId === s.id).length
-    }))
-  );
+  // Fetch scholarships from API
+  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null);
-  const [loading, setLoading] = useState(false);
+  
+  // Fetch scholarships from API
+  React.useEffect(() => {
+    const fetchScholarships = async () => {
+      try {
+        setLoading(true);
+        const data = await scholarshipServiceApi.getMyOpportunities();
+        
+        // Map API response to Scholarship format
+        const mappedScholarships: Scholarship[] = data.map((opp: any) => ({
+          id: String(opp.id),
+          title: opp.title,
+          description: opp.description || opp.fullDescription || '',
+          amount: opp.scholarshipAmount ? formatCurrency(opp.scholarshipAmount) : 'N/A',
+          applicationDeadline: opp.applicationDeadline,
+          startDate: opp.startDate,
+          endDate: opp.endDate,
+          level: opp.level || '',
+          studyMode: opp.studyMode || '',
+          minGpa: opp.minGpa,
+          providerId: String(opp.creatorUserId || ''),
+          providerName: opp.organizationId ? `Organization ${opp.organizationId}` : 'My Organization',
+          status: opp.moderationStatus === 'APPROVED' ? ScholarshipStatus.PUBLISHED :
+                 opp.moderationStatus === 'PENDING' ? ScholarshipStatus.PENDING :
+                 opp.moderationStatus === 'REJECTED' ? ScholarshipStatus.REJECTED :
+                 ScholarshipStatus.DRAFT,
+          tags: opp.tags || [],
+          requiredSkills: opp.requiredSkills || [],
+          contactEmail: opp.contactEmail,
+          website: opp.website,
+          isPublic: opp.isPublic,
+          viewsCnt: opp.viewsCnt || 0,
+          applicationCount: 0, // Will be fetched separately
+        }));
+        
+        // Fetch application counts for each scholarship
+        const scholarshipsWithCounts = await Promise.all(
+          mappedScholarships.map(async (s) => {
+            try {
+              const apps = await scholarshipServiceApi.getApplicationsForOpportunity(s.id);
+              return {
+                ...s,
+                applicationCount: apps.length || 0
+              };
+            } catch (error) {
+              console.error(`Error fetching applications for scholarship ${s.id}:`, error);
+              return { ...s, applicationCount: 0 };
+            }
+          })
+        );
+        
+        setScholarships(scholarshipsWithCounts);
+      } catch (error: any) {
+        console.error('Error fetching scholarships:', error);
+        toast.error('Không thể tải danh sách học bổng: ' + (error?.message || 'Lỗi không xác định'));
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchScholarships();
+  }, []);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
   const [formData, setFormData] = useState({
@@ -96,6 +151,71 @@ export default function ProviderScholarshipsPage() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle delete scholarship
+  const handleDelete = async (scholarshipId: string) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa học bổng này?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await scholarshipServiceApi.deleteOpportunity(scholarshipId);
+      toast.success('Xóa học bổng thành công!');
+      
+      // Refresh list
+      const data = await scholarshipServiceApi.getMyOpportunities();
+      const mappedScholarships: Scholarship[] = data.map((opp: any) => ({
+        id: String(opp.id),
+        title: opp.title,
+        description: opp.description || opp.fullDescription || '',
+        amount: opp.scholarshipAmount ? formatCurrency(opp.scholarshipAmount) : 'N/A',
+        applicationDeadline: opp.applicationDeadline,
+        startDate: opp.startDate,
+        endDate: opp.endDate,
+        level: opp.level || '',
+        studyMode: opp.studyMode || '',
+        minGpa: opp.minGpa,
+        providerId: String(opp.creatorUserId || ''),
+        providerName: opp.organizationId ? `Organization ${opp.organizationId}` : 'My Organization',
+        status: opp.moderationStatus === 'APPROVED' ? ScholarshipStatus.PUBLISHED :
+               opp.moderationStatus === 'PENDING' ? ScholarshipStatus.PENDING :
+               opp.moderationStatus === 'REJECTED' ? ScholarshipStatus.REJECTED :
+               ScholarshipStatus.DRAFT,
+        tags: opp.tags || [],
+        requiredSkills: opp.requiredSkills || [],
+        contactEmail: opp.contactEmail,
+        website: opp.website,
+        isPublic: opp.isPublic,
+        viewsCnt: opp.viewsCnt || 0,
+        applicationCount: 0,
+      }));
+      
+      // Fetch application counts
+      const scholarshipsWithCounts = await Promise.all(
+        mappedScholarships.map(async (s) => {
+          try {
+            const apps = await scholarshipServiceApi.getApplicationsForOpportunity(s.id);
+            return { ...s, applicationCount: apps.length || 0 };
+          } catch (error) {
+            return { ...s, applicationCount: 0 };
+          }
+        })
+      );
+      
+      setScholarships(scholarshipsWithCounts);
+    } catch (error: any) {
+      console.error('Error deleting scholarship:', error);
+      toast.error('Xóa học bổng thất bại: ' + (error?.message || 'Lỗi không xác định'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle edit - redirect to edit page
+  const handleEdit = (scholarshipId: string) => {
+    router.push(`/employer/scholarships/${scholarshipId}/edit`);
   };
 
   const stats = {
@@ -341,7 +461,14 @@ export default function ProviderScholarshipsPage() {
 
         {/* Scholarships List */}
         <div className="space-y-6">
-          {filteredScholarships.length === 0 ? (
+          {loading ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <p className="text-muted-foreground">Đang tải danh sách học bổng...</p>
+              </CardContent>
+            </Card>
+          ) : filteredScholarships.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <DollarSign className="h-12 w-12 text-muted-foreground mb-4" />
@@ -422,12 +549,23 @@ export default function ProviderScholarshipsPage() {
                               <ScholarshipDetailModal scholarship={scholarship} />
                             </Dialog>
 
-                            <Button variant="outline" size="sm" className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white transition-colors">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="border-green-600 text-green-600 hover:bg-green-600 hover:text-white transition-colors"
+                              onClick={() => handleEdit(scholarship.id)}
+                            >
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </Button>
 
-                            <Button variant="outline" size="sm" className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition-colors">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition-colors"
+                              onClick={() => handleDelete(scholarship.id)}
+                              disabled={loading}
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>

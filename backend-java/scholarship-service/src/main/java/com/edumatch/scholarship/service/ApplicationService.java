@@ -67,6 +67,18 @@ public class ApplicationService {
         app.setStatus("PENDING");
         // app.setNotes(null); // Ghi chú (nếu có)
 
+        // 2.5. Lưu các trường bổ sung từ request (nếu có)
+        app.setApplicantUserName(request.getApplicantUserName() != null ? request.getApplicantUserName() : user.getUsername());
+        app.setApplicantEmail(request.getApplicantEmail());
+        app.setPhone(request.getPhone());
+        app.setGpa(request.getGpa());
+        app.setCoverLetter(request.getCoverLetter());
+        app.setMotivation(request.getMotivation());
+        app.setAdditionalInfo(request.getAdditionalInfo());
+        app.setPortfolioUrl(request.getPortfolioUrl());
+        app.setLinkedinUrl(request.getLinkedinUrl());
+        app.setGithubUrl(request.getGithubUrl());
+
         // 3. Lưu Application vào DB để lấy ID
         Application savedApp = applicationRepository.save(app);
         log.info("Đã tạo đơn ứng tuyển mới với ID: {}", savedApp.getId());

@@ -18,6 +18,19 @@ public class ApplicationDto {
     private LocalDateTime submittedAt;
     private List<ApplicationDocumentDto> documents;
 
+    // --- CÁC TRƯỜNG BỔ SUNG TỪ FRONTEND ---
+    private String applicantUserName;
+    private String applicantEmail;
+    private String phone;
+    private java.math.BigDecimal gpa;
+    private String coverLetter;
+    private String motivation;
+    private String additionalInfo;
+    private String portfolioUrl;
+    private String linkedinUrl;
+    private String githubUrl;
+    // --- ------------------------------ ---
+
     // Hàm helper để chuyển từ Entity -> DTO
     public static ApplicationDto fromEntity(Application app, List<ApplicationDocument> docs) {
 
@@ -37,6 +50,16 @@ public class ApplicationDto {
                 .status(app.getStatus())
                 .submittedAt(app.getSubmittedAt())
                 .documents(docDtos)
+                .applicantUserName(app.getApplicantUserName())
+                .applicantEmail(app.getApplicantEmail())
+                .phone(app.getPhone())
+                .gpa(app.getGpa())
+                .coverLetter(app.getCoverLetter())
+                .motivation(app.getMotivation())
+                .additionalInfo(app.getAdditionalInfo())
+                .portfolioUrl(app.getPortfolioUrl())
+                .linkedinUrl(app.getLinkedinUrl())
+                .githubUrl(app.getGithubUrl())
                 .build();
     }
 

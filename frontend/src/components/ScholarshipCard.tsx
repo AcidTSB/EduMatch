@@ -32,9 +32,11 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
       try {
         // Chuyển ID sang string nếu cần
         const status = await checkApplicationStatus(scholarship.id.toString());
-        setHasApplied(!!status);
+        // checkApplicationStatus returns { hasApplied: boolean, application?: ... }
+        setHasApplied(status?.hasApplied || false);
       } catch (error) {
-        // Failed to check application status
+        // Failed to check application status - default to false
+        setHasApplied(false);
       } finally {
         setLoading(false);
       }

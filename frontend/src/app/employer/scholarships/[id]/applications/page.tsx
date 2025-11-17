@@ -1,18 +1,3 @@
-  // Helper to get applicant profile by applicantId
-  const getApplicantProfile = (applicantId: string) => {
-    // Replace with actual lookup from USER_PROFILES context or mock data
-    return {
-      name: 'Unknown',
-      email: 'Unknown',
-      university: 'Unknown',
-      major: 'Unknown',
-      gpa: 'N/A',
-      avatar: '',
-      skills: [],
-      bio: '',
-      graduationYear: 'Unknown',
-    };
-  };
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -39,24 +24,44 @@ import {
   Calendar,
   MapPin,
   Star,
-  Send
+  Send,
+  FileText,
+  Download
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { useApplicationsData, useScholarshipsData, useApp } from '@/contexts/AppContext';
+import { useApp } from '@/contexts/AppContext';
 import { useRealTime } from '@/providers/RealTimeProvider';
 import { Application, Scholarship, ApplicationStatus } from '@/types';
+import { scholarshipServiceApi } from '@/services/scholarship.service';
+import { useRouter } from 'next/navigation';
+
+// Helper to get applicant profile by applicantId
+const getApplicantProfile = (applicantId: string) => {
+  // Replace with actual lookup from USER_PROFILES context or mock data
+  return {
+    name: 'Unknown',
+    email: 'Unknown',
+    university: 'Unknown',
+    major: 'Unknown',
+    gpa: 'N/A',
+    avatar: '',
+    skills: [],
+    bio: '',
+    graduationYear: 'Unknown',
+  };
+};
 
 export default function ScholarshipApplicationsPage() {
   const params = useParams();
+  const router = useRouter();
   const scholarshipId = params.id as string;
   
-  // Use AppContext data
-  const { applications: allApplications } = useApplicationsData();
-  const { scholarships } = useScholarshipsData();
   const { addNotification } = useApp();
   const { sendMessage } = useRealTime();
   
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [scholarship, setScholarship] = useState<any>(null);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
@@ -64,16 +69,63 @@ export default function ScholarshipApplicationsPage() {
   const [messageSubject, setMessageSubject] = useState('');
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
 
-  // Get scholarship and its applications from AppContext
-  const scholarship = useMemo(() => 
-    scholarships.find(s => s.id === scholarshipId), 
-    [scholarships, scholarshipId]
-  );
-  
-  const applications = useMemo(() => 
-    allApplications.filter(app => app.scholarshipId === scholarshipId),
-    [allApplications, scholarshipId]
-  );
+  // Fetch scholarship and applications from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch scholarship
+        const opportunities = await scholarshipServiceApi.getMyOpportunities();
+        const foundScholarship = opportunities.find((opp: any) => String(opp.id) === scholarshipId);
+        
+        if (!foundScholarship) {
+          toast.error('Không tìm thấy học bổng');
+          router.push('/employer/scholarships');
+          return;
+        }
+        
+        setScholarship(foundScholarship);
+        
+        // Fetch applications
+        const apps = await scholarshipServiceApi.getApplicationsForOpportunity(scholarshipId);
+        
+        // Map API response to Application format
+        const mappedApplications: Application[] = apps.map((app: any) => ({
+          id: String(app.id),
+          scholarshipId: String(app.opportunityId),
+          applicantId: String(app.applicantUserId),
+          status: app.status || 'SUBMITTED',
+          additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
+          createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+          updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+          // Additional fields from backend
+          submittedAt: app.submittedAt || app.createdAt,
+          coverLetter: app.coverLetter || '',
+          motivation: app.motivation || '',
+          additionalInfo: app.additionalInfo || '',
+          portfolioUrl: app.portfolioUrl || '',
+          linkedinUrl: app.linkedinUrl || '',
+          githubUrl: app.githubUrl || '',
+          applicantUserName: app.applicantUserName,
+          applicantEmail: app.applicantEmail,
+          phone: app.phone,
+          gpa: app.gpa ? Number(app.gpa) : undefined,
+        }));
+        
+        setApplications(mappedApplications);
+      } catch (error: any) {
+        console.error('Error fetching data:', error);
+        toast.error('Không thể tải dữ liệu: ' + (error?.message || 'Lỗi không xác định'));
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    if (scholarshipId) {
+      fetchData();
+    }
+  }, [scholarshipId, router]);
 
   // Memoize filtered applications to prevent infinite re-renders
   const filteredApplications = useMemo(() => {
@@ -99,11 +151,39 @@ export default function ScholarshipApplicationsPage() {
 
   const handleStatusUpdate = async (applicationId: string, newStatus: string) => {
     try {
-      // This would update the application status in real implementation
-      console.log('Updating application', applicationId, 'to status', newStatus);
-      toast.success(`Application ${newStatus} successfully!`);
-    } catch (error) {
-      toast.error('Failed to update application status');
+      setLoading(true);
+      await scholarshipServiceApi.updateApplicationStatus(applicationId, newStatus);
+      toast.success(`Cập nhật trạng thái thành công!`);
+      
+      // Refresh applications list
+      const apps = await scholarshipServiceApi.getApplicationsForOpportunity(scholarshipId);
+      const mappedApplications: Application[] = apps.map((app: any) => ({
+        id: String(app.id),
+        scholarshipId: String(app.opportunityId),
+        applicantId: String(app.applicantUserId),
+        status: app.status || 'SUBMITTED',
+        additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
+        createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+        updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+        // Additional fields from backend
+        submittedAt: app.submittedAt || app.createdAt,
+        coverLetter: app.coverLetter || '',
+        motivation: app.motivation || '',
+        additionalInfo: app.additionalInfo || '',
+        portfolioUrl: app.portfolioUrl || '',
+        linkedinUrl: app.linkedinUrl || '',
+        githubUrl: app.githubUrl || '',
+        applicantUserName: app.applicantUserName,
+        applicantEmail: app.applicantEmail,
+        phone: app.phone,
+        gpa: app.gpa ? Number(app.gpa) : undefined,
+      }));
+      setApplications(mappedApplications);
+    } catch (error: any) {
+      console.error('Error updating application status:', error);
+      toast.error('Cập nhật trạng thái thất bại: ' + (error?.message || 'Lỗi không xác định'));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -192,20 +272,15 @@ export default function ScholarshipApplicationsPage() {
   if (loading) {
     return (
       <div className="container mx-auto py-8">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/3 mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2 mb-8"></div>
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
-            ))}
-          </div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Đang tải dữ liệu...</p>
         </div>
       </div>
     );
   }
 
-  if (!scholarship) {
+  if (!scholarship && !loading) {
     return (
       <div className="container mx-auto py-8">
         <div className="text-center">
@@ -221,9 +296,9 @@ export default function ScholarshipApplicationsPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Applications for "{scholarship.title}"
+          Applications for "{scholarship.title || scholarship.fullDescription?.substring(0, 50)}"
         </h1>
-        <p className="text-gray-600 mb-4">{scholarship.description}</p>
+        <p className="text-gray-600 mb-4">{scholarship.description || scholarship.fullDescription || ''}</p>
         <div className="flex items-center gap-4 text-sm text-gray-500">
           <span className="flex items-center gap-1">
             <Users className="h-4 w-4" />
@@ -235,7 +310,7 @@ export default function ScholarshipApplicationsPage() {
           </span>
           <span className="flex items-center gap-1">
             <GraduationCap className="h-4 w-4" />
-            ${scholarship.amount?.toLocaleString() || 'TBA'}/year
+            ${scholarship.scholarshipAmount?.toLocaleString() || 'TBA'}/year
           </span>
         </div>
       </div>
@@ -343,73 +418,147 @@ export default function ScholarshipApplicationsPage() {
                           View Details
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                          <DialogTitle>Application Details - {getApplicantProfile(application.applicantId).name}</DialogTitle>
+                          <DialogTitle>Application Details - {application.applicantUserName || getApplicantProfile(application.applicantId).name}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-6">
-                          {/* Personal Info */}
+                          {/* Personal Information */}
                           <div>
-                            <h4 className="font-semibold mb-2">Personal Information</h4>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
+                            <h4 className="font-semibold mb-3 text-lg">Personal Information</h4>
+                            <div className="grid grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded-lg">
                               <div>
-                                <span className="text-gray-500">Email:</span>
-                                {getApplicantProfile(application.applicantId).email}
+                                <span className="text-gray-500 font-medium">Name:</span>
+                                <p className="text-gray-900 mt-1">{application.applicantUserName || 'N/A'}</p>
                               </div>
                               <div>
-                                <span className="text-gray-500">University:</span>
-                                {getApplicantProfile(application.applicantId).university}
+                                <span className="text-gray-500 font-medium">Email:</span>
+                                <p className="text-gray-900 mt-1">{application.applicantEmail || getApplicantProfile(application.applicantId).email}</p>
                               </div>
                               <div>
-                                <span className="text-gray-500">Major:</span>
-                                {getApplicantProfile(application.applicantId).major}
+                                <span className="text-gray-500 font-medium">Phone:</span>
+                                <p className="text-gray-900 mt-1">{application.phone || 'N/A'}</p>
                               </div>
                               <div>
-                                <span className="text-gray-500">GPA:</span>
-                                {getApplicantProfile(application.applicantId).gpa}
+                                <span className="text-gray-500 font-medium">GPA:</span>
+                                <p className="text-gray-900 mt-1">{application.gpa ? `${application.gpa}/4.0` : getApplicantProfile(application.applicantId).gpa || 'N/A'}</p>
                               </div>
                               <div>
-                                <span className="text-gray-500">Graduation Year:</span>
-                                {getApplicantProfile(application.applicantId).graduationYear}
+                                <span className="text-gray-500 font-medium">University:</span>
+                                <p className="text-gray-900 mt-1">{getApplicantProfile(application.applicantId).university}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500 font-medium">Major:</span>
+                                <p className="text-gray-900 mt-1">{getApplicantProfile(application.applicantId).major}</p>
                               </div>
                             </div>
-                          </div>
-
-                          {/* Skills */}
-                          <div>
-                            <h4 className="font-semibold mb-2">Skills</h4>
-                            <div className="flex flex-wrap gap-1">
-                              {getApplicantProfile(application.applicantId).skills.map((skill: string) => (
-                                <Badge key={skill} variant="secondary" className="text-xs">
-                                  {skill}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Experience */}
-                          <div>
-                            <h4 className="font-semibold mb-2">Bio</h4>
-                            {getApplicantProfile(application.applicantId).bio || 'No bio provided'}
                           </div>
 
                           {/* Cover Letter */}
-                          <div>
-                            <h4 className="font-semibold mb-2">Cover Letter</h4>
-                            {/* coverLetter removed, not in Application type */}
-                          </div>
+                          {application.coverLetter && (
+                            <div>
+                              <h4 className="font-semibold mb-2 text-lg">Cover Letter</h4>
+                              <div className="bg-gray-50 p-4 rounded-lg">
+                                <p className="text-sm text-gray-700 whitespace-pre-wrap">{application.coverLetter}</p>
+                              </div>
+                            </div>
+                          )}
 
-                          {/* Additional Documents */}
+                          {/* Motivation */}
+                          {application.motivation && (
+                            <div>
+                              <h4 className="font-semibold mb-2 text-lg">Motivation</h4>
+                              <div className="bg-gray-50 p-4 rounded-lg">
+                                <p className="text-sm text-gray-700 whitespace-pre-wrap">{application.motivation}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Additional Information */}
+                          {application.additionalInfo && (
+                            <div>
+                              <h4 className="font-semibold mb-2 text-lg">Additional Information</h4>
+                              <div className="bg-gray-50 p-4 rounded-lg">
+                                <p className="text-sm text-gray-700 whitespace-pre-wrap">{application.additionalInfo}</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Portfolio & Social Links */}
+                          {(application.portfolioUrl || application.linkedinUrl || application.githubUrl) && (
+                            <div>
+                              <h4 className="font-semibold mb-2 text-lg">Portfolio & Social Links</h4>
+                              <div className="space-y-2">
+                                {application.portfolioUrl && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-gray-500 text-sm w-24">Portfolio:</span>
+                                    <a href={application.portfolioUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
+                                      {application.portfolioUrl}
+                                    </a>
+                                  </div>
+                                )}
+                                {application.linkedinUrl && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-gray-500 text-sm w-24">LinkedIn:</span>
+                                    <a href={application.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
+                                      {application.linkedinUrl}
+                                    </a>
+                                  </div>
+                                )}
+                                {application.githubUrl && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-gray-500 text-sm w-24">GitHub:</span>
+                                    <a href={application.githubUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
+                                      {application.githubUrl}
+                                    </a>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Documents */}
                           {application.additionalDocs && application.additionalDocs.length > 0 && (
                             <div>
-                              <h4 className="font-semibold mb-2">Additional Documents</h4>
-                              <div className="space-y-1">
+                              <h4 className="font-semibold mb-2 text-lg">Documents</h4>
+                              <div className="space-y-2">
                                 {application.additionalDocs.map((doc: string, index: number) => (
-                                  <p key={index} className="text-sm text-blue-600">{doc}</p>
+                                  <div key={index} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                                    <FileText className="h-4 w-4 text-gray-500" />
+                                    <a href={doc} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex-1">
+                                      {doc}
+                                    </a>
+                                    <Button variant="ghost" size="sm" asChild>
+                                      <a href={doc} download>
+                                        <Download className="h-4 w-4" />
+                                      </a>
+                                    </Button>
+                                  </div>
                                 ))}
                               </div>
                             </div>
                           )}
+
+                          {/* Application Metadata */}
+                          <div>
+                            <h4 className="font-semibold mb-2 text-lg">Application Information</h4>
+                            <div className="grid grid-cols-2 gap-4 text-sm bg-gray-50 p-4 rounded-lg">
+                              <div>
+                                <span className="text-gray-500 font-medium">Status:</span>
+                                <Badge variant={getStatusVariant(application.status)} className="ml-2">
+                                  {getStatusLabel(application.status)}
+                                </Badge>
+                              </div>
+                              <div>
+                                <span className="text-gray-500 font-medium">Submitted:</span>
+                                <p className="text-gray-900 mt-1">{application.createdAt ? formatDate(application.createdAt.toString()) : 'N/A'}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500 font-medium">Application ID:</span>
+                                <p className="text-gray-900 mt-1">{application.id}</p>
+                              </div>
+                            </div>
+                          </div>
 
                           {/* Status Actions */}
                           <div>

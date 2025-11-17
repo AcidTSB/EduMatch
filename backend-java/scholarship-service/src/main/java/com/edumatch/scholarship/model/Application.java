@@ -42,4 +42,39 @@ public class Application {
     // Ghi chú của nhà tuyển dụng (ví dụ: lý do từ chối)
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    // --- CÁC TRƯỜNG BỔ SUNG TỪ FRONTEND ---
+    // Thông tin ứng viên
+    @Column(name = "applicant_user_name", length = 255)
+    private String applicantUserName;
+
+    @Column(name = "applicant_email", length = 255)
+    private String applicantEmail;
+
+    @Column(name = "phone", length = 50)
+    private String phone;
+
+    @Column(name = "gpa", precision = 3, scale = 2)
+    private java.math.BigDecimal gpa;
+
+    // Nội dung đơn ứng tuyển
+    @Column(name = "cover_letter", columnDefinition = "TEXT")
+    private String coverLetter;
+
+    @Column(name = "motivation", columnDefinition = "TEXT")
+    private String motivation;
+
+    @Column(name = "additional_info", columnDefinition = "TEXT")
+    private String additionalInfo;
+
+    // Links
+    @Column(name = "portfolio_url", length = 500)
+    private String portfolioUrl;
+
+    @Column(name = "linkedin_url", length = 500)
+    private String linkedinUrl;
+
+    @Column(name = "github_url", length = 500)
+    private String githubUrl;
+    // --- ------------------------------ ---
 }

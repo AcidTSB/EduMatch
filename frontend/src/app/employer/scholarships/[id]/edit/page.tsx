@@ -29,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { scholarshipServiceApi, CreateOpportunityRequest } from '@/services/scholarship.service';
 
 // Mock data for the scholarship
 const mockScholarship = {
@@ -91,103 +92,189 @@ const mockScholarship = {
   updatedAt: '2024-09-15'
 };
 
+// Enums matching API
+enum ScholarshipLevel {
+  UNDERGRADUATE = 'UNDERGRADUATE',
+  MASTER = 'MASTER',
+  PHD = 'PHD',
+  POSTDOC = 'POSTDOC',
+  RESEARCH = 'RESEARCH',
+}
+
+enum StudyMode {
+  FULL_TIME = 'FULL_TIME',
+  PART_TIME = 'PART_TIME',
+  ONLINE = 'ONLINE',
+  HYBRID = 'HYBRID',
+}
+
 export default function EditScholarshipPage() {
   const params = useParams();
   const router = useRouter();
   const scholarshipId = params.id as string;
   
-  const [scholarship, setScholarship] = useState(mockScholarship);
+  const [loading, setLoading] = useState(true);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
 
-  // Form state
+  // Form state matching CreateOpportunityRequest
   const [formData, setFormData] = useState({
-    title: scholarship.title,
-    description: scholarship.description,
-    longDescription: scholarship.longDescription,
-    requirements: scholarship.requirements,
-    benefits: scholarship.benefits,
-    deadline: scholarship.application.deadline,
-    amount: scholarship.funding.amount,
-    duration: scholarship.funding.duration,
-    category: scholarship.category,
-    tags: scholarship.tags,
-    status: scholarship.status,
-    contactEmail: scholarship.contactEmail,
-    organization: scholarship.organization,
-    location: scholarship.location,
-    minGPA: scholarship.eligibility.minGPA,
-    academicLevel: scholarship.eligibility.academicLevel,
-    majors: scholarship.eligibility.majors,
-    citizenship: scholarship.eligibility.citizenship,
-    documentsRequired: scholarship.application.documentsRequired,
-    interviews: scholarship.application.interviews,
-    additionalQuestions: scholarship.application.additionalQuestions,
-    renewable: scholarship.funding.renewable
+    title: '',
+    fullDescription: '',
+    applicationDeadline: '',
+    startDate: '',
+    endDate: '',
+    scholarshipAmount: '',
+    minGpa: '',
+    minGPA: 0,
+    studyMode: StudyMode.FULL_TIME,
+    level: ScholarshipLevel.MASTER,
+    isPublic: true,
+    contactEmail: '',
+    website: '',
+    tags: '',
+    requiredSkills: '',
+    // Additional fields for UI
+    requirements: [] as string[],
+    benefits: [] as string[],
+    citizenship: 'any',
+    academicLevel: [] as string[],
+    majors: [] as string[],
+    documentsRequired: [] as string[],
+    interviews: false,
+    additionalQuestions: [] as string[],
   });
 
+  // Fetch scholarship data on mount
   useEffect(() => {
-    // Mark as dirty when form data changes
-    const hasChanges = JSON.stringify(formData) !== JSON.stringify({
-      title: scholarship.title,
-      description: scholarship.description,
-      longDescription: scholarship.longDescription,
-      requirements: scholarship.requirements,
-      benefits: scholarship.benefits,
-      deadline: scholarship.application.deadline,
-      amount: scholarship.funding.amount,
-      duration: scholarship.funding.duration,
-      category: scholarship.category,
-      tags: scholarship.tags,
-      status: scholarship.status,
-      contactEmail: scholarship.contactEmail,
-      organization: scholarship.organization,
-      location: scholarship.location,
-      minGPA: scholarship.eligibility.minGPA,
-      academicLevel: scholarship.eligibility.academicLevel,
-      majors: scholarship.eligibility.majors,
-      citizenship: scholarship.eligibility.citizenship,
-      documentsRequired: scholarship.application.documentsRequired,
-      interviews: scholarship.application.interviews,
-      additionalQuestions: scholarship.application.additionalQuestions,
-      renewable: scholarship.funding.renewable
-    });
-    setIsDirty(hasChanges);
-  }, [formData, scholarship]);
+    const fetchScholarship = async () => {
+      try {
+        setLoading(true);
+        // Get all opportunities and find the one with matching ID
+        const data = await scholarshipServiceApi.getMyOpportunities();
+        const scholarship = data.find((opp: any) => String(opp.id) === scholarshipId);
+        
+        if (!scholarship) {
+          toast.error('Không tìm thấy học bổng');
+          router.push('/employer/scholarships');
+          return;
+        }
+
+        // Map API data to form
+        setFormData({
+          title: scholarship.title || '',
+          fullDescription: scholarship.description || '',
+          applicationDeadline: scholarship.applicationDeadline || '',
+          startDate: scholarship.startDate || '',
+          endDate: scholarship.endDate || '',
+          scholarshipAmount: scholarship.scholarshipAmount ? String(scholarship.scholarshipAmount) : '',
+          minGpa: scholarship.minGpa ? String(scholarship.minGpa) : '',
+          minGPA: scholarship.minGpa || 0,
+          studyMode: (scholarship.studyMode as StudyMode) || StudyMode.FULL_TIME,
+          level: (scholarship.level as ScholarshipLevel) || ScholarshipLevel.MASTER,
+          isPublic: scholarship.isPublic !== undefined ? scholarship.isPublic : true,
+          contactEmail: scholarship.contactEmail || '',
+          website: scholarship.website || '',
+          tags: scholarship.tags ? scholarship.tags.join(', ') : '',
+          requiredSkills: scholarship.requiredSkills ? scholarship.requiredSkills.join(', ') : '',
+          // Additional fields - initialize with defaults
+          requirements: [],
+          benefits: [],
+          citizenship: 'any',
+          academicLevel: [],
+          majors: [],
+          documentsRequired: [],
+          interviews: false,
+          additionalQuestions: [],
+        });
+      } catch (error: any) {
+        console.error('Error fetching scholarship:', error);
+        toast.error('Không thể tải thông tin học bổng: ' + (error?.message || 'Lỗi không xác định'));
+        router.push('/employer/scholarships');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (scholarshipId) {
+      fetchScholarship();
+    }
+  }, [scholarshipId, router]);
+
+  // Track if form is dirty (simplified - can be enhanced)
+  useEffect(() => {
+    // Simple dirty check - form has been modified
+    setIsDirty(true);
+  }, [formData]);
 
   const handleSave = async () => {
+    // Validate required fields
+    if (!formData.title.trim()) {
+      toast.error('Vui lòng nhập tiêu đề học bổng');
+      return;
+    }
+    if (!formData.fullDescription.trim()) {
+      toast.error('Vui lòng nhập mô tả học bổng');
+      return;
+    }
+    if (!formData.applicationDeadline) {
+      toast.error('Vui lòng chọn hạn nộp đơn');
+      return;
+    }
+    if (!formData.startDate) {
+      toast.error('Vui lòng chọn ngày bắt đầu');
+      return;
+    }
+    if (!formData.scholarshipAmount) {
+      toast.error('Vui lòng nhập số tiền học bổng');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Update scholarship with form data
-      setScholarship(prev => ({
-        ...prev,
-        ...formData,
-        updatedAt: new Date().toISOString().split('T')[0]
-      }));
+      // Prepare API body
+      const splitByComma = (str: string) =>
+        str.split(',').map((item) => item.trim()).filter(Boolean);
+
+      const apiBody: CreateOpportunityRequest = {
+        title: formData.title.trim(),
+        fullDescription: formData.fullDescription.trim(),
+        applicationDeadline: formData.applicationDeadline,
+        startDate: formData.startDate,
+        endDate: formData.endDate || null,
+        scholarshipAmount: parseFloat(formData.scholarshipAmount),
+        minGpa: formData.minGpa ? parseFloat(formData.minGpa) : undefined,
+        studyMode: formData.studyMode,
+        level: formData.level,
+        isPublic: formData.isPublic,
+        contactEmail: formData.contactEmail || undefined,
+        website: formData.website || null,
+        tags: formData.tags ? splitByComma(formData.tags) : [],
+        requiredSkills: formData.requiredSkills ? splitByComma(formData.requiredSkills) : [],
+      };
+
+      // Call API to update
+      await scholarshipServiceApi.updateOpportunity(scholarshipId, apiBody);
       
       setIsDirty(false);
-      toast.success('Scholarship updated successfully!');
-    } catch (error) {
-      toast.error('Failed to update scholarship. Please try again.');
+      toast.success('Cập nhật học bổng thành công!');
+      router.push('/employer/scholarships');
+    } catch (error: any) {
+      console.error('Error updating scholarship:', error);
+      toast.error('Cập nhật học bổng thất bại: ' + (error?.message || 'Lỗi không xác định'));
     } finally {
       setIsSaving(false);
     }
   };
 
   const handlePublishToggle = () => {
-    const newStatus = formData.status === 'published' ? 'draft' : 'published';
-    setFormData(prev => ({ ...prev, status: newStatus }));
+    setFormData(prev => ({ ...prev, isPublic: !prev.isPublic }));
   };
 
+  // Helper functions for managing arrays
   const addRequirement = () => {
-    setFormData(prev => ({
-      ...prev,
-      requirements: [...prev.requirements, '']
-    }));
+    setFormData(prev => ({ ...prev, requirements: [...prev.requirements, ''] }));
   };
 
   const updateRequirement = (index: number, value: string) => {
@@ -205,10 +292,7 @@ export default function EditScholarshipPage() {
   };
 
   const addBenefit = () => {
-    setFormData(prev => ({
-      ...prev,
-      benefits: [...prev.benefits, '']
-    }));
+    setFormData(prev => ({ ...prev, benefits: [...prev.benefits, ''] }));
   };
 
   const updateBenefit = (index: number, value: string) => {
@@ -226,10 +310,7 @@ export default function EditScholarshipPage() {
   };
 
   const addQuestion = () => {
-    setFormData(prev => ({
-      ...prev,
-      additionalQuestions: [...prev.additionalQuestions, '']
-    }));
+    setFormData(prev => ({ ...prev, additionalQuestions: [...prev.additionalQuestions, ''] }));
   };
 
   const updateQuestion = (index: number, value: string) => {
@@ -245,6 +326,17 @@ export default function EditScholarshipPage() {
       additionalQuestions: prev.additionalQuestions.filter((_, i) => i !== index)
     }));
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Đang tải thông tin học bổng...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -269,10 +361,10 @@ export default function EditScholarshipPage() {
             
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2">
-                <Label htmlFor="publish-toggle">Published</Label>
+                <Label htmlFor="publish-toggle">Public</Label>
                 <Switch
                   id="publish-toggle"
-                  checked={formData.status === 'published'}
+                  checked={formData.isPublic}
                   onCheckedChange={handlePublishToggle}
                 />
               </div>
@@ -280,7 +372,7 @@ export default function EditScholarshipPage() {
               <Button variant="outline" asChild>
                 <Link href={`/employer/scholarships/${scholarshipId}/applications`}>
                   <Eye className="h-4 w-4 mr-2" />
-                  View Applications ({scholarship.applicationCount})
+                  View Applications
                 </Link>
               </Button>
               
@@ -328,76 +420,92 @@ export default function EditScholarshipPage() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="organization">Organization *</Label>
+                    <Label htmlFor="website">Website (Optional)</Label>
                     <Input
-                      id="organization"
-                      value={formData.organization}
-                      onChange={(e) => setFormData(prev => ({ ...prev, organization: e.target.value }))}
-                      placeholder="Organization name"
+                      id="website"
+                      type="url"
+                      value={formData.website}
+                      onChange={(e) => setFormData(prev => ({ ...prev, website: e.target.value }))}
+                      placeholder="https://example.com"
                     />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="level">Level *</Label>
+                    <Select
+                      value={formData.level}
+                      onValueChange={(value) => {
+                        const level = value as ScholarshipLevel;
+                        setFormData(prev => ({ ...prev, level }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(ScholarshipLevel).map((level) => (
+                          <SelectItem key={level} value={level}>
+                            {level}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="studyMode">Study Mode *</Label>
+                    <Select
+                      value={formData.studyMode}
+                      onValueChange={(value) => {
+                        const studyMode = value as StudyMode;
+                        setFormData(prev => ({ ...prev, studyMode }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select study mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(StudyMode).map((mode) => (
+                          <SelectItem key={mode} value={mode}>
+                            {mode}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Short Description *</Label>
+                  <Label htmlFor="fullDescription">Full Description *</Label>
                   <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Brief description of the scholarship"
-                    className="min-h-[100px]"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="longDescription">Detailed Description</Label>
-                  <Textarea
-                    id="longDescription"
-                    value={formData.longDescription}
-                    onChange={(e) => setFormData(prev => ({ ...prev, longDescription: e.target.value }))}
+                    id="fullDescription"
+                    value={formData.fullDescription}
+                    onChange={(e) => setFormData(prev => ({ ...prev, fullDescription: e.target.value }))}
                     placeholder="Detailed description of the scholarship program"
                     className="min-h-[200px]"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
-                    <Select
-                      value={formData.category}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="research">Research</SelectItem>
-                        <SelectItem value="academic">Academic Excellence</SelectItem>
-                        <SelectItem value="need-based">Need-based</SelectItem>
-                        <SelectItem value="merit">Merit-based</SelectItem>
-                        <SelectItem value="diversity">Diversity & Inclusion</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="location">Location</Label>
+                    <Label htmlFor="tags">Tags (comma-separated)</Label>
                     <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="Location/Remote"
+                      id="tags"
+                      value={formData.tags}
+                      onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+                      placeholder="research, AI, machine learning"
                     />
                   </div>
-
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="contactEmail">Contact Email *</Label>
+                    <Label htmlFor="requiredSkills">Required Skills (comma-separated)</Label>
                     <Input
-                      id="contactEmail"
-                      type="email"
-                      value={formData.contactEmail}
-                      onChange={(e) => setFormData(prev => ({ ...prev, contactEmail: e.target.value }))}
-                      placeholder="contact@organization.edu"
+                      id="requiredSkills"
+                      value={formData.requiredSkills}
+                      onChange={(e) => setFormData(prev => ({ ...prev, requiredSkills: e.target.value }))}
+                      placeholder="Python, TensorFlow, Research"
                     />
                   </div>
                 </div>
@@ -412,46 +520,63 @@ export default function EditScholarshipPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="amount">Amount (USD) *</Label>
+                    <Label htmlFor="scholarshipAmount">Scholarship Amount (USD) *</Label>
                     <Input
-                      id="amount"
+                      id="scholarshipAmount"
                       type="number"
-                      value={formData.amount}
-                      onChange={(e) => setFormData(prev => ({ ...prev, amount: parseInt(e.target.value) }))}
+                      value={formData.scholarshipAmount}
+                      onChange={(e) => setFormData(prev => ({ ...prev, scholarshipAmount: e.target.value }))}
                       placeholder="50000"
                     />
                   </div>
-
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="duration">Duration *</Label>
+                    <Label htmlFor="minGpa">Min GPA</Label>
                     <Input
-                      id="duration"
-                      value={formData.duration}
-                      onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
-                      placeholder="12 months"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="deadline">Application Deadline *</Label>
-                    <Input
-                      id="deadline"
-                      type="date"
-                      value={formData.deadline}
-                      onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
+                      id="minGpa"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="4.0"
+                      value={formData.minGpa}
+                      onChange={(e) => setFormData(prev => ({ ...prev, minGpa: e.target.value }))}
+                      placeholder="3.5"
                     />
                   </div>
                 </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="renewable"
-                    checked={formData.renewable}
-                    onCheckedChange={(checked: boolean) => setFormData(prev => ({ ...prev, renewable: checked }))}
-                  />
-                  <Label htmlFor="renewable">Renewable funding</Label>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="applicationDeadline">Application Deadline *</Label>
+                    <Input
+                      id="applicationDeadline"
+                      type="date"
+                      value={formData.applicationDeadline}
+                      onChange={(e) => setFormData(prev => ({ ...prev, applicationDeadline: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="startDate">Start Date *</Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="endDate">End Date (Optional)</Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={formData.endDate}
+                      onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
