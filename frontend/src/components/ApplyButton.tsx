@@ -134,7 +134,7 @@ export function ApplyButton({
     }
   };
 
-  // Button content
+  // Button content - only show "Applied" if user has actually applied
   const buttonContent = children || (
     hasApplied ? (
       <>
@@ -151,6 +151,8 @@ export function ApplyButton({
     )
   );
 
+  // Only show "Applied" button if user has actually applied
+  // If hasApplied is false, show "Apply Now" button instead
   if (hasApplied) {
     return (
       <Button 

@@ -302,23 +302,24 @@ export default function ScholarshipsPage() {
             </p>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Stats - using real data from API */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
               <div className="text-2xl font-bold text-brand-blue-600">{totalElements > 0 ? `${totalElements}+` : '0'}</div>
               <div className="text-sm text-gray-600">{t('scholarshipList.stats.active')}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">$500M+</div>
-              <div className="text-sm text-gray-600">{t('scholarshipList.stats.totalValue')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">{uniqueFields.length}+</div>
               <div className="text-sm text-gray-600">{t('scholarshipList.stats.fields')}</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">95%</div>
-              <div className="text-sm text-gray-600">{t('scholarshipList.stats.matchRate')}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {scholarships.length > 0 
+                  ? `$${Math.round(scholarships.reduce((sum, s) => sum + (s.amount || 0), 0) / 1000000)}M+`
+                  : '$0'
+                }
+              </div>
+              <div className="text-sm text-gray-600">{t('scholarshipList.stats.totalValue')}</div>
             </div>
           </div>
         </div>

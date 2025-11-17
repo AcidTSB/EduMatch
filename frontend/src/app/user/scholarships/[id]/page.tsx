@@ -67,9 +67,10 @@ export default function ScholarshipDetailPage() {
         setScholarship(mapped.scholarship);
         setMatchScore(mapped.matchScore);
 
-        // Check if user has applied
+        // Check if user has applied - only set to true if explicitly confirmed
         const appStatus = await checkApplicationStatus(scholarshipId);
-        setHasApplied(appStatus?.hasApplied || false);
+        // checkApplicationStatus returns { hasApplied: boolean, application?: ... }
+        setHasApplied(appStatus?.hasApplied === true);
       } catch (error) {
         console.error('Error fetching scholarship:', error);
         toast.error(t('scholarshipDetail.loadError') || 'Failed to load scholarship');
@@ -456,14 +457,7 @@ export default function ScholarshipDetailPage() {
                   {/* SỬA 9: Đổi 'viewsCnt' thành 'viewCount' */}
                   <span className="font-medium">{scholarship.viewCount}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">
-                    {t('scholarshipDetail.applications')}
-                  </span>
-                  <span className="font-medium">
-                    {Math.floor(Math.random() * 50) + 10}
-                  </span>
-                </div>
+                {/* Applications count - removed static data, will be fetched from API if needed */}
               </CardContent>
             </Card>
 

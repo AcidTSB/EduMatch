@@ -35,6 +35,9 @@ import { formatDate } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import { ApplicationStatus } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { scholarshipServiceApi } from '@/services/scholarship.service';
+import { mapOpportunityDtoToScholarship } from '@/lib/scholarship-mapper';
+import { Application, Scholarship } from '@/types';
 
 export default function ProviderApplicationsPage() {
   const { t } = useLanguage();
@@ -44,16 +47,133 @@ export default function ProviderApplicationsPage() {
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
   const [messageText, setMessageText] = useState('');
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
+  
+  // Thay đổi: Fetch từ API thay vì AppContext
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Use AppContext hooks instead of API hooks
-  const { applications, loading, refetch: refetchApplications } = useApplicationsData();
-  const { scholarships, refetch: refetchScholarships } = useScholarshipsData();
+  // Fetch data từ API - chỉ lấy applications cho scholarships của employer
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // 1. Lấy danh sách scholarships của employer
+        const opps = await scholarshipServiceApi.getMyOpportunities();
+        const mappedScholarships = opps.map((opp: any) => mapOpportunityDtoToScholarship(opp));
+        setScholarships(mappedScholarships);
+        
+        // 2. Lấy applications cho từng scholarship của employer
+        const allApps: Application[] = [];
+        for (const opp of opps) {
+          try {
+            const apps = await scholarshipServiceApi.getApplicationsForOpportunity(opp.id);
+            const mappedApps = apps.map((app: any) => ({
+              id: app.id?.toString() || '',
+              applicantId: app.applicantUserId?.toString() || '',
+              scholarshipId: app.opportunityId?.toString() || '',
+              status: app.status || 'PENDING',
+              additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
+              createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+              updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+              submittedAt: app.submittedAt || app.createdAt,
+              // Include additional fields
+              applicantUserName: app.applicantUserName,
+              applicantEmail: app.applicantEmail,
+              phone: app.phone,
+              gpa: app.gpa ? Number(app.gpa) : undefined,
+              coverLetter: app.coverLetter,
+              motivation: app.motivation,
+              additionalInfo: app.additionalInfo,
+              portfolioUrl: app.portfolioUrl,
+              linkedinUrl: app.linkedinUrl,
+              githubUrl: app.githubUrl,
+              // Map applicant data for display
+              applicant: {
+                name: app.applicantUserName || 'Unknown',
+                email: app.applicantEmail || 'No email',
+                profile: {
+                  university: app.university || 'Not specified',
+                  major: app.major || 'Not specified',
+                  gpa: app.gpa || 'Not provided',
+                  graduationYear: app.graduationYear || 'Not specified',
+                  skills: app.skills || []
+                }
+              }
+            }));
+            allApps.push(...mappedApps);
+          } catch (err) {
+            console.error(`Error fetching applications for opportunity ${opp.id}:`, err);
+          }
+        }
+        setApplications(allApps);
+      } catch (error) {
+        console.error('Error fetching applications data:', error);
+        toast.error('Failed to load applications');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
 
-  // Mock functions for provider-specific actions
+  // Update application status function
   const updateApplicationStatus = async (applicationId: string, status: string) => {
-    // This would update the application status in real implementation
-    console.log('Updating application', applicationId, 'to status', status);
-    return true;
+    try {
+      await scholarshipServiceApi.updateApplicationStatus(applicationId, status);
+      // Refresh applications after update
+      const fetchData = async () => {
+        const opps = await scholarshipServiceApi.getMyOpportunities();
+        const allApps: Application[] = [];
+        for (const opp of opps) {
+          try {
+            const apps = await scholarshipServiceApi.getApplicationsForOpportunity(opp.id);
+            const mappedApps = apps.map((app: any) => ({
+              id: app.id?.toString() || '',
+              applicantId: app.applicantUserId?.toString() || '',
+              scholarshipId: app.opportunityId?.toString() || '',
+              status: app.status || 'PENDING',
+              additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
+              createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+              updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+              submittedAt: app.submittedAt || app.createdAt,
+              applicantUserName: app.applicantUserName,
+              applicantEmail: app.applicantEmail,
+              phone: app.phone,
+              gpa: app.gpa ? Number(app.gpa) : undefined,
+              coverLetter: app.coverLetter,
+              motivation: app.motivation,
+              additionalInfo: app.additionalInfo,
+              portfolioUrl: app.portfolioUrl,
+              linkedinUrl: app.linkedinUrl,
+              githubUrl: app.githubUrl,
+              applicant: {
+                name: app.applicantUserName || 'Unknown',
+                email: app.applicantEmail || 'No email',
+                profile: {
+                  university: app.university || 'Not specified',
+                  major: app.major || 'Not specified',
+                  gpa: app.gpa || 'Not provided',
+                  graduationYear: app.graduationYear || 'Not specified',
+                  skills: app.skills || []
+                }
+              }
+            }));
+            allApps.push(...mappedApps);
+          } catch (err) {
+            console.error(`Error fetching applications for opportunity ${opp.id}:`, err);
+          }
+        }
+        setApplications(allApps);
+      };
+      await fetchData();
+      return true;
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      throw error;
+    }
   };
 
   const sendMessage = async (applicationId: string, message: string) => {
@@ -63,8 +183,8 @@ export default function ProviderApplicationsPage() {
   };
 
   useEffect(() => {
-    refetchApplications();
-    refetchScholarships();
+    // refetchApplications(); // Removed as per new fetch logic
+    // refetchScholarships(); // Removed as per new fetch logic
   }, []);
 
   const handleStatusUpdate = async (applicationId: string, newStatus: string) => {
