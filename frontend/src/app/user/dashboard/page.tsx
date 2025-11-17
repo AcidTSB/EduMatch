@@ -33,9 +33,14 @@ import { RealTimeDashboardStats } from '@/components/RealTimeDashboardStats';
 import { RealTimeApplicationStatus } from '@/components/RealTimeApplicationStatus';
 import { MatchToast } from '@/components/MatchToast';
 import { ScholarshipCard } from '@/components/ScholarshipCard';
-import { useScholarshipsData, useApplicationsData, useNotificationsData } from '@/contexts/AppContext';
+import { useApplicationsData, useNotificationsData } from '@/contexts/AppContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { parseNotification } from '@/lib/notification-templates';
+import { scholarshipServiceApi } from '@/services/scholarship.service';
+import { mapPaginatedOpportunities, mapOpportunityDtoToScholarship } from '@/lib/scholarship-mapper';
+import { Scholarship } from '@/types';
+import { useApplications, useSavedScholarships } from '@/hooks/api';
+import { toast } from 'react-hot-toast';
 
 // Animation variants
 const cardVariants = {
@@ -64,17 +69,44 @@ const containerVariants = {
 export default function DashboardPage() {
   const { t } = useLanguage();
   // Use AppContext hooks
-  const { scholarships } = useScholarshipsData();
   const { applications } = useApplicationsData();
   const { notifications } = useNotificationsData();
+  
+  // Fetch scholarships and saved scholarships from API
+  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { savedScholarships } = useSavedScholarships();
+  
+  useEffect(() => {
+    const fetchScholarships = async () => {
+      try {
+        setLoading(true);
+        const response = await scholarshipServiceApi.getScholarships({
+          page: 0,
+          size: 3,
+          isPublic: true,
+          currentDate: new Date().toISOString().split('T')[0]
+        });
+        const mapped = mapPaginatedOpportunities(response);
+        setScholarships(mapped.scholarships);
+      } catch (error) {
+        console.error('Error fetching recommended scholarships:', error);
+        toast.error('Failed to load recommended scholarships');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchScholarships();
+  }, []);
 
-  // Mock dashboard data - in real app, this would come from API
+  // Dashboard data from API
   const dashboardData = React.useMemo(() => ({
     stats: {
       applications: applications.length,
-      inReview: applications.filter(a => a.status === 'VIEWED').length,
+      inReview: applications.filter(a => a.status === 'PENDING' || a.status === 'VIEWED').length,
       accepted: applications.filter(a => a.status === 'ACCEPTED').length,
-      saved: 8
+      saved: savedScholarships.length
     },
     recentApplications: applications.slice(0, 3).map(app => {
       const scholarship = scholarships.find(s => s.id === app.scholarshipId);
@@ -89,17 +121,7 @@ export default function DashboardPage() {
     }),
     notifications: notifications.slice(0, 5),
     recommendedScholarships: scholarships.slice(0, 3)
-  }), [scholarships, applications, notifications]);
-
-  const [savedScholarships, setSavedScholarships] = useState<string[]>(['sch1', 'sch2']);
-
-  const toggleSaved = (scholarshipId: string) => {
-    setSavedScholarships(prev => 
-      prev.includes(scholarshipId)
-        ? prev.filter(id => id !== scholarshipId)
-        : [...prev, scholarshipId]
-    );
-  };
+  }), [scholarships, applications, notifications, savedScholarships]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

@@ -26,8 +26,8 @@ import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ApplyButton } from '@/components/ApplyButton';
 import { useApplications, useSavedScholarships } from '@/hooks/api';
-import { apiClient } from '@/lib/api-client';
-// SỬA 1: Giả sử bạn đã thêm ModerationStatus vào @/types
+import { scholarshipServiceApi } from '@/services/scholarship.service';
+import { mapOpportunityDetailToScholarship } from '@/lib/scholarship-mapper';
 import {
   Scholarship,
   ScholarshipType,
@@ -44,6 +44,7 @@ export default function ScholarshipDetailPage() {
   const [scholarship, setScholarship] = useState<Scholarship | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasApplied, setHasApplied] = useState(false);
+  const [matchScore, setMatchScore] = useState<number | undefined>(undefined);
 
   const { checkApplicationStatus } = useApplications();
   const {
@@ -58,30 +59,30 @@ export default function ScholarshipDetailPage() {
       setIsLoading(true);
 
       try {
-        const response = await apiClient.scholarships.getById(scholarshipId);
+        // Fetch scholarship detail from API
+        const response = await scholarshipServiceApi.getScholarshipById(scholarshipId);
+        
+        // Map backend response to frontend format
+        const mapped = mapOpportunityDetailToScholarship(response);
+        setScholarship(mapped.scholarship);
+        setMatchScore(mapped.matchScore);
 
-        if (response.success && response.data) {
-          setScholarship(response.data);
-          const currentUserId = 'student-1';
-          const appStatusResponse =
-            await apiClient.applications.checkApplicationStatus(
-              scholarshipId,
-              currentUserId
-            );
-          setHasApplied(appStatusResponse.data?.hasApplied || false);
-        } else {
-          setScholarship(null);
-        }
+        // Check if user has applied
+        const appStatus = await checkApplicationStatus(scholarshipId);
+        setHasApplied(appStatus?.hasApplied || false);
       } catch (error) {
         console.error('Error fetching scholarship:', error);
-        toast.error(t('scholarshipDetail.loadError'));
+        toast.error(t('scholarshipDetail.loadError') || 'Failed to load scholarship');
+        setScholarship(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchData();
-  }, [params.id, t]); // Thêm 't' vào dependency array của useEffect
+    if (params.id) {
+      fetchData();
+    }
+  }, [params.id, t, checkApplicationStatus]);
 
   // SỬA 2: Thêm kiểm tra null cho scholarship và scholarship.id
   const handleSaveToggle = async () => {
@@ -193,12 +194,12 @@ export default function ScholarshipDetailPage() {
                     {scholarship.moderationStatus}
                   </Badge>
 
-                  {scholarship.matchScore && (
+                  {(scholarship.matchScore !== undefined || matchScore !== undefined) && (
                     <Badge
                       variant="outline"
                       className="border-green-500 text-green-700 bg-green-50 font-semibold"
                     >
-                      {scholarship.matchScore}% Match
+                      {(scholarship.matchScore || matchScore || 0)}% Match
                     </Badge>
                   )}
                 </div>

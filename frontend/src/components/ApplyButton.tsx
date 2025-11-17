@@ -91,9 +91,15 @@ export function ApplyButton({
         // cvFileUrl = uploadResponse.url;
       }
 
+      // Get user info from localStorage or auth context
+      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      
       await submitApplication({
         scholarshipId: scholarship.id,
         opportunityId: scholarship.id, // BE uses opportunityId
+        applicantUserName: userData?.name || userData?.username || '',
+        applicantEmail: userData?.email || '',
         ...applicationData,
         cvFile: cvFile?.name,
         cvFileUrl: cvFileUrl,

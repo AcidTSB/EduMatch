@@ -12,17 +12,35 @@ export function useApplications() {
     setLoading(true);
     setError(null);
     try {
-      // Get current user from mockApi or localStorage
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const currentUserId = userId || userData?.id || '1';
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      const response = await scholarshipServiceApi.getMyApplications();
       
-      const response = await mockApi.applications.getByUser(currentUserId);
-      if (response.success) {
-        setApplications(response.data || []);
-      }
+      // Map backend ApplicationDto to frontend Application format
+      const mappedApplications = Array.isArray(response) ? response.map((app: any) => ({
+        id: app.id?.toString() || '',
+        applicantId: app.applicantUserId?.toString() || '',
+        scholarshipId: app.opportunityId?.toString() || '',
+        status: app.status || 'PENDING',
+        additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
+        createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+        updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+        // Include additional fields from backend
+        applicantUserName: app.applicantUserName,
+        applicantEmail: app.applicantEmail,
+        phone: app.phone,
+        gpa: app.gpa ? Number(app.gpa) : undefined,
+        coverLetter: app.coverLetter,
+        motivation: app.motivation,
+        additionalInfo: app.additionalInfo,
+        portfolioUrl: app.portfolioUrl,
+        linkedinUrl: app.linkedinUrl,
+        githubUrl: app.githubUrl,
+      })) : [];
+      
+      setApplications(mappedApplications);
     } catch (err) {
       setError('Failed to fetch applications');
+      console.error('Error fetching applications:', err);
     } finally {
       setLoading(false);
     }
@@ -32,7 +50,6 @@ export function useApplications() {
     setLoading(true);
     setError(null);
     try {
-      // Import scholarship service
       const { scholarshipServiceApi } = await import('@/services/scholarship.service');
       
       // Convert scholarshipId to opportunityId (BE uses opportunityId)
@@ -51,14 +68,14 @@ export function useApplications() {
         });
       }
       
-      // Prepare request matching BE DTO
+      // Prepare request matching BE DTO (CreateApplicationRequest)
       const request = {
         opportunityId,
         documents: documents.length > 0 ? documents : undefined,
         applicantUserName: data.applicantUserName,
         applicantEmail: data.applicantEmail,
         phone: data.phone,
-        gpa: data.gpa,
+        gpa: data.gpa ? Number(data.gpa) : undefined,
         coverLetter: data.coverLetter,
         motivation: data.motivation,
         additionalInfo: data.additionalInfo,
@@ -70,10 +87,7 @@ export function useApplications() {
       const response = await scholarshipServiceApi.createApplication(request);
       
       // Refresh applications list
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const applicantId = userData?.id || '1';
-      await fetchApplications(applicantId);
+      await fetchApplications();
       
       return { success: true, data: response };
     } catch (err) {
@@ -149,39 +163,59 @@ export function useSavedScholarships() {
 
   const fetchSavedScholarships = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const { scholarshipServiceApi } = await import('@/services/scholarship.service');
       const bookmarks = await scholarshipServiceApi.getMyBookmarks();
       
       // Extract opportunity IDs from bookmarks
-      const opportunityIds = bookmarks.map((bookmark: any) => 
-        bookmark.opportunity?.id?.toString() || bookmark.opportunityId?.toString()
+      // Backend returns BookmarkDto with opportunity field
+      const opportunityIds = (Array.isArray(bookmarks) ? bookmarks : []).map((bookmark: any) => 
+        bookmark.opportunity?.id?.toString() || 
+        bookmark.opportunityId?.toString() ||
+        bookmark.id?.toString()
       ).filter(Boolean);
       
       setSavedScholarships(opportunityIds);
     } catch (err) {
       setError('Failed to fetch saved scholarships');
-      console.error(err);
+      console.error('Error fetching bookmarks:', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
   const saveScholarship = useCallback(async (scholarshipId: string) => {
+    setLoading(true);
+    setError(null);
     try {
       const { scholarshipServiceApi } = await import('@/services/scholarship.service');
-      const response = await scholarshipServiceApi.toggleBookmark(scholarshipId);
+      const opportunityId = parseInt(scholarshipId);
+      const response = await scholarshipServiceApi.toggleBookmark(opportunityId);
       
       if (response.bookmarked !== undefined) {
-        await fetchSavedScholarships();
+        // Update local state immediately for better UX
+        setSavedScholarships(prev => {
+          if (response.bookmarked) {
+            return prev.includes(scholarshipId) ? prev : [...prev, scholarshipId];
+          } else {
+            return prev.filter(id => id !== scholarshipId);
+          }
+        });
+        
+        // Optionally refresh from server
+        // await fetchSavedScholarships();
         return true;
       }
       return false;
     } catch (err) {
+      setError('Failed to toggle bookmark');
       console.error('Error toggling bookmark:', err);
       return false;
+    } finally {
+      setLoading(false);
     }
-  }, [fetchSavedScholarships]);
+  }, []);
 
   const unsaveScholarship = useCallback(async (scholarshipId: string) => {
     return await saveScholarship(scholarshipId); // Toggle works for both

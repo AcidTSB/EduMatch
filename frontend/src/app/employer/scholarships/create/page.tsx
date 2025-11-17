@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'react-hot-toast';
+import { scholarshipServiceApi, CreateOpportunityRequest } from '@/services/scholarship.service';
 
 // THAY ĐỔI: Định nghĩa enums khớp với API
 enum ScholarshipLevel {
@@ -66,36 +67,59 @@ export default function CreateScholarshipPage() {
     // TODO: Thêm logic validate ở đây
 
     try {
-      // THAY ĐỔI: Tạo body request khớp với API
+      // Validate required fields
+      if (!formData.title.trim()) {
+        toast.error('Vui lòng nhập tiêu đề học bổng');
+        return;
+      }
+      if (!formData.fullDescription.trim()) {
+        toast.error('Vui lòng nhập mô tả học bổng');
+        return;
+      }
+      if (!formData.applicationDeadline) {
+        toast.error('Vui lòng chọn hạn nộp đơn');
+        return;
+      }
+      if (!formData.startDate) {
+        toast.error('Vui lòng chọn ngày bắt đầu');
+        return;
+      }
+      if (!formData.scholarshipAmount) {
+        toast.error('Vui lòng nhập số tiền học bổng');
+        return;
+      }
+
+      // Tạo body request khớp với API
       const splitByComma = (str: string) =>
         str.split(',').map((item) => item.trim()).filter(Boolean);
 
-      const apiBody = {
-        title: formData.title,
-        fullDescription: formData.fullDescription,
+      const apiBody: CreateOpportunityRequest = {
+        title: formData.title.trim(),
+        fullDescription: formData.fullDescription.trim(),
         applicationDeadline: formData.applicationDeadline,
         startDate: formData.startDate,
-        endDate: formData.endDate || null, // Gửi null nếu trống
+        endDate: formData.endDate || null,
         scholarshipAmount: parseFloat(formData.scholarshipAmount),
-        minGpa: parseFloat(formData.minGpa),
+        minGpa: formData.minGpa ? parseFloat(formData.minGpa) : undefined,
         studyMode: formData.studyMode,
         level: formData.level,
         isPublic: formData.isPublic,
-        contactEmail: formData.contactEmail,
+        contactEmail: formData.contactEmail || undefined,
         website: formData.website || null,
-        tags: splitByComma(formData.tags),
-        requiredSkills: splitByComma(formData.requiredSkills),
+        tags: formData.tags ? splitByComma(formData.tags) : [],
+        requiredSkills: formData.requiredSkills ? splitByComma(formData.requiredSkills) : [],
       };
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Gọi API thực tế
+      const result = await scholarshipServiceApi.createOpportunity(apiBody);
+      
+      console.log('Scholarship created successfully:', result);
 
-      console.log('Creating scholarship with API body:', apiBody);
-
-      toast.success(t('createScholarship.success'));
+      toast.success(t('createScholarship.success') || 'Tạo học bổng thành công!');
       router.push('/employer/scholarships');
-    } catch (error) {
-      toast.error(t('createScholarship.error'));
+    } catch (error: any) {
+      const errorMessage = error?.message || t('createScholarship.error') || 'Tạo học bổng thất bại';
+      toast.error(errorMessage);
       console.error('Error creating scholarship:', error);
     } finally {
       setLoading(false);

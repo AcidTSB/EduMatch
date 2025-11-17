@@ -10,10 +10,13 @@ import {
   Application 
 } from '@/types';
 
-// API Base URL - sử dụng gateway (port 80)
-// Nếu chạy local development, có thể cần http://localhost:80/api hoặc http://localhost/api
+// API Base URL - sử dụng gateway (port 8080)
+// Gateway chạy ở http://localhost:8080, endpoint đã có /api/ prefix
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 
-  (typeof window !== 'undefined' ? window.location.origin : 'http://localhost') + '/api';
+  process.env.NEXT_PUBLIC_API_GATEWAY ||
+  (typeof window !== 'undefined' 
+    ? 'http://localhost:8080'  // Gateway URL (port 8080)
+    : 'http://localhost:8080');
 
 // Helper function to get auth token
 const getAuthToken = (): string | null => {
@@ -106,6 +109,24 @@ export interface CreateApplicationRequest {
   githubUrl?: string;
 }
 
+// Create Opportunity Request Interface (for Employer)
+export interface CreateOpportunityRequest {
+  title: string;
+  fullDescription: string;
+  applicationDeadline: string; // ISO date string (YYYY-MM-DD)
+  startDate: string; // ISO date string (YYYY-MM-DD)
+  endDate: string | null; // ISO date string (YYYY-MM-DD) or null
+  scholarshipAmount: number;
+  minGpa?: number;
+  studyMode: string; // FULL_TIME, PART_TIME, ONLINE, HYBRID
+  level: string; // UNDERGRADUATE, MASTER, PHD, POSTDOC, RESEARCH
+  isPublic: boolean;
+  contactEmail?: string;
+  website?: string | null;
+  tags?: string[]; // Array of tag names
+  requiredSkills?: string[]; // Array of skill names
+}
+
 // Scholarship Service API
 export const scholarshipServiceApi = {
   /**
@@ -159,6 +180,25 @@ export const scholarshipServiceApi = {
   },
 
   /**
+   * Lấy danh sách applications cho một opportunity (Employer only)
+   * GET /api/applications/opportunity/{opportunityId}
+   */
+  getApplicationsForOpportunity: async (opportunityId: string | number) => {
+    return apiCall<Application[]>(`/api/applications/opportunity/${opportunityId}`);
+  },
+
+  /**
+   * Cập nhật trạng thái application (Employer only)
+   * PUT /api/applications/{applicationId}/status
+   */
+  updateApplicationStatus: async (applicationId: string | number, status: string) => {
+    return apiCall<Application>(`/api/applications/${applicationId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  },
+
+  /**
    * Toggle bookmark (bookmark/unbookmark)
    * POST /api/bookmarks/{opportunityId}
    */
@@ -178,6 +218,50 @@ export const scholarshipServiceApi = {
       applicantUserId: number;
       opportunity: Scholarship;
     }>>('/api/bookmarks/my');
+  },
+
+  // ============================================
+  // EMPLOYER CRUD OPERATIONS
+  // ============================================
+
+  /**
+   * Tạo học bổng mới (Employer only)
+   * POST /api/opportunities
+   */
+  createOpportunity: async (request: CreateOpportunityRequest) => {
+    return apiCall<Scholarship>('/api/opportunities', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  /**
+   * Lấy danh sách học bổng của employer hiện tại
+   * GET /api/opportunities/my
+   */
+  getMyOpportunities: async () => {
+    return apiCall<Scholarship[]>('/api/opportunities/my');
+  },
+
+  /**
+   * Cập nhật học bổng (Employer only)
+   * PUT /api/opportunities/{id}
+   */
+  updateOpportunity: async (id: string | number, request: CreateOpportunityRequest) => {
+    return apiCall<Scholarship>(`/api/opportunities/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
+    });
+  },
+
+  /**
+   * Xóa học bổng (Employer only)
+   * DELETE /api/opportunities/{id}
+   */
+  deleteOpportunity: async (id: string | number) => {
+    return apiCall(`/api/opportunities/${id}`, {
+      method: 'DELETE',
+    });
   },
 };
 
