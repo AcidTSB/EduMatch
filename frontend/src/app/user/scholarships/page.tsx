@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ApplyButton } from '@/components/ApplyButton';
 import Link from 'next/link';
-import { useScholarshipsData, useSavedScholarshipsData } from '@/contexts/AppContext';
+import { useSavedScholarshipsData } from '@/contexts/AppContext';
 import { formatDate, getDaysUntilDeadline } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import { ScholarshipCard } from '@/components/ScholarshipCard';
@@ -29,6 +29,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { Pagination } from '@/components/Pagination';
 import { pageVariants, fadeInUpVariants } from '@/lib/animations';
 import { ScholarshipFilters, type ScholarshipFilterState } from '@/components/ScholarshipFilters';
+import { scholarshipServiceApi } from '@/services/scholarship.service';
+import { mapPaginatedOpportunities, mapOpportunityDtoToScholarship } from '@/lib/scholarship-mapper';
+import { Scholarship } from '@/types';
 
 export default function ScholarshipsPage() {
   const { t } = useLanguage();
@@ -48,16 +51,87 @@ export default function ScholarshipsPage() {
     educationLevels: []
   });
 
-  // Use API hooks
-  const { scholarships, loading: scholarshipsLoading } = useScholarshipsData();
+  // State for scholarships from API
+  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+  const [scholarshipsLoading, setScholarshipsLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+
+  // Use API hooks for saved scholarships
   const { isScholarshipSaved, toggle: toggleSaved } = useSavedScholarshipsData();
+
+  // Fetch scholarships from API
+  useEffect(() => {
+    const fetchScholarships = async () => {
+      setScholarshipsLoading(true);
+      try {
+        // Build filters for API
+        const apiFilters: any = {
+          page: currentPage - 1, // Backend uses 0-based pagination
+          size: itemsPerPage,
+        };
+
+        // Add search query
+        if (searchTerm || filters.searchTerm) {
+          apiFilters.q = searchTerm || filters.searchTerm;
+        }
+
+        // Add level filter
+        if (levelFilter !== 'all') {
+          apiFilters.level = levelFilter;
+        } else if (filters.educationLevels.length > 0) {
+          // Use first education level if multiple selected
+          apiFilters.level = filters.educationLevels[0];
+        }
+
+        // Add study mode filter (if available in filters)
+        if (filters.locations.length > 0) {
+          // Map location to study mode if needed
+          // This is a simplified mapping - adjust based on your needs
+        }
+
+        // Add GPA filter if available
+        if (filters.amountRange[0] > 0) {
+          // Note: GPA filter, not amount filter
+          // apiFilters.gpa = filters.amountRange[0];
+        }
+
+        // Add public filter (only show public scholarships)
+        apiFilters.isPublic = true;
+
+        // Add current date for deadline filtering
+        apiFilters.currentDate = new Date().toISOString().split('T')[0];
+
+        // Add sort
+        if (sortBy === 'deadline') {
+          apiFilters.sort = 'applicationDeadline,asc';
+        }
+
+        const response = await scholarshipServiceApi.getScholarships(apiFilters);
+        
+        // Map response to frontend format
+        const mapped = mapPaginatedOpportunities(response);
+        setScholarships(mapped.scholarships);
+        setTotalPages(mapped.totalPages);
+        setTotalElements(mapped.totalElements);
+      } catch (error) {
+        console.error('Error fetching scholarships:', error);
+        toast.error('Failed to load scholarships');
+        setScholarships([]);
+      } finally {
+        setScholarshipsLoading(false);
+      }
+    };
+
+    fetchScholarships();
+  }, [currentPage, searchTerm, levelFilter, fieldFilter, sortBy, filters]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filters, levelFilter, fieldFilter, sortBy, searchTerm]);
 
-  // Filter and sort scholarships
+  // Filter and sort scholarships (client-side filtering for additional filters)
   const filteredScholarships = React.useMemo(() => {
     let filtered = [...scholarships];
 
@@ -164,11 +238,8 @@ export default function ScholarshipsPage() {
     return filtered;
   }, [scholarships, filters, levelFilter, fieldFilter, sortBy]);
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredScholarships.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedScholarships = filteredScholarships.slice(startIndex, endIndex);
+  // Pagination - use server-side pagination results directly
+  const paginatedScholarships = filteredScholarships;
 
   // Scroll to top when page changes
   const handlePageChange = (page: number) => {
@@ -231,23 +302,24 @@ export default function ScholarshipsPage() {
             </p>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Stats - using real data from API */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-brand-blue-600">{scholarships.length}+</div>
+              <div className="text-2xl font-bold text-brand-blue-600">{totalElements > 0 ? `${totalElements}+` : '0'}</div>
               <div className="text-sm text-gray-600">{t('scholarshipList.stats.active')}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">$500M+</div>
-              <div className="text-sm text-gray-600">{t('scholarshipList.stats.totalValue')}</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">{uniqueFields.length}+</div>
               <div className="text-sm text-gray-600">{t('scholarshipList.stats.fields')}</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">95%</div>
-              <div className="text-sm text-gray-600">{t('scholarshipList.stats.matchRate')}</div>
+              <div className="text-2xl font-bold text-green-600">
+                {scholarships.length > 0 
+                  ? `$${Math.round(scholarships.reduce((sum, s) => sum + (s.amount || 0), 0) / 1000000)}M+`
+                  : '$0'
+                }
+              </div>
+              <div className="text-sm text-gray-600">{t('scholarshipList.stats.totalValue')}</div>
             </div>
           </div>
         </div>
@@ -340,7 +412,14 @@ export default function ScholarshipsPage() {
         </div>
 
         {/* Scholarships Grid */}
-        {filteredScholarships.length === 0 ? (
+        {scholarshipsLoading ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue-600 mb-4"></div>
+              <p className="text-gray-600">{t('scholarshipList.loading') || 'Loading scholarships...'}</p>
+            </CardContent>
+          </Card>
+        ) : filteredScholarships.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
               <BookOpen className="h-12 w-12 text-gray-400 mb-4" />
@@ -394,7 +473,7 @@ export default function ScholarshipsPage() {
                 totalPages={totalPages}
                 onPageChange={handlePageChange}
                 itemsPerPage={itemsPerPage}
-                totalItems={filteredScholarships.length}
+                totalItems={totalElements}
               />
             )}
           </>

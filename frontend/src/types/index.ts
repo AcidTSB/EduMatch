@@ -171,6 +171,18 @@ export interface Application {
   additionalDocs: string[]; // Danh sách tên file hoặc URL
   createdAt: Date;
   updatedAt: Date;
+  // Additional fields from backend ApplicationDto
+  submittedAt?: any;
+  applicantUserName?: string;
+  applicantEmail?: string;
+  phone?: string;
+  gpa?: number;
+  coverLetter?: string;
+  motivation?: string;
+  additionalInfo?: string;
+  portfolioUrl?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
 }
 
 /**

@@ -78,10 +78,31 @@ export function ApplyButton({
     if (!canApply) return;
 
     try {
+      // Upload CV file if exists (TODO: implement actual file upload service)
+      let cvFileUrl: string | undefined;
+      if (cvFile) {
+        // For now, create a placeholder URL
+        // In production, upload to S3/MinIO and get actual URL
+        cvFileUrl = `placeholder://cv/${cvFile.name}`;
+        // TODO: Implement actual file upload
+        // const formData = new FormData();
+        // formData.append('file', cvFile);
+        // const uploadResponse = await uploadFile(formData);
+        // cvFileUrl = uploadResponse.url;
+      }
+
+      // Get user info from localStorage or auth context
+      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
+      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      
       await submitApplication({
         scholarshipId: scholarship.id,
+        opportunityId: scholarship.id, // BE uses opportunityId
+        applicantUserName: userData?.name || userData?.username || '',
+        applicantEmail: userData?.email || '',
         ...applicationData,
-        cvFile: cvFile?.name, // In real app, would upload file to server
+        cvFile: cvFile?.name,
+        cvFileUrl: cvFileUrl,
       });
 
       setIsDialogOpen(false);
@@ -101,6 +122,7 @@ export function ApplyButton({
       // Refresh the page or redirect
       router.refresh();
     } catch (error) {
+      console.error('Application error:', error);
       toast.error(t('applyButton.submitError') || 'Failed to submit application. Please try again.');
     }
   };
@@ -112,7 +134,7 @@ export function ApplyButton({
     }
   };
 
-  // Button content
+  // Button content - only show "Applied" if user has actually applied
   const buttonContent = children || (
     hasApplied ? (
       <>
@@ -129,6 +151,8 @@ export function ApplyButton({
     )
   );
 
+  // Only show "Applied" button if user has actually applied
+  // If hasApplied is false, show "Apply Now" button instead
   if (hasApplied) {
     return (
       <Button 

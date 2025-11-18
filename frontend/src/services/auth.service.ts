@@ -1,6 +1,6 @@
 ﻿// File: src/services/auth.service.ts (Using fetch API)
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost';
 const AUTH_API_URL = `${API_BASE_URL}/api/auth`;
 
 // Helper: Decode JWT token and extract roles

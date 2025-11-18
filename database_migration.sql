@@ -208,6 +208,38 @@ SELECT COUNT(*) as null_level FROM opportunities WHERE level IS NULL;
 
 -- Check data distribution
 SELECT study_mode, COUNT(*) as count FROM opportunities GROUP BY study_mode;
+
+-- =====================================================
+-- 8. APPLICATION TABLE UPDATES (Scholarship Service)
+-- =====================================================
+
+-- Add new columns to applications table for enhanced application data
+ALTER TABLE applications
+ADD COLUMN applicant_user_name VARCHAR(255) COMMENT 'Applicant user name' AFTER notes,
+ADD COLUMN applicant_email VARCHAR(255) COMMENT 'Applicant email' AFTER applicant_user_name,
+ADD COLUMN phone VARCHAR(50) COMMENT 'Applicant phone number' AFTER applicant_email,
+ADD COLUMN gpa DECIMAL(3,2) COMMENT 'Applicant GPA' AFTER phone,
+ADD COLUMN cover_letter TEXT COMMENT 'Cover letter content' AFTER gpa,
+ADD COLUMN motivation TEXT COMMENT 'Motivation statement' AFTER cover_letter,
+ADD COLUMN additional_info TEXT COMMENT 'Additional information' AFTER motivation,
+ADD COLUMN portfolio_url VARCHAR(500) COMMENT 'Portfolio URL' AFTER additional_info,
+ADD COLUMN linkedin_url VARCHAR(500) COMMENT 'LinkedIn profile URL' AFTER portfolio_url,
+ADD COLUMN github_url VARCHAR(500) COMMENT 'GitHub profile URL' AFTER linkedin_url;
+
+-- Add indexes for better query performance
+CREATE INDEX idx_applications_applicant_email ON applications(applicant_email);
+CREATE INDEX idx_applications_gpa ON applications(gpa);
+
+-- =====================================================
+-- 9. VERIFICATION QUERIES FOR APPLICATIONS
+-- =====================================================
+
+-- Verify applications table structure
+DESCRIBE applications;
+
+-- Check for applications with new fields populated
+SELECT COUNT(*) as apps_with_email FROM applications WHERE applicant_email IS NOT NULL;
+SELECT COUNT(*) as apps_with_gpa FROM applications WHERE gpa IS NOT NULL;
 SELECT level, COUNT(*) as count FROM opportunities GROUP BY level;
 SELECT sex, COUNT(*) as count FROM users GROUP BY sex;
 

@@ -34,19 +34,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
         try {
             // 1. Lấy JWT từ request
+            String bearerToken = request.getHeader(headerName);
             String jwt = getJwtFromRequest(request);
-            log.debug("JWT Filter - URI: {}, JWT present: {}", request.getRequestURI(), jwt != null);
+            
+            log.debug("JWT Filter - URI: {}, Header '{}': {}", 
+                request.getRequestURI(), headerName, bearerToken != null ? "present" : "missing");
+            if (bearerToken != null) {
+                log.debug("JWT Filter - Bearer token length: {}", bearerToken.length());
+            }
+            log.debug("JWT Filter - Extracted JWT: {}", jwt != null ? jwt.substring(0, Math.min(20, jwt.length())) + "..." : "null");
 
             // 2. Xác thực token
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                // 3. Lấy thông tin user (username, roles)
-                Authentication authentication = tokenProvider.getAuthentication(jwt);
-                log.debug("JWT Filter - Authentication successful for user: {}", authentication.getName());
-
-                // 4. Lưu vào SecurityContext
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+            if (StringUtils.hasText(jwt)) {
+                boolean isValid = tokenProvider.validateToken(jwt);
+                log.debug("JWT Filter - Token validation result: {}", isValid);
+                
+                if (isValid) {
+                    try {
+                        // 3. Lấy thông tin user (username, roles)
+                        Authentication authentication = tokenProvider.getAuthentication(jwt);
+                        log.debug("JWT Filter - Authentication successful for user: {}, authorities: {}", 
+                            authentication.getName(), 
+                            authentication.getAuthorities());
+                        
+                        // 4. Lưu vào SecurityContext
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    } catch (Exception ex) {
+                        log.error("JWT Filter - Error getting authentication from token: {}", ex.getMessage(), ex);
+                    }
+                } else {
+                    log.warn("JWT Filter - Token validation failed for URI: {}", request.getRequestURI());
+                }
             } else {
-                log.debug("JWT Filter - Token validation failed or token missing");
+                log.debug("JWT Filter - Token missing or empty for URI: {}", request.getRequestURI());
             }
         } catch (Exception ex) {
             log.error("Could not set user authentication in security context", ex);

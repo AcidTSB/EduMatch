@@ -52,6 +52,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // --- DEBUG ENDPOINTS ---
                         .requestMatchers("/debug/**").permitAll()
+                        // --- ACTUATOR ENDPOINTS (Health checks) ---
+                        .requestMatchers("/actuator/**").permitAll()
                         // --- API Public (Không cần đăng nhập) ---
                         // Cho phép xem (GET) danh sách và chi tiết học bổng
                         .requestMatchers(HttpMethod.GET, "/api/scholarships").permitAll()

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Plus,
@@ -25,8 +25,11 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils';
 import { ScholarshipStatus } from '@/types';
-import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { scholarshipServiceApi } from '@/services/scholarship.service';
+import { mapOpportunityDtoToScholarship } from '@/lib/scholarship-mapper';
+import { Scholarship, Application } from '@/types';
+import { toast } from 'react-hot-toast';
 
 // Animation variants cho scholarship cards
 const cardVariants = {
@@ -58,9 +61,63 @@ const containerVariants = {
 
 export default function ProviderDashboardPage() {
   const { t } = useLanguage();
-  // Use AppContext data
-  const { applications } = useApplicationsData();
-  const { scholarships } = useScholarshipsData();
+  
+  // Fetch data from API
+  const [scholarships, setScholarships] = useState<Scholarship[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch my opportunities
+        const opps = await scholarshipServiceApi.getMyOpportunities();
+        const mappedScholarships = opps.map((opp: any) => mapOpportunityDtoToScholarship(opp));
+        setScholarships(mappedScholarships);
+        
+        // Fetch all applications for all opportunities
+        const allApps: Application[] = [];
+        for (const opp of opps) {
+          try {
+            const apps = await scholarshipServiceApi.getApplicationsForOpportunity(opp.id);
+            const mappedApps = apps.map((app: any) => ({
+              id: app.id?.toString() || '',
+              applicantId: app.applicantUserId?.toString() || '',
+              scholarshipId: app.opportunityId?.toString() || '',
+              status: app.status || 'PENDING',
+              additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
+              createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+              updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+              // Include additional fields
+              applicantUserName: app.applicantUserName,
+              applicantEmail: app.applicantEmail,
+              phone: app.phone,
+              gpa: app.gpa ? Number(app.gpa) : undefined,
+              coverLetter: app.coverLetter,
+              motivation: app.motivation,
+              additionalInfo: app.additionalInfo,
+              portfolioUrl: app.portfolioUrl,
+              linkedinUrl: app.linkedinUrl,
+              githubUrl: app.githubUrl,
+            }));
+            allApps.push(...mappedApps);
+          } catch (err) {
+            console.error(`Error fetching applications for opportunity ${opp.id}:`, err);
+          }
+        }
+        setApplications(allApps);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast.error('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
 
   // Calculate real stats from AppContext data
   const dashboardData = React.useMemo(() => {
@@ -375,7 +432,7 @@ export default function ProviderDashboardPage() {
                       )}
                     </div>
                     <Button variant="outline" size="sm" className="w-full border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-colors" asChild>
-                      <Link href={`/provider/scholarships/${scholarship.id}/applications`}>
+                      <Link href={`/employer/scholarships/${scholarship.id}/applications`}>
                         {t('provider.scholarships.viewApplications').replace('{count}', scholarship.applicationCount.toString())}
                       </Link>
                     </Button>

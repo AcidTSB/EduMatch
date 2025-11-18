@@ -12,17 +12,35 @@ export function useApplications() {
     setLoading(true);
     setError(null);
     try {
-      // Get current user from mockApi or localStorage
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const currentUserId = userId || userData?.id || '1';
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      const response = await scholarshipServiceApi.getMyApplications();
       
-      const response = await mockApi.applications.getByUser(currentUserId);
-      if (response.success) {
-        setApplications(response.data || []);
-      }
+      // Map backend ApplicationDto to frontend Application format
+      const mappedApplications = Array.isArray(response) ? response.map((app: any) => ({
+        id: app.id?.toString() || '',
+        applicantId: app.applicantUserId?.toString() || '',
+        scholarshipId: app.opportunityId?.toString() || '',
+        status: app.status || 'PENDING',
+        additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
+        createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+        updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+        // Include additional fields from backend
+        applicantUserName: app.applicantUserName,
+        applicantEmail: app.applicantEmail,
+        phone: app.phone,
+        gpa: app.gpa ? Number(app.gpa) : undefined,
+        coverLetter: app.coverLetter,
+        motivation: app.motivation,
+        additionalInfo: app.additionalInfo,
+        portfolioUrl: app.portfolioUrl,
+        linkedinUrl: app.linkedinUrl,
+        githubUrl: app.githubUrl,
+      })) : [];
+      
+      setApplications(mappedApplications);
     } catch (err) {
       setError('Failed to fetch applications');
+      console.error('Error fetching applications:', err);
     } finally {
       setLoading(false);
     }
@@ -32,25 +50,49 @@ export function useApplications() {
     setLoading(true);
     setError(null);
     try {
-      // Get current user ID
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const applicantId = userData?.id || '1';
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
       
-      const response = await mockApi.applications.submit({
-        ...data,
-        applicantId
-      });
+      // Convert scholarshipId to opportunityId (BE uses opportunityId)
+      const opportunityId = parseInt(data.scholarshipId || data.opportunityId);
       
-      if (response.success) {
-        // Refresh applications list
-        await fetchApplications(applicantId);
-        return response;
-      } else {
-        throw new Error(response.error || 'Failed to submit application');
+      // Handle file upload - create document entry
+      const documents: Array<{ documentName: string; documentUrl: string }> = [];
+      if (data.cvFile) {
+        // TODO: Implement actual file upload to storage service
+        // For now, create a placeholder URL
+        // In production, upload file to S3/MinIO and get URL
+        const fileUrl = data.cvFileUrl || `placeholder://cv/${data.cvFile}`;
+        documents.push({
+          documentName: data.cvFile,
+          documentUrl: fileUrl
+        });
       }
+      
+      // Prepare request matching BE DTO (CreateApplicationRequest)
+      const request = {
+        opportunityId,
+        documents: documents.length > 0 ? documents : undefined,
+        applicantUserName: data.applicantUserName,
+        applicantEmail: data.applicantEmail,
+        phone: data.phone,
+        gpa: data.gpa ? Number(data.gpa) : undefined,
+        coverLetter: data.coverLetter,
+        motivation: data.motivation,
+        additionalInfo: data.additionalInfo,
+        portfolioUrl: data.portfolioUrl,
+        linkedinUrl: data.linkedinUrl,
+        githubUrl: data.githubUrl,
+      };
+      
+      const response = await scholarshipServiceApi.createApplication(request);
+      
+      // Refresh applications list
+      await fetchApplications();
+      
+      return { success: true, data: response };
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit application');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to submit application';
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -64,15 +106,19 @@ export function useApplications() {
 
   const checkApplicationStatus = useCallback(async (scholarshipId: string) => {
     try {
-      // Get current user ID
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const userId = userData?.id || '1';
+      // Get my applications and check if any match this scholarship
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      const applications = await scholarshipServiceApi.getMyApplications();
       
-      const response = await mockApi.applications.checkApplicationStatus(scholarshipId, userId);
-      return response.data?.application || null;
+      const matchingApp = applications.find(
+        (app: any) => app.opportunityId?.toString() === scholarshipId.toString() || 
+                     app.scholarshipId?.toString() === scholarshipId.toString()
+      );
+      
+      return matchingApp ? { hasApplied: true, application: matchingApp } : { hasApplied: false };
     } catch (err) {
-      return null;
+      console.error('Error checking application status:', err);
+      return { hasApplied: false };
     }
   }, []);
 
@@ -117,47 +163,66 @@ export function useSavedScholarships() {
 
   const fetchSavedScholarships = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Get current user ID
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const userId = userData?.id || '1';
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      const bookmarks = await scholarshipServiceApi.getMyBookmarks();
       
-      const response = await mockApi.savedScholarships.getByUser(userId);
-      if (response.success) {
-        setSavedScholarships(response.data || []);
-      }
+      // Extract opportunity IDs from bookmarks
+      // Backend returns BookmarkDto with opportunity field
+      const opportunityIds = (Array.isArray(bookmarks) ? bookmarks : []).map((bookmark: any) => 
+        bookmark.opportunity?.id?.toString() || 
+        bookmark.opportunityId?.toString() ||
+        bookmark.id?.toString()
+      ).filter(Boolean);
+      
+      setSavedScholarships(opportunityIds);
     } catch (err) {
       setError('Failed to fetch saved scholarships');
-      console.error(err);
+      console.error('Error fetching bookmarks:', err);
     } finally {
       setLoading(false);
     }
   }, []);
 
   const saveScholarship = useCallback(async (scholarshipId: string) => {
+    setLoading(true);
+    setError(null);
     try {
-      const userDataStr = typeof window !== 'undefined' ? localStorage.getItem('auth_user') : null;
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
-      const userId = userData?.id || '1';
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      const opportunityId = parseInt(scholarshipId);
+      const response = await scholarshipServiceApi.toggleBookmark(opportunityId);
       
-      const response = await mockApi.savedScholarships.toggle(userId, scholarshipId);
-      if (response.success) {
-        await fetchSavedScholarships();
+      if (response.bookmarked !== undefined) {
+        // Update local state immediately for better UX
+        setSavedScholarships(prev => {
+          if (response.bookmarked) {
+            return prev.includes(scholarshipId) ? prev : [...prev, scholarshipId];
+          } else {
+            return prev.filter(id => id !== scholarshipId);
+          }
+        });
+        
+        // Optionally refresh from server
+        // await fetchSavedScholarships();
         return true;
       }
       return false;
     } catch (err) {
+      setError('Failed to toggle bookmark');
+      console.error('Error toggling bookmark:', err);
       return false;
+    } finally {
+      setLoading(false);
     }
-  }, [fetchSavedScholarships]);
+  }, []);
 
   const unsaveScholarship = useCallback(async (scholarshipId: string) => {
     return await saveScholarship(scholarshipId); // Toggle works for both
   }, [saveScholarship]);
 
   const isScholarshipSaved = useCallback((scholarshipId: string) => {
-    return savedScholarships.includes(scholarshipId);
+    return savedScholarships.includes(scholarshipId.toString());
   }, [savedScholarships]);
 
   const toggleSaved = useCallback(async (scholarshipId: string) => {
