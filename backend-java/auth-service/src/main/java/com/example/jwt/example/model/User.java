@@ -49,6 +49,18 @@ public class User implements UserDetails {
     @Column(name = "sex", length = 10)
     private String sex; // MALE, FEMALE, OTHER
 
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    @Column(name = "date_of_birth")
+    private java.time.LocalDate dateOfBirth;
+
+    @Column(name = "bio", columnDefinition = "TEXT")
+    private String bio;
+
+    @Column(name = "avatar_url", length = 500)
+    private String avatarUrl;
+
     @Column(name = "organization_id")
     private Long organizationId;
 

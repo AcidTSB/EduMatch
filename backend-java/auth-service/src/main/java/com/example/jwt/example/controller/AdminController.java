@@ -1,12 +1,16 @@
 package com.example.jwt.example.controller;
 
+import com.example.jwt.example.dto.request.RejectEmployerRequestRequest;
 import com.example.jwt.example.dto.request.SignUpRequest;
 import com.example.jwt.example.dto.response.ApiResponse;
+import com.example.jwt.example.dto.response.OrganizationRequestResponse;
 import com.example.jwt.example.dto.response.UserResponse;
 import com.example.jwt.example.exception.BadRequestException;
 import com.example.jwt.example.exception.ResourceNotFoundException;
 import com.example.jwt.example.model.AuditLog;
+import com.example.jwt.example.model.OrganizationRequest;
 import com.example.jwt.example.model.User;
+import com.example.jwt.example.service.OrganizationRequestService;
 import com.example.jwt.example.service.UserService;
 import com.example.jwt.example.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.RestClientException;
 import org.springframework.beans.factory.annotation.Value;
+import jakarta.validation.Valid;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
@@ -40,6 +45,7 @@ public class AdminController {
 
     private final UserService userService;
     private final AuditLogService auditLogService;
+    private final OrganizationRequestService organizationRequestService;
     private final RestTemplate restTemplate;
     
     @Value("${app.services.scholarship-service.url:http://localhost:8082}")
@@ -243,6 +249,99 @@ public class AdminController {
         }
         
         return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * Lấy danh sách employer requests
+     */
+    @GetMapping("/employer/requests")
+    public ResponseEntity<Map<String, Object>> getEmployerRequests(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<OrganizationRequest> pageRequests = organizationRequestService.getAllRequests(status, page, size);
+        List<OrganizationRequestResponse> responseList = organizationRequestService.toResponseList(pageRequests.getContent());
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("requests", responseList);
+        response.put("currentPage", pageRequests.getNumber());
+        response.put("totalItems", pageRequests.getTotalElements());
+        response.put("totalPages", pageRequests.getTotalPages());
+        response.put("pageSize", pageRequests.getSize());
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Lấy một employer request cụ thể
+     */
+    @GetMapping("/employer/requests/{id}")
+    public ResponseEntity<OrganizationRequestResponse> getEmployerRequest(@PathVariable Long id) {
+        try {
+            OrganizationRequest request = organizationRequestService.getRequestById(id);
+            OrganizationRequestResponse response = organizationRequestService.toResponse(request);
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
+     * Admin approve employer request
+     */
+    @PutMapping("/employer/requests/{id}/approve")
+    public ResponseEntity<?> approveEmployerRequest(@PathVariable Long id) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            
+            User admin = userService.getUserByUsername(username);
+            
+            OrganizationRequest request = organizationRequestService.approveRequest(id, admin.getId());
+            OrganizationRequestResponse response = organizationRequestService.toResponse(request);
+            
+            return ResponseEntity.ok(response);
+        } catch (BadRequestException e) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, e.getMessage()));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound()
+                    .build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                    .body(new ApiResponse(false, "Error approving request: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Admin reject employer request
+     */
+    @PutMapping("/employer/requests/{id}/reject")
+    public ResponseEntity<?> rejectEmployerRequest(
+            @PathVariable Long id,
+            @Valid @RequestBody RejectEmployerRequestRequest rejectRequest
+    ) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            
+            User admin = userService.getUserByUsername(username);
+            
+            OrganizationRequest request = organizationRequestService.rejectRequest(id, admin.getId(), rejectRequest);
+            OrganizationRequestResponse response = organizationRequestService.toResponse(request);
+            
+            return ResponseEntity.ok(response);
+        } catch (BadRequestException e) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, e.getMessage()));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound()
+                    .build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                    .body(new ApiResponse(false, "Error rejecting request: " + e.getMessage()));
+        }
     }
 
 }

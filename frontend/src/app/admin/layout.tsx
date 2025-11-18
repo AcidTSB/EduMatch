@@ -17,7 +17,8 @@ import {
   LogOut,
   Shield,
   Globe,
-  Check
+  Check,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       titleKey: 'adminLayout.menu.users',
       icon: Users,
       href: '/admin/users',
+      badge: null
+    },
+    {
+      titleKey: 'adminLayout.menu.employerRequests',
+      icon: Building2,
+      href: '/admin/employer-requests',
       badge: null
     },
     {

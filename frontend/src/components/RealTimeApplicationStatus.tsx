@@ -64,16 +64,27 @@ export function RealTimeApplicationStatus() {
     }
   };
 
-  // Use real applications data with scholarship info
+  // Use real applications data - prefer opportunityTitle from ApplicationDto
   const displayApplications = applications.slice(0, 5).map(app => {
+    // Use opportunityTitle from Application object (from backend ApplicationDto)
+    // Fallback to finding in scholarships array if not available
+    const scholarshipTitle = app.opportunityTitle || 
+                            scholarships.find(s => s.id === app.scholarshipId)?.title || 
+                            'Unknown Scholarship';
+    
+    // Provider name from scholarship if available, otherwise use default
     const scholarship = scholarships.find(s => s.id === app.scholarshipId);
+    const provider = scholarship?.providerName || 'Unknown Provider';
+    
     return {
       id: app.id,
       scholarshipId: app.scholarshipId,
-      scholarshipTitle: scholarship?.title || 'Unknown Scholarship',
-      provider: scholarship?.providerName || 'Unknown Provider',
+      scholarshipTitle: scholarshipTitle,
+      provider: provider,
       status: app.status,
-      appliedDate: app.createdAt ? formatDate(app.createdAt) : null,
+      appliedDate: app.submittedAt 
+        ? (app.submittedAt instanceof Date ? app.submittedAt : new Date(app.submittedAt))
+        : (app.createdAt || null),
       deadline: scholarship?.applicationDeadline ? formatDate(scholarship.applicationDeadline) : null,
       updatedAt: app.updatedAt ? formatDate(app.updatedAt) : null
     };
@@ -107,7 +118,11 @@ export function RealTimeApplicationStatus() {
                 </div>
                 <div className="flex items-center text-sm text-gray-600 mt-1">
                   <Calendar className="h-4 w-4 mr-1" />
-                  {t('dashboard.recentApplications.applied')}: {application.appliedDate ? formatDate(application.appliedDate) : formatDate(application.updatedAt)}
+                  {t('dashboard.recentApplications.applied')}: {application.appliedDate 
+                    ? (application.appliedDate instanceof Date 
+                       ? formatDate(application.appliedDate) 
+                       : formatDate(new Date(application.appliedDate)))
+                    : (application.updatedAt ? formatDate(application.updatedAt) : 'N/A')}
                 </div>
               </div>
               <div className="flex items-center space-x-3">

@@ -90,13 +90,13 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
         </div>
         
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          {/* SỬA: Dùng university hoặc providerId (nếu university null) */}
-          <span className="font-medium">{scholarship.university || `Provider #${scholarship.providerId}`}</span>
+          {/* Use providerName from mapped data (from organizationName or fallback) */}
+          <span className="font-medium">{scholarship.providerName || scholarship.university || `Provider #${scholarship.providerId}`}</span>
           <span>•</span>
           <div className="flex items-center gap-1">
             <MapPin className="h-3 w-3" />
-            {/* SỬA: Dùng location */}
-            <span>{scholarship.location || "Remote"}</span>
+            {/* Use location or show Remote based on studyMode */}
+            <span>{scholarship.location || (scholarship.isRemote ? "Remote" : "Location TBD")}</span>
           </div>
         </div>
       </CardHeader>
@@ -124,24 +124,30 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div className="flex items-center gap-2">
             <GraduationCap className="h-4 w-4 text-muted-foreground" />
-            {/* SỬA: Dùng level */}
-            <span>{scholarship.level}</span>
+            {/* Use level from backend */}
+            <span>{scholarship.level || 'N/A'}</span>
           </div>
           
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            {/* SỬA: Dùng studyMode */}
+            {/* Use studyMode from backend */}
             <span>{scholarship.studyMode?.replace('_', ' ') || 'N/A'}</span>
           </div>
           
-          {/* SỬA: Dùng scholarshipAmount */}
+          {/* Show minGpa if available */}
+          {scholarship.minGpa && scholarship.minGpa > 0 && (
+            <div className="flex items-center gap-2 col-span-2 text-xs text-muted-foreground">
+              <span>Min GPA: {scholarship.minGpa.toFixed(1)}</span>
+            </div>
+          )}
+          
+          {/* Use scholarshipAmount from backend */}
           {(scholarship.scholarshipAmount ?? scholarship.amount ?? 0) > 0 && (
             <div className="flex items-center gap-2 col-span-2">
               <div className="w-4 h-4 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center">
                 <DollarSign className="h-3 w-3 text-white" />
               </div>
               <span className="font-semibold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                {/* SỬA: Format scholarshipAmount */}
                 {formatCurrency((scholarship.scholarshipAmount ?? scholarship.amount ?? 0))}
               </span>
             </div>

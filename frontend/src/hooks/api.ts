@@ -15,27 +15,48 @@ export function useApplications() {
       const { scholarshipServiceApi } = await import('@/services/scholarship.service');
       const response = await scholarshipServiceApi.getMyApplications();
       
+      // Helper to parse date from backend (LocalDateTime can be string or Date)
+      const parseDate = (dateValue: any): Date => {
+        if (!dateValue) return new Date();
+        if (dateValue instanceof Date) return dateValue;
+        if (typeof dateValue === 'string') {
+          const parsed = new Date(dateValue);
+          return isNaN(parsed.getTime()) ? new Date() : parsed;
+        }
+        return new Date();
+      };
+      
       // Map backend ApplicationDto to frontend Application format
-      const mappedApplications = Array.isArray(response) ? response.map((app: any) => ({
-        id: app.id?.toString() || '',
-        applicantId: app.applicantUserId?.toString() || '',
-        scholarshipId: app.opportunityId?.toString() || '',
-        status: app.status || 'PENDING',
-        additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
-        createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
-        updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
-        // Include additional fields from backend
-        applicantUserName: app.applicantUserName,
-        applicantEmail: app.applicantEmail,
-        phone: app.phone,
-        gpa: app.gpa ? Number(app.gpa) : undefined,
-        coverLetter: app.coverLetter,
-        motivation: app.motivation,
-        additionalInfo: app.additionalInfo,
-        portfolioUrl: app.portfolioUrl,
-        linkedinUrl: app.linkedinUrl,
-        githubUrl: app.githubUrl,
-      })) : [];
+      const mappedApplications = Array.isArray(response) ? response.map((app: any) => {
+        const submittedAt = parseDate(app.submittedAt);
+        
+        return {
+          id: app.id?.toString() || '',
+          applicantId: app.applicantUserId?.toString() || '',
+          applicantUserId: app.applicantUserId, // Keep backend field name
+          scholarshipId: app.opportunityId?.toString() || '',
+          opportunityId: app.opportunityId?.toString() || '', // Backend field name
+          opportunityTitle: app.opportunityTitle || '', // Title from backend
+          status: app.status || 'PENDING',
+          submittedAt: submittedAt,
+          // Map documents - keep full objects and also extract URLs for additionalDocs
+          documents: app.documents || [],
+          additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
+          createdAt: submittedAt, // Use submittedAt as createdAt if available
+          updatedAt: submittedAt, // Use submittedAt as updatedAt if available
+          // Include additional fields from backend ApplicationDto
+          applicantUserName: app.applicantUserName,
+          applicantEmail: app.applicantEmail,
+          phone: app.phone,
+          gpa: app.gpa ? Number(app.gpa) : undefined,
+          coverLetter: app.coverLetter,
+          motivation: app.motivation,
+          additionalInfo: app.additionalInfo,
+          portfolioUrl: app.portfolioUrl,
+          linkedinUrl: app.linkedinUrl,
+          githubUrl: app.githubUrl,
+        };
+      }) : [];
       
       setApplications(mappedApplications);
     } catch (err) {
@@ -138,13 +159,54 @@ export function useScholarships() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchScholarships = useCallback(async (params?: any) => {
-    setLoading(false);
-    setScholarships([]);
+  const fetchScholarships = useCallback(async (filters?: any) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      const { mapPaginatedOpportunities } = await import('@/lib/scholarship-mapper');
+      
+      const response = await scholarshipServiceApi.getScholarships(filters);
+      
+      // Handle paginated response
+      if (response.content || response.data) {
+        const mapped = mapPaginatedOpportunities(response);
+        setScholarships(mapped.scholarships);
+      } else if (Array.isArray(response)) {
+        // If response is array, map directly
+        const { mapOpportunityDtoToScholarship } = await import('@/lib/scholarship-mapper');
+        setScholarships(response.map(mapOpportunityDtoToScholarship));
+      } else {
+        setScholarships([]);
+      }
+    } catch (err) {
+      setError('Failed to fetch scholarships');
+      console.error('Error fetching scholarships:', err);
+      setScholarships([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const fetchScholarshipById = useCallback(async (id: string) => {
-    return { id, title: 'Mock Scholarship' };
+    setLoading(true);
+    setError(null);
+    try {
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      const { mapOpportunityDetailToScholarship } = await import('@/lib/scholarship-mapper');
+      
+      const response = await scholarshipServiceApi.getScholarshipById(id);
+      
+      // Response may be { opportunity, matchScore } or just opportunity
+      const mapped = mapOpportunityDetailToScholarship(response);
+      return mapped.scholarship;
+    } catch (err) {
+      setError('Failed to fetch scholarship');
+      console.error('Error fetching scholarship:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   return {
@@ -251,16 +313,89 @@ export function useProviderApplications() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchApplications = useCallback(async (params?: any) => {
-    setLoading(false);
-    setApplications([]);
+  const fetchApplications = useCallback(async (opportunityId?: string) => {
+    if (!opportunityId) {
+      setApplications([]);
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      const response = await scholarshipServiceApi.getApplicationsForOpportunity(opportunityId);
+      
+      // Map applications similar to useApplications
+      const parseDate = (dateValue: any): Date => {
+        if (!dateValue) return new Date();
+        if (dateValue instanceof Date) return dateValue;
+        if (typeof dateValue === 'string') {
+          const parsed = new Date(dateValue);
+          return isNaN(parsed.getTime()) ? new Date() : parsed;
+        }
+        return new Date();
+      };
+      
+      const mappedApplications = Array.isArray(response) ? response.map((app: any) => {
+        const submittedAt = parseDate(app.submittedAt);
+        return {
+          id: app.id?.toString() || '',
+          applicantId: app.applicantUserId?.toString() || '',
+          applicantUserId: app.applicantUserId,
+          scholarshipId: app.opportunityId?.toString() || '',
+          opportunityId: app.opportunityId?.toString() || '',
+          opportunityTitle: app.opportunityTitle || '',
+          status: app.status || 'PENDING',
+          submittedAt: submittedAt,
+          documents: app.documents || [],
+          additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
+          createdAt: submittedAt,
+          updatedAt: submittedAt,
+          applicantUserName: app.applicantUserName,
+          applicantEmail: app.applicantEmail,
+          phone: app.phone,
+          gpa: app.gpa ? Number(app.gpa) : undefined,
+          coverLetter: app.coverLetter,
+          motivation: app.motivation,
+          additionalInfo: app.additionalInfo,
+          portfolioUrl: app.portfolioUrl,
+          linkedinUrl: app.linkedinUrl,
+          githubUrl: app.githubUrl,
+        };
+      }) : [];
+      
+      setApplications(mappedApplications);
+    } catch (err) {
+      setError('Failed to fetch applications');
+      console.error('Error fetching provider applications:', err);
+      setApplications([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const updateApplicationStatus = useCallback(async (applicationId: string, status: string) => {
-    return true;
+    setLoading(true);
+    setError(null);
+    try {
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      await scholarshipServiceApi.updateApplicationStatus(applicationId, status);
+      
+      // Refresh applications
+      // Note: Would need opportunityId to refresh - may need to store it
+      return true;
+    } catch (err) {
+      setError('Failed to update application status');
+      console.error('Error updating application status:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const sendMessage = useCallback(async (applicationId: string, message: string) => {
+    // TODO: Implement message sending via chat service
+    console.log('Send message to application:', applicationId, message);
     return true;
   }, []);
 
@@ -279,16 +414,89 @@ export function useScholarshipApplications(scholarshipId: string) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchApplications = useCallback(async (params?: any) => {
-    setLoading(false);
-    setApplications([]);
-  }, []);
+  const fetchApplications = useCallback(async () => {
+    if (!scholarshipId) {
+      setApplications([]);
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    try {
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      const response = await scholarshipServiceApi.getApplicationsForOpportunity(scholarshipId);
+      
+      // Map applications (same logic as useProviderApplications)
+      const parseDate = (dateValue: any): Date => {
+        if (!dateValue) return new Date();
+        if (dateValue instanceof Date) return dateValue;
+        if (typeof dateValue === 'string') {
+          const parsed = new Date(dateValue);
+          return isNaN(parsed.getTime()) ? new Date() : parsed;
+        }
+        return new Date();
+      };
+      
+      const mappedApplications = Array.isArray(response) ? response.map((app: any) => {
+        const submittedAt = parseDate(app.submittedAt);
+        return {
+          id: app.id?.toString() || '',
+          applicantId: app.applicantUserId?.toString() || '',
+          applicantUserId: app.applicantUserId,
+          scholarshipId: app.opportunityId?.toString() || '',
+          opportunityId: app.opportunityId?.toString() || '',
+          opportunityTitle: app.opportunityTitle || '',
+          status: app.status || 'PENDING',
+          submittedAt: submittedAt,
+          documents: app.documents || [],
+          additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
+          createdAt: submittedAt,
+          updatedAt: submittedAt,
+          applicantUserName: app.applicantUserName,
+          applicantEmail: app.applicantEmail,
+          phone: app.phone,
+          gpa: app.gpa ? Number(app.gpa) : undefined,
+          coverLetter: app.coverLetter,
+          motivation: app.motivation,
+          additionalInfo: app.additionalInfo,
+          portfolioUrl: app.portfolioUrl,
+          linkedinUrl: app.linkedinUrl,
+          githubUrl: app.githubUrl,
+        };
+      }) : [];
+      
+      setApplications(mappedApplications);
+    } catch (err) {
+      setError('Failed to fetch applications');
+      console.error('Error fetching scholarship applications:', err);
+      setApplications([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [scholarshipId]);
 
   const updateApplicationStatus = useCallback(async (applicationId: string, status: string) => {
-    return true;
-  }, []);
+    setLoading(true);
+    setError(null);
+    try {
+      const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      await scholarshipServiceApi.updateApplicationStatus(applicationId, status);
+      
+      // Refresh applications
+      await fetchApplications();
+      return true;
+    } catch (err) {
+      setError('Failed to update application status');
+      console.error('Error updating application status:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchApplications]);
 
   const sendMessage = useCallback(async (applicationId: string, message: string, subject?: string) => {
+    // TODO: Implement message sending via chat service
+    console.log('Send message to application:', applicationId, message, subject);
     return true;
   }, []);
 
