@@ -2,7 +2,7 @@
 Pydantic schemas for request/response validation
 """
 from pydantic import BaseModel, Field, validator
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from datetime import datetime
 
 # ============= Request Schemas =============
@@ -42,6 +42,79 @@ class RecommendationMetadata(BaseModel):
     page: int = Field(..., ge=1)
     limit: int = Field(..., ge=1)
     totalPages: int = Field(..., ge=0)
+
+# ============= Sync Schemas =============
+
+class ApplicantSyncRequest(BaseModel):
+    """Request body để sync applicant data từ Auth/User Service"""
+    userId: str = Field(..., description="User ID từ Auth Service")
+    gpa: Optional[float] = Field(None, ge=0.0, le=4.0, description="GPA (thang 4.0)")
+    major: Optional[str] = Field(None, max_length=255, description="Ngành học")
+    university: Optional[str] = Field(None, max_length=255, description="Trường đại học")
+    yearOfStudy: Optional[int] = Field(None, ge=1, le=6, description="Năm học")
+    skills: Optional[List[str]] = Field(default_factory=list, description="Danh sách kỹ năng")
+    researchInterests: Optional[List[str]] = Field(default_factory=list, description="Lĩnh vực nghiên cứu quan tâm")
+    bio: Optional[str] = Field(None, max_length=2000, description="Mô tả bản thân")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "userId": "5",
+                "gpa": 3.8,
+                "major": "Computer Science",
+                "university": "University of Transport",
+                "yearOfStudy": 3,
+                "skills": ["Python", "Machine Learning", "TensorFlow"],
+                "researchInterests": ["Natural Language Processing", "Computer Vision"],
+                "bio": "Passionate about AI and deep learning. Actively involved in research projects."
+            }
+        }
+
+class OpportunitySyncRequest(BaseModel):
+    """Request body để sync opportunity data từ Scholarship Service"""
+    opportunityId: str = Field(..., description="Opportunity ID từ Scholarship Service")
+    opportunityType: Literal["scholarship", "lab"] = Field(..., description="Loại cơ hội: scholarship hoặc lab")
+    title: str = Field(..., max_length=500, description="Tiêu đề")
+    description: Optional[str] = Field(None, description="Mô tả chi tiết")
+    minGpa: Optional[float] = Field(None, ge=0.0, le=4.0, description="GPA tối thiểu yêu cầu")
+    requiredSkills: Optional[List[str]] = Field(default_factory=list, description="Kỹ năng yêu cầu")
+    preferredMajors: Optional[List[str]] = Field(default_factory=list, description="Ngành học ưu tiên")
+    researchAreas: Optional[List[str]] = Field(default_factory=list, description="Lĩnh vực nghiên cứu")
+    status: Optional[str] = Field(None, description="Status: PUBLISHED, CLOSED, etc.")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "opportunityId": "1",
+                "opportunityType": "scholarship",
+                "title": "AI Research Scholarship 2025",
+                "description": "Full scholarship for students interested in AI research...",
+                "minGpa": 3.5,
+                "requiredSkills": ["Python", "Machine Learning", "Research Experience"],
+                "preferredMajors": ["Computer Science", "Data Science"],
+                "researchAreas": ["Deep Learning", "Natural Language Processing"],
+                "status": "PUBLISHED"
+            }
+        }
+
+class SyncResponse(BaseModel):
+    """Response cho sync APIs"""
+    status: Literal["success", "error"] = Field(..., description="Trạng thái sync")
+    message: str = Field(..., description="Thông báo")
+    entityId: str = Field(..., description="ID của entity đã sync")
+    action: Optional[str] = Field(None, description="Action thực hiện: created, updated, deleted")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "status": "success",
+                "message": "Applicant 5 synced successfully",
+                "entityId": "5",
+                "action": "updated"
+            }
+        }
+
+# ============= Recommendation Schemas =============
 
 class RecommendationResponse(BaseModel):
     """Response for recommendation endpoints"""

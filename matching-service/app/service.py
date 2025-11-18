@@ -300,15 +300,6 @@ class MatchingService:
         
         paginated_results = scored_results[start_idx:end_idx]
         
-        # Build response
-        data = [
-            schemas.RecommendationItem(
-                applicantId=app_id,
-                matchingScore=score
-            )
-            for app_id, score in paginated_results
-        ]
-        
         return schemas.RecommendationResponse(
             metadata=schemas.RecommendationMetadata(
                 total=total,
@@ -318,3 +309,142 @@ class MatchingService:
             ),
             data=data
         )
+    
+    # ========== Sync Operations ==========
+    
+    def sync_applicant(
+        self,
+        user_id: str,
+        gpa: Optional[float],
+        major: Optional[str],
+        university: Optional[str],
+        year_of_study: Optional[int],
+        skills: Optional[List[str]],
+        research_interests: Optional[List[str]],
+        bio: Optional[str]
+    ) -> Dict:
+        """
+        Sync applicant data from Auth/User Service
+        Creates or updates ApplicantFeature record
+        """
+        try:
+            # Check if exists
+            applicant = self.db.query(models.ApplicantFeature).filter(
+                models.ApplicantFeature.applicant_id == user_id
+            ).first()
+            
+            action = "updated"
+            if not applicant:
+                action = "created"
+                applicant = models.ApplicantFeature(applicant_id=user_id)
+                self.db.add(applicant)
+            
+            # Update basic fields
+            applicant.gpa = gpa
+            applicant.major = major
+            applicant.university = university
+            applicant.year_of_study = year_of_study
+            applicant.skills = skills or []
+            applicant.research_interests = research_interests or []
+            applicant.updated_at = datetime.utcnow()
+            
+            # Preprocess text features
+            preprocessed = matching_engine.preprocess_text_features(
+                skills=skills or [],
+                research_interests=research_interests or [],
+                additional_text=bio or ""
+            )
+            
+            applicant.combined_text = preprocessed['combined_text']
+            applicant.skills_vector = preprocessed['skills_vector']
+            applicant.research_vector = preprocessed['research_vector']
+            applicant.last_processed_at = datetime.utcnow()
+            
+            self.db.commit()
+            
+            logger.info(f"Applicant {user_id} synced successfully ({action})")
+            return {"action": action, "applicant_id": user_id}
+            
+        except Exception as e:
+            logger.error(f"Error syncing applicant {user_id}: {e}", exc_info=True)
+            self.db.rollback()
+            raise
+    
+    def sync_opportunity(
+        self,
+        opportunity_id: str,
+        opportunity_type: str,
+        title: str,
+        description: Optional[str],
+        min_gpa: Optional[float],
+        required_skills: Optional[List[str]],
+        preferred_majors: Optional[List[str]],
+        research_areas: Optional[List[str]],
+        status: Optional[str]
+    ) -> Dict:
+        """
+        Sync opportunity data from Scholarship Service
+        Creates or updates OpportunityFeature record
+        """
+        try:
+            # Check if exists
+            opportunity = self.db.query(models.OpportunityFeature).filter(
+                models.OpportunityFeature.opportunity_id == opportunity_id
+            ).first()
+            
+            action = "updated"
+            if not opportunity:
+                action = "created"
+                opportunity = models.OpportunityFeature(opportunity_id=opportunity_id)
+                self.db.add(opportunity)
+            
+            # Update basic fields
+            opportunity.opportunity_type = opportunity_type
+            opportunity.title = title
+            opportunity.description = description
+            opportunity.min_gpa = min_gpa
+            opportunity.required_skills = required_skills or []
+            opportunity.preferred_majors = preferred_majors or []
+            opportunity.research_areas = research_areas or []
+            opportunity.updated_at = datetime.utcnow()
+            
+            # Preprocess text features
+            preprocessed = matching_engine.preprocess_text_features(
+                skills=required_skills or [],
+                research_interests=research_areas or [],
+                additional_text=f"{title} {description or ''}"
+            )
+            
+            opportunity.combined_text = preprocessed['combined_text']
+            opportunity.skills_vector = preprocessed['skills_vector']
+            opportunity.research_vector = preprocessed['research_vector']
+            opportunity.last_processed_at = datetime.utcnow()
+            
+            self.db.commit()
+            
+            logger.info(f"Opportunity {opportunity_id} synced successfully ({action})")
+            
+            # If status is CLOSED, optionally delete cached scores
+            if status == "CLOSED":
+                self._invalidate_opportunity_scores(opportunity_id)
+            
+            return {"action": action, "opportunity_id": opportunity_id}
+            
+        except Exception as e:
+            logger.error(f"Error syncing opportunity {opportunity_id}: {e}", exc_info=True)
+            self.db.rollback()
+            raise
+    
+    def _invalidate_opportunity_scores(self, opportunity_id: str):
+        """Invalidate cached matching scores for a closed opportunity"""
+        try:
+            deleted_count = self.db.query(models.MatchingScore).filter(
+                models.MatchingScore.opportunity_id == opportunity_id
+            ).delete()
+            
+            self.db.commit()
+            logger.info(f"Invalidated {deleted_count} cached scores for opportunity {opportunity_id}")
+        except Exception as e:
+            logger.error(f"Error invalidating scores: {e}")
+            self.db.rollback()
+

@@ -209,6 +209,102 @@ async def get_recommendations_for_opportunity(
         logger.error(f"Error getting recommendations: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+# ============= Sync Endpoints (for data synchronization) =============
+
+@app.post("/api/v1/sync/applicant", response_model=schemas.SyncResponse)
+async def sync_applicant(
+    data: schemas.ApplicantSyncRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    API để đồng bộ dữ liệu applicant từ Auth/User Service vào Matching DB.
+    
+    **Được gọi khi:**
+    - User đăng ký mới (sau khi verify)
+    - User cập nhật profile (GPA, skills, bio)
+    - User cập nhật research interests
+    
+    **Flow:**
+    1. Auth Service lưu vào MySQL
+    2. Auth Service gọi API này (hoặc gửi event qua RabbitMQ)
+    3. Matching Service lưu/update vào PostgreSQL
+    4. Preprocess features (TF-IDF vectors) cho ML
+    """
+    logger.info(f"[SYNC] Syncing applicant: {data.userId}")
+    
+    try:
+        service = MatchingService(db)
+        result = service.sync_applicant(
+            user_id=data.userId,
+            gpa=data.gpa,
+            major=data.major,
+            university=data.university,
+            year_of_study=data.yearOfStudy,
+            skills=data.skills,
+            research_interests=data.researchInterests,
+            bio=data.bio
+        )
+        
+        logger.info(f"[SYNC] Applicant synced successfully: {data.userId}")
+        return schemas.SyncResponse(
+            status="success",
+            message=f"Applicant {data.userId} synced successfully",
+            entityId=data.userId,
+            action=result.get("action", "updated")
+        )
+        
+    except Exception as e:
+        logger.error(f"[SYNC] Error syncing applicant {data.userId}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/v1/sync/opportunity", response_model=schemas.SyncResponse)
+async def sync_opportunity(
+    data: schemas.OpportunitySyncRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    API để đồng bộ dữ liệu opportunity từ Scholarship Service vào Matching DB.
+    
+    **Được gọi khi:**
+    - Admin approve scholarship (status: PENDING → PUBLISHED)
+    - Employer update scholarship (nếu cần recalculate matches)
+    - Scholarship status change to CLOSED (để remove khỏi recommendations)
+    
+    **Flow:**
+    1. Scholarship Service lưu/update vào MySQL
+    2. Scholarship Service gọi API này (hoặc gửi event qua RabbitMQ)
+    3. Matching Service lưu/update vào PostgreSQL
+    4. Preprocess features (TF-IDF vectors) cho ML
+    5. Trigger background job để recalculate matching scores
+    """
+    logger.info(f"[SYNC] Syncing opportunity: {data.opportunityId}")
+    
+    try:
+        service = MatchingService(db)
+        result = service.sync_opportunity(
+            opportunity_id=data.opportunityId,
+            opportunity_type=data.opportunityType,
+            title=data.title,
+            description=data.description,
+            min_gpa=data.minGpa,
+            required_skills=data.requiredSkills,
+            preferred_majors=data.preferredMajors,
+            research_areas=data.researchAreas,
+            status=data.status
+        )
+        
+        logger.info(f"[SYNC] Opportunity synced successfully: {data.opportunityId}")
+        return schemas.SyncResponse(
+            status="success",
+            message=f"Opportunity {data.opportunityId} synced successfully",
+            entityId=data.opportunityId,
+            action=result.get("action", "updated")
+        )
+        
+    except Exception as e:
+        logger.error(f"[SYNC] Error syncing opportunity {data.opportunityId}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ============= Internal Test Endpoints (for PoC compatibility) =============
 
 @app.get("/api/v1/internal-ping")
