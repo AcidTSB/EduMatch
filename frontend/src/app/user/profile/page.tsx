@@ -1,20 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import { toast } from 'sonner';
 import { 
-  User, 
-  Mail, 
-  Phone, 
-  Calendar, 
-  MapPin, 
-  Book,
-  Award,
-  Upload,
-  Save,
   Edit3,
-  GraduationCap,
-  Briefcase,
-  Globe,
   Camera
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -24,78 +13,96 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { toast } from 'sonner';
-
-// Mock user profiles
-const mockUserProfiles = [
-  {
-    id: '1',
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'student@demo.com',
-    phone: '+1 234 567 8900',
-    dateOfBirth: '1995-06-15',
-    nationality: 'American',
-    currentLocation: 'New York, USA',
-    bio: 'Passionate computer science student with a focus on artificial intelligence and machine learning. I enjoy working on innovative projects that can make a positive impact on society.',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-    university: 'MIT',
-    major: 'Computer Science',
-    gpa: 3.8,
-    graduationYear: 2024,
-    currentLevel: 'Senior',
-    skills: ['Python', 'JavaScript', 'React', 'Machine Learning', 'Data Analysis', 'SQL'],
-    interests: ['AI Research', 'Web Development', 'Data Science', 'Robotics'],
-    languages: ['English (Native)', 'Spanish (Intermediate)', 'French (Basic)'],
-    education: [
-      {
-        degree: 'Bachelor of Science in Computer Science',
-        institution: 'MIT',
-        startYear: 2020,
-        endYear: 2024,
-        gpa: 3.8
-      },
-      {
-        degree: 'High School Diploma',
-        institution: 'Lincoln High School',
-        startYear: 2016,
-        endYear: 2020,
-        gpa: 4.0
-      }
-    ],
-    experience: [
-      {
-        title: 'Software Engineering Intern',
-        company: 'Google',
-        startDate: 'June 2023',
-        endDate: 'August 2023',
-        description: 'Developed machine learning models for improving search algorithms'
-      },
-      {
-        title: 'Research Assistant',
-        company: 'MIT AI Lab',
-        startDate: 'September 2022',
-        endDate: 'Present',
-        description: 'Conducting research on natural language processing and deep learning'
-      }
-    ],
-    achievements: [
-      'Dean\'s List (2021-2023)',
-      'First Place - MIT Hackathon 2023',
-      'Google Summer of Code Participant 2022',
-      'President - Computer Science Student Association'
-    ]
-  }
-];
 
 export default function ProfilePage() {
   const { t } = useLanguage();
-  // Mock current user - replace with actual auth
-  const [profile, setProfile] = useState(mockUserProfiles[0]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Fetch user profile from API
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch from /api/user/me endpoint (backend UserController)
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080';
+        const token = localStorage.getItem('auth_token');
+        
+        const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch user profile');
+        }
+
+        const userData = await response.json();
+        
+        // Debug: Log avatar URL
+        console.log('Fetched user data:', userData);
+        console.log('Avatar URL:', userData.avatarUrl);
+        
+        // Map backend response to profile format - only essential fields
+        setProfile({
+          id: userData.id?.toString() || '',
+          username: userData.username || '',
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
+          email: userData.email || '',
+          sex: userData.sex || '',
+          phone: userData.phone || '',
+          dateOfBirth: userData.dateOfBirth || '',
+          bio: userData.bio || '',
+          avatarUrl: userData.avatarUrl || '',
+          enabled: userData.enabled || false,
+          status: userData.status || 'ACTIVE',
+          subscriptionType: userData.subscriptionType || 'FREE',
+          roles: userData.roles || [],
+          createdAt: userData.createdAt || null,
+          updatedAt: userData.updatedAt || null,
+          organizationId: userData.organizationId || null,
+        });
+      } catch (error) {
+        console.error('Failed to fetch user profile:', error);
+        toast.error('Không thể tải thông tin hồ sơ', {
+          description: error instanceof Error ? error.message : 'Vui lòng thử lại sau'
+        });
+        // Fallback to empty profile
+        setProfile({
+          id: '',
+          username: '',
+          firstName: '',
+          lastName: '',
+          email: '',
+          sex: '',
+          phone: '',
+          dateOfBirth: '',
+          bio: '',
+          avatarUrl: '',
+          enabled: false,
+          status: 'ACTIVE',
+          subscriptionType: 'FREE',
+          roles: [],
+          createdAt: null,
+          updatedAt: null,
+          organizationId: null,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
 
   const handleInputChange = (field: string, value: string | string[] | number) => {
     setProfile(prev => ({
@@ -111,10 +118,107 @@ export default function ProfilePage() {
     const toastId = toast.loading('Đang cập nhật hồ sơ...');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080';
+      const token = localStorage.getItem('auth_token');
       
-      console.log('Profile updated:', profile);
+      let finalAvatarUrl = profile.avatarUrl;
+      
+      // Nếu có file mới được chọn, upload lên server trước
+      if (photoFile) {
+        try {
+          toast.loading('Đang tải ảnh lên...', { id: toastId });
+          
+          // Upload avatar file
+          const formData = new FormData();
+          formData.append('avatar', photoFile);
+          
+          const uploadResponse = await fetch(`${API_BASE_URL}/api/users/avatar`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              // Don't set Content-Type for FormData - browser will set it automatically
+            },
+            credentials: 'include',
+            body: formData,
+          });
+
+          if (uploadResponse.ok) {
+            const uploadData = await uploadResponse.json();
+            finalAvatarUrl = uploadData.avatarUrl; // URL thực sự từ server
+            
+            // Cleanup blob URL
+            if (profile.avatarUrl?.startsWith('blob:')) {
+              URL.revokeObjectURL(profile.avatarUrl);
+            }
+            
+            setPhotoFile(null); // Clear file sau khi upload
+          } else {
+            const errorData = await uploadResponse.json().catch(() => ({ message: 'Upload failed' }));
+            throw new Error(errorData.message || 'Failed to upload avatar');
+          }
+        } catch (uploadError) {
+          console.error('Avatar upload error:', uploadError);
+          throw new Error(uploadError instanceof Error ? uploadError.message : 'Failed to upload avatar');
+        }
+      }
+      
+      // Prepare update data - chỉ gửi URL thực sự, không gửi blob URL
+      const updateData: any = {
+        firstName: profile.firstName || undefined,
+        lastName: profile.lastName || undefined,
+        sex: profile.sex || undefined,
+        phone: profile.phone || undefined,
+        dateOfBirth: profile.dateOfBirth || undefined,
+        bio: profile.bio || undefined,
+      };
+      
+      // Chỉ thêm avatarUrl nếu không phải blob URL
+      if (finalAvatarUrl && !finalAvatarUrl.startsWith('blob:')) {
+        updateData.avatarUrl = finalAvatarUrl;
+      }
+      
+      toast.loading('Đang cập nhật hồ sơ...', { id: toastId });
+      
+      // Update profile via PUT /api/user/me
+      const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update profile' }));
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to update profile`);
+      }
+      
+      // Get updated user data from response
+      const updatedData = await response.json();
+      
+      // Update profile state with backend response
+      setProfile(prev => ({
+        ...prev,
+        id: updatedData.id?.toString() || prev.id,
+        username: updatedData.username || prev.username,
+        firstName: updatedData.firstName || prev.firstName,
+        lastName: updatedData.lastName || prev.lastName,
+        email: updatedData.email || prev.email,
+        sex: updatedData.sex || prev.sex,
+        phone: updatedData.phone || prev.phone,
+        dateOfBirth: updatedData.dateOfBirth || prev.dateOfBirth,
+        bio: updatedData.bio || prev.bio,
+        avatarUrl: updatedData.avatarUrl || prev.avatarUrl,
+        enabled: updatedData.enabled !== undefined ? updatedData.enabled : prev.enabled,
+        status: updatedData.status || prev.status,
+        subscriptionType: updatedData.subscriptionType || prev.subscriptionType,
+        roles: updatedData.roles || prev.roles,
+        createdAt: updatedData.createdAt || prev.createdAt,
+        updatedAt: updatedData.updatedAt || prev.updatedAt,
+        organizationId: updatedData.organizationId || prev.organizationId,
+      }));
       
       toast.success('Cập nhật hồ sơ thành công!', {
         id: toastId,
@@ -126,9 +230,9 @@ export default function ProfilePage() {
       console.error('Profile update failed:', error);
       toast.error('Cập nhật hồ sơ thất bại', {
         id: toastId,
-        description: t('applicantProfile.errorMessage')
+        description: error instanceof Error ? error.message : t('applicantProfile.errorMessage')
       });
-      setErrors({ submit: t('applicantProfile.errorMessage') });
+      setErrors({ submit: error instanceof Error ? error.message : t('applicantProfile.errorMessage') });
     } finally {
       setIsLoading(false);
     }
@@ -158,7 +262,7 @@ export default function ProfilePage() {
       const previewUrl = URL.createObjectURL(file);
       setProfile(prev => ({
         ...prev,
-        avatar: previewUrl
+        avatarUrl: previewUrl
       }));
       
       toast.success('Đã chọn ảnh mới', {
@@ -214,9 +318,13 @@ export default function ProfilePage() {
               {/* Profile Photo */}
               <div className="flex items-center space-x-6">
                 <Avatar className="w-24 h-24">
-                  <AvatarImage src={profile.avatar} alt={`${profile.firstName} ${profile.lastName}`} />
+                  <AvatarImage 
+                    src={profile.avatarUrl || ''} 
+                    alt={`${profile.firstName || ''} ${profile.lastName || ''}`}
+                    useNextImage={false}
+                  />
                   <AvatarFallback className="text-lg">
-                    {profile.firstName[0]}{profile.lastName[0]}
+                    {(profile.firstName?.[0] || '')}{(profile.lastName?.[0] || '') || (profile.username?.[0]?.toUpperCase() || 'U')}
                   </AvatarFallback>
                 </Avatar>
                 {isEditing && (
@@ -247,7 +355,7 @@ export default function ProfilePage() {
                     {t('applicantProfile.firstName')}
                   </label>
                   <Input
-                    value={profile.firstName}
+                    value={profile.firstName || ''}
                     onChange={(e) => handleInputChange('firstName', e.target.value)}
                     disabled={!isEditing}
                     placeholder={t('applicantProfile.firstName')}
@@ -258,7 +366,7 @@ export default function ProfilePage() {
                     {t('applicantProfile.lastName')}
                   </label>
                   <Input
-                    value={profile.lastName}
+                    value={profile.lastName || ''}
                     onChange={(e) => handleInputChange('lastName', e.target.value)}
                     disabled={!isEditing}
                     placeholder={t('applicantProfile.lastName')}
@@ -266,68 +374,119 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              {/* Contact Info */}
+              {/* Username and Email */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Username
+                  </label>
+                  <Input
+                    value={profile.username || ''}
+                    disabled={true}
+                    className="bg-gray-50"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Username cannot be changed</p>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t('applicantProfile.email')}
                   </label>
                   <Input
                     type="email"
-                    value={profile.email}
+                    value={profile.email || ''}
                     disabled={true}
                     className="bg-gray-50"
                   />
                   <p className="text-xs text-gray-500 mt-1">{t('applicantProfile.emailNote')}</p>
                 </div>
+              </div>
+
+              {/* Contact Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     {t('applicantProfile.phone')}
                   </label>
                   <Input
-                    value={profile.phone}
+                    value={profile.phone || ''}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                     disabled={!isEditing}
                     placeholder={t('applicantProfile.phone')}
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Gender
+                  </label>
+                  <select
+                    value={profile.sex || ''}
+                    onChange={(e) => handleInputChange('sex', e.target.value)}
+                    disabled={!isEditing}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select...</option>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                </div>
               </div>
 
-              {/* Personal Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Account Status Info (from backend) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('applicantProfile.dateOfBirth')}
+                  <label className="block text-xs font-medium text-blue-700 mb-1">
+                    Account Status
                   </label>
-                  <Input
-                    type="date"
-                    value={profile.dateOfBirth}
-                    onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                    disabled={!isEditing}
-                  />
+                  <Badge variant={profile.enabled ? "default" : "secondary"}>
+                    {profile.enabled ? 'Enabled' : 'Disabled'}
+                  </Badge>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('applicantProfile.nationality')}
+                  <label className="block text-xs font-medium text-blue-700 mb-1">
+                    Status
                   </label>
-                  <Input
-                    value={profile.nationality}
-                    onChange={(e) => handleInputChange('nationality', e.target.value)}
-                    disabled={!isEditing}
-                    placeholder={t('applicantProfile.nationality')}
-                  />
+                  <Badge variant="outline">
+                    {profile.status || 'ACTIVE'}
+                  </Badge>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('applicantProfile.currentLocation')}
+                  <label className="block text-xs font-medium text-blue-700 mb-1">
+                    Subscription
                   </label>
-                  <Input
-                    value={profile.currentLocation}
-                    onChange={(e) => handleInputChange('currentLocation', e.target.value)}
-                    disabled={!isEditing}
-                    placeholder={t('applicantProfile.currentLocation')}
-                  />
+                  <Badge variant="outline">
+                    {profile.subscriptionType || 'FREE'}
+                  </Badge>
                 </div>
+              </div>
+
+              {/* Roles (from backend) */}
+              {profile.roles && profile.roles.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Roles
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {profile.roles.map((role: string, index: number) => (
+                      <Badge key={index} variant="secondary">
+                        {role.replace('ROLE_', '')}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Date of Birth */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {t('applicantProfile.dateOfBirth')}
+                </label>
+                <Input
+                  type="date"
+                  value={profile.dateOfBirth || ''}
+                  onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                  disabled={!isEditing}
+                />
               </div>
 
               {/* Bio */}
@@ -336,175 +495,39 @@ export default function ProfilePage() {
                   {t('applicantProfile.bio')}
                 </label>
                 <Textarea
-                  value={profile.bio}
+                  value={profile.bio || ''}
                   onChange={(e) => handleInputChange('bio', e.target.value)}
                   disabled={!isEditing}
                   rows={4}
                   placeholder={t('applicantProfile.bioPlaceholder')}
                 />
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Academic Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('applicantProfile.academicInfo')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('applicantProfile.university')}
-                  </label>
-                  <Input
-                    value={profile.university}
-                    onChange={(e) => handleInputChange('university', e.target.value)}
-                    disabled={!isEditing}
-                    placeholder={t('applicantProfile.university')}
-                  />
+              {/* Timestamps (from backend) */}
+              {(profile.createdAt || profile.updatedAt) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-500 pt-2 border-t">
+                  {profile.createdAt && (
+                    <div>
+                      <span className="font-medium">Created:</span>{' '}
+                      {typeof profile.createdAt === 'string' 
+                        ? new Date(profile.createdAt).toLocaleDateString()
+                        : profile.createdAt instanceof Date
+                        ? profile.createdAt.toLocaleDateString()
+                        : 'N/A'}
+                    </div>
+                  )}
+                  {profile.updatedAt && (
+                    <div>
+                      <span className="font-medium">Last Updated:</span>{' '}
+                      {typeof profile.updatedAt === 'string'
+                        ? new Date(profile.updatedAt).toLocaleDateString()
+                        : profile.updatedAt instanceof Date
+                        ? profile.updatedAt.toLocaleDateString()
+                        : 'N/A'}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('applicantProfile.major')}
-                  </label>
-                  <Input
-                    value={profile.major}
-                    onChange={(e) => handleInputChange('major', e.target.value)}
-                    disabled={!isEditing}
-                    placeholder={t('applicantProfile.major')}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('applicantProfile.gpa')}
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    max="4"
-                    value={profile.gpa}
-                    onChange={(e) => handleInputChange('gpa', parseFloat(e.target.value))}
-                    disabled={!isEditing}
-                    placeholder={t('applicantProfile.gpa')}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('applicantProfile.graduationYear')}
-                  </label>
-                  <Input
-                    type="number"
-                    value={profile.graduationYear}
-                    onChange={(e) => handleInputChange('graduationYear', parseInt(e.target.value))}
-                    disabled={!isEditing}
-                    placeholder={t('applicantProfile.graduationYear')}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {t('applicantProfile.currentLevel')}
-                  </label>
-                  <Input
-                    value={profile.currentLevel}
-                    onChange={(e) => handleInputChange('currentLevel', e.target.value)}
-                    disabled={!isEditing}
-                    placeholder={t('applicantProfile.currentLevel')}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Skills & Interests */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('applicantProfile.skillsInterests')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Skills */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('applicantProfile.skills')}
-                </label>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {profile.skills.map((skill, index) => (
-                    <Badge key={index} variant="secondary">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-                {isEditing && (
-                  <Input
-                    placeholder={t('applicantProfile.skillsPlaceholder')}
-                    value={profile.skills.join(', ')}
-                    onChange={(e) => handleInputChange('skills', e.target.value.split(',').map(s => s.trim()))}
-                  />
-                )}
-              </div>
-
-              {/* Interests */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('applicantProfile.interests')}
-                </label>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {profile.interests.map((interest, index) => (
-                    <Badge key={index} variant="outline">
-                      {interest}
-                    </Badge>
-                  ))}
-                </div>
-                {isEditing && (
-                  <Input
-                    placeholder={t('applicantProfile.interestsPlaceholder')}
-                    value={profile.interests.join(', ')}
-                    onChange={(e) => handleInputChange('interests', e.target.value.split(',').map(s => s.trim()))}
-                  />
-                )}
-              </div>
-
-              {/* Languages */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('applicantProfile.languages')}
-                </label>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {profile.languages.map((language, index) => (
-                    <Badge key={index} variant="secondary">
-                      {language}
-                    </Badge>
-                  ))}
-                </div>
-                {isEditing && (
-                  <Input
-                    placeholder={t('applicantProfile.languagesPlaceholder')}
-                    value={profile.languages.join(', ')}
-                    onChange={(e) => handleInputChange('languages', e.target.value.split(',').map(s => s.trim()))}
-                  />
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Achievements */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('applicantProfile.achievements')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {profile.achievements.map((achievement, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <Award className="h-5 w-5 text-yellow-600" />
-                    <span className="text-gray-700">{achievement}</span>
-                  </div>
-                ))}
-              </div>
+              )}
             </CardContent>
           </Card>
 

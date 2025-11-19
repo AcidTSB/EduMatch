@@ -167,18 +167,23 @@ public class UserService {
      * Convert User entity sang UserResponse DTO
      */
     public UserResponse toUserResponse(User user) {
-        UserResponse response = new UserResponse();
-        response.setId(user.getId());
-        response.setUsername(user.getUsername());
-        response.setEmail(user.getEmail());
-        response.setFirstName(user.getFirstName());
-        response.setLastName(user.getLastName());
-        response.setRoles(
-                user.getRoles().stream()
+        return UserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .sex(user.getSex())
+                .organizationId(user.getOrganizationId())
+                .enabled(user.getEnabled())
+                .status(user.getStatus())
+                .subscriptionType(user.getSubscriptionType())
+                .roles(user.getRoles().stream()
                         .map(Role::getName)
-                        .collect(Collectors.toSet())
-        );
-        return response;
+                        .collect(Collectors.toSet()))
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
     }
 
     /**

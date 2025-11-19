@@ -5,24 +5,12 @@ import { X, User, GraduationCap, DollarSign, Calendar, FileText, Mail } from 'lu
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
-
-interface ApplicationData {
-  id: string;
-  studentName: string;
-  studentEmail: string;
-  scholarship: string;
-  provider: string;
-  amount: string;
-  status: string;
-  submittedDate: string;
-  gpa: number;
-  documents: number;
-}
+import { AdminApplication } from '@/services/admin.service';
 
 interface ViewApplicationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  application: ApplicationData | null;
+  application: AdminApplication | null;
 }
 
 export function ViewApplicationModal({
@@ -56,7 +44,7 @@ export function ViewApplicationModal({
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-gray-900">{t('viewApplicationModal.title')}</h2>
-            <p className="text-sm text-gray-500 mt-1">{t('viewApplicationModal.idLabel')}: {application.id}</p>
+            <p className="text-sm text-gray-500 mt-1">{t('viewApplicationModal.idLabel')}: #{application.id}</p>
           </div>
           <button
             onClick={onClose}
@@ -74,7 +62,7 @@ export function ViewApplicationModal({
               {application.status}
             </Badge>
             <span className="text-sm text-gray-500">
-              {t('viewApplicationModal.submitted')}: {application.submittedDate}
+              {t('viewApplicationModal.submitted')}: {application.submittedAt ? new Date(application.submittedAt).toLocaleDateString() : application.createdAt ? new Date(application.createdAt).toLocaleDateString() : 'N/A'}
             </span>
           </div>
 
@@ -87,26 +75,27 @@ export function ViewApplicationModal({
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-gray-500">{t('viewApplicationModal.name')}</p>
-                <p className="font-medium text-gray-900">{application.studentName}</p>
+                <p className="font-medium text-gray-900">{application.applicantUserName || 'Unknown'}</p>
               </div>
               <div>
                 <p className="text-gray-500">{t('viewApplicationModal.email')}</p>
                 <p className="font-medium text-gray-900 flex items-center gap-1">
                   <Mail className="w-4 h-4" />
-                  {application.studentEmail}
+                  {application.applicantEmail || 'N/A'}
                 </p>
               </div>
-              <div>
-                <p className="text-gray-500">{t('viewApplicationModal.gpa')}</p>
-                <p className="font-medium text-gray-900">{application.gpa.toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">{t('viewApplicationModal.documentsSubmitted')}</p>
-                <p className="font-medium text-gray-900 flex items-center gap-1">
-                  <FileText className="w-4 h-4" />
-                  {application.documents} {t('viewApplicationModal.files')}
-                </p>
-              </div>
+              {application.gpa && (
+                <div>
+                  <p className="text-gray-500">{t('viewApplicationModal.gpa')}</p>
+                  <p className="font-medium text-gray-900">{application.gpa.toFixed(2)}</p>
+                </div>
+              )}
+              {application.phone && (
+                <div>
+                  <p className="text-gray-500">Phone</p>
+                  <p className="font-medium text-gray-900">{application.phone}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -119,21 +108,20 @@ export function ViewApplicationModal({
             <div className="grid grid-cols-1 gap-3 text-sm">
               <div>
                 <p className="text-gray-500">{t('viewApplicationModal.scholarshipTitle')}</p>
-                <p className="font-medium text-gray-900">{application.scholarship}</p>
+                <p className="font-medium text-gray-900">{application.opportunityTitle || `Opportunity #${application.opportunityId}`}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              {application.coverLetter && (
                 <div>
-                  <p className="text-gray-500">{t('viewApplicationModal.provider')}</p>
-                  <p className="font-medium text-gray-900">{application.provider}</p>
+                  <p className="text-gray-500">Cover Letter</p>
+                  <p className="font-medium text-gray-900 whitespace-pre-wrap">{application.coverLetter}</p>
                 </div>
+              )}
+              {application.motivation && (
                 <div>
-                  <p className="text-gray-500">{t('viewApplicationModal.amount')}</p>
-                  <p className="font-medium text-gray-900 flex items-center gap-1">
-                    <DollarSign className="w-4 h-4" />
-                    {application.amount}
-                  </p>
+                  <p className="text-gray-500">Motivation</p>
+                  <p className="font-medium text-gray-900 whitespace-pre-wrap">{application.motivation}</p>
                 </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -148,7 +136,7 @@ export function ViewApplicationModal({
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <div>
                   <p className="font-medium text-gray-900">{t('viewApplicationModal.applicationSubmitted')}</p>
-                  <p className="text-gray-500">{application.submittedDate}</p>
+                  <p className="text-gray-500">{application.submittedAt ? new Date(application.submittedAt).toLocaleString() : application.createdAt ? new Date(application.createdAt).toLocaleString() : 'N/A'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 ml-1 border-l-2 border-gray-300 pl-2 py-2">

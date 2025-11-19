@@ -25,22 +25,21 @@ public class InitialDataLoader implements CommandLineRunner {
 
         // Create roles if they don't exist
         createRoleIfNotFound("ROLE_USER", "Regular user role");
-        createRoleIfNotFound("ROLE_EMPLOYER", "Employer role ");
+        createRoleIfNotFound("ROLE_EMPLOYER", "Employer role");
         createRoleIfNotFound("ROLE_ADMIN", "Administrator role");
 
-        // Create admin user if it doesn't exist
-        if (!userRepository.existsByUsername("admin")) {
-            Role adminRole = roleRepository.findByName("ROLE_ADMIN")
-                    .orElseThrow(() -> new RuntimeException("Error: Admin Role not found."));
-            Role userRole = roleRepository.findByName("ROLE_USER")
-                    .orElseThrow(() -> new RuntimeException("Error: User Role not found."));
-            Role emloyerRole = roleRepository.findByName("ROLE_EMPLOYER")
-                    .orElseThrow(() -> new RuntimeException("Error: User Role not found."));
+        // === FIX DUPLICATE EMAIL BUG ===
+        if (userRepository.findByUsername("admin").isEmpty() &&
+                userRepository.findByEmail("admin@example.com").isEmpty()) {
+
+            Role adminRole    = roleRepository.findByName("ROLE_ADMIN").orElseThrow();
+            Role userRole     = roleRepository.findByName("ROLE_USER").orElseThrow();
+            Role employerRole = roleRepository.findByName("ROLE_EMPLOYER").orElseThrow();
 
             Set<Role> roles = new HashSet<>();
             roles.add(adminRole);
             roles.add(userRole);
-            roles.add(emloyerRole);
+            roles.add(employerRole);
 
             User adminUser = User.builder()
                     .username("admin")
@@ -50,9 +49,14 @@ public class InitialDataLoader implements CommandLineRunner {
                     .lastName("User")
                     .roles(roles)
                     .enabled(true)
+                    .status("ACTIVE")
+                    .subscriptionType("FREE")
                     .build();
 
             userRepository.save(adminUser);
+            System.out.println("✔ Admin user created.");
+        } else {
+            System.out.println("✔ Admin user already exists. Skipping creation.");
         }
     }
 
@@ -63,6 +67,7 @@ public class InitialDataLoader implements CommandLineRunner {
                     .description(description)
                     .build();
             roleRepository.save(role);
+            System.out.println("✔ Role created: " + name);
         }
     }
 }

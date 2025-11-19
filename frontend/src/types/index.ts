@@ -165,14 +165,17 @@ export interface Scholarship {
  */
 export interface Application {
   id: string;
-  applicantId: string; // ID của student
-  scholarshipId: string;
+  applicantId: string; // ID của student (maps from applicantUserId)
+  scholarshipId: string; // Maps from opportunityId
+  opportunityId?: string; // Backend field name
   status: ApplicationStatus;
-  additionalDocs: string[]; // Danh sách tên file hoặc URL
+  additionalDocs: string[]; // Danh sách tên file hoặc URL (maps from documents)
   createdAt: Date;
   updatedAt: Date;
   // Additional fields from backend ApplicationDto
-  submittedAt?: any;
+  submittedAt?: Date | string; // LocalDateTime from backend
+  opportunityTitle?: string; // Title of the opportunity/scholarship
+  applicantUserId?: string | number; // Backend field name
   applicantUserName?: string;
   applicantEmail?: string;
   phone?: string;
@@ -183,6 +186,7 @@ export interface Application {
   portfolioUrl?: string;
   linkedinUrl?: string;
   githubUrl?: string;
+  documents?: Array<{ documentName: string; documentUrl: string }>; // Full document objects from backend
 }
 
 /**

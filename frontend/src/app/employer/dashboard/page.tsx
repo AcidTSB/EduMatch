@@ -121,13 +121,6 @@ export default function ProviderDashboardPage() {
 
   // Calculate real stats from AppContext data
   const dashboardData = React.useMemo(() => {
-    // Helper to get applicant profile by applicantId
-    const getApplicantProfile = (applicantId: string) => {
-      // Replace with your actual user/profile lookup logic
-      // For now, fallback to unknown
-      return { name: 'Unknown', email: 'No email', gpa: 0, university: 'Unknown' };
-    };
-
     return {
       stats: {
         totalScholarships: scholarships.length,
@@ -136,16 +129,24 @@ export default function ProviderDashboardPage() {
         acceptedStudents: applications.filter(a => a.status === 'ACCEPTED').length
       },
       recentApplications: applications.slice(0, 3).map(app => {
-        const profile = getApplicantProfile(app.applicantId);
+        // Use fields directly from ApplicationDto (mapped in useApplications hook)
+        // applicantUserName, applicantEmail, gpa come from backend ApplicationDto
         return {
           id: app.id,
-          applicantName: profile.name,
-          applicantEmail: profile.email,
-          scholarshipTitle: scholarships.find(s => s.id === app.scholarshipId)?.title || 'Unknown Scholarship',
-          appliedDate: app.createdAt ? app.createdAt.toISOString().split('T')[0] : '',
+          applicantName: app.applicantUserName || 'Unknown Applicant',
+          applicantEmail: app.applicantEmail || 'No email',
+          // Use opportunityTitle from ApplicationDto (backend includes this)
+          scholarshipTitle: app.opportunityTitle || 
+                           scholarships.find(s => s.id === app.scholarshipId)?.title || 
+                           'Unknown Scholarship',
+          appliedDate: app.submittedAt 
+            ? (app.submittedAt instanceof Date 
+               ? app.submittedAt.toISOString().split('T')[0] 
+               : new Date(app.submittedAt).toISOString().split('T')[0])
+            : (app.createdAt ? app.createdAt.toISOString().split('T')[0] : ''),
           status: app.status.toLowerCase(),
-          gpa: profile.gpa,
-          university: profile.university
+          gpa: app.gpa || 0, // GPA from ApplicationDto
+          university: 'N/A' // University not in ApplicationDto, would need separate fetch
         };
       }),
       myScholarships: scholarships.slice(0, 4).map(s => ({

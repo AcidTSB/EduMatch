@@ -6,27 +6,37 @@ import { Badge } from '@/components/ui/badge';
 import { useApplicationStore } from '@/stores/realtimeStore';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ApplicationStatus } from '@/types/realtime';
+import { Application } from '@/types';
 import { formatDistanceToNow } from 'date-fns';
 import { Clock, CheckCircle, XCircle, AlertCircle, Users } from 'lucide-react';
 
 interface ApplicationStatusCardProps {
-  applicationId: string;
-  scholarshipTitle: string;
-  providerId: string;
-  providerName: string;
-  submittedAt: string;
+  application: Application;
+  providerName?: string; // Optional, can be passed if available from scholarship data
 }
 
 export function ApplicationStatusCard({
-  applicationId,
-  scholarshipTitle,
-  providerId,
-  providerName,
-  submittedAt
+  application,
+  providerName
 }: ApplicationStatusCardProps) {
   const { t } = useLanguage();
   const { applicationStatuses } = useApplicationStore();
-  const status = applicationStatuses[applicationId];
+  const status = applicationStatuses[application.id];
+  
+  // Use opportunityTitle from Application object (from backend ApplicationDto)
+  const scholarshipTitle = application.opportunityTitle || 'Unknown Scholarship';
+  
+  // Parse submittedAt - can be Date or string
+  const submittedAtDate = application.submittedAt 
+    ? (application.submittedAt instanceof Date 
+       ? application.submittedAt 
+       : new Date(application.submittedAt))
+    : application.createdAt || new Date();
+  
+  const submittedAtString = submittedAtDate.toISOString();
+  
+  // Use providerName from prop or fallback
+  const displayProviderName = providerName || 'Provider';
 
   const getStatusConfig = (status?: ApplicationStatus['status']) => {
     switch (status) {
@@ -86,7 +96,7 @@ export function ApplicationStatusCard({
             <CardTitle className="text-lg leading-tight mb-1 bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">
               {scholarshipTitle}
             </CardTitle>
-            <p className="text-sm text-gray-600">{t('applicationStatus.by')} {providerName}</p>
+            <p className="text-sm text-gray-600">{t('applicationStatus.by')} {displayProviderName}</p>
           </div>
           <Badge 
             variant="outline" 
@@ -113,12 +123,20 @@ export function ApplicationStatusCard({
 
           <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
             <span>
-              {t('applicationStatus.submitted')} {formatDistanceToNow(new Date(submittedAt), { addSuffix: true })}
+              {t('applicationStatus.submitted')} {formatDistanceToNow(submittedAtDate, { addSuffix: true })}
             </span>
             <span>
-              {t('applicationStatus.updated')} {formatDistanceToNow(new Date(lastUpdated), { addSuffix: true })}
+              {t('applicationStatus.updated')} {formatDistanceToNow(new Date(status?.updatedAt || submittedAtString), { addSuffix: true })}
             </span>
           </div>
+          
+          {/* Show additional info if available from ApplicationDto */}
+          {application.motivation && (
+            <div className="p-3 bg-blue-50 rounded-md border border-blue-100">
+              <p className="text-xs font-medium text-blue-700 mb-1">{t('applicationStatus.motivation') || 'Motivation'}</p>
+              <p className="text-xs text-blue-600 line-clamp-2">{application.motivation}</p>
+            </div>
+          )}
         </div>
         
         {/* Progress bar for pending applications */}

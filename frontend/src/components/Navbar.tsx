@@ -424,6 +424,16 @@ export function Navbar() {
                 {/* Notifications */}
                 <NotificationDropdown />
 
+                {/* Bạn là nhà tuyển dụng? - Moved to right side */}
+                {(user?.role === UserRole.USER || user?.role === 'USER') && (
+                  <Link
+                    href="/employer/register"
+                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-md border border-blue-200 transition-colors whitespace-nowrap"
+                  >
+                    Bạn là nhà tuyển dụng?
+                  </Link>
+                )}
+
                 {/* User Menu Button */}
                 <div className="relative">
                   <button
@@ -475,6 +485,17 @@ export function Navbar() {
                             {getRoleDisplayName(user?.role || 'USER')}
                           </p>
                         </div>
+                        
+                        {(user?.role === UserRole.USER || user?.role === 'USER') && (
+                          <Link
+                            href="/employer/register"
+                            className="flex items-center px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 font-semibold bg-blue-50 border border-blue-200 rounded-md mb-2"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <User className="h-4 w-4 mr-3 text-blue-600" />
+                            Bạn là nhà tuyển dụng?
+                          </Link>
+                        )}
                         
                         <Link
                           href={user?.role === 'ADMIN' ? '/admin/profile' : user?.role === 'EMPLOYER' ? '/employer/profile' : '/user/profile'}
@@ -662,6 +683,16 @@ export function Navbar() {
                     </div>
                   </div>
                   
+                  {(user?.role === UserRole.USER || user?.role === 'USER') && (
+                    <Link
+                      href="/employer/register"
+                      className="flex items-center px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md font-semibold bg-blue-50 border border-blue-200 mb-2"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <User className="h-4 w-4 mr-3 text-blue-600" />
+                      Bạn là nhà tuyển dụng?
+                    </Link>
+                  )}
                   <Link
                     href={user?.role === 'ADMIN' ? '/admin/profile' : user?.role === 'EMPLOYER' ? '/employer/profile' : '/user/profile'}
                     className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md"

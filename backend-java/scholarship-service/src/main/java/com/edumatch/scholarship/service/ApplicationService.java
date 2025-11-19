@@ -195,4 +195,89 @@ public class ApplicationService {
                 })
                 .collect(Collectors.toList());
     }
+
+    /**
+     * Lấy TẤT CẢ applications với filter và pagination (cho Admin)
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ApplicationDto> getAllApplicationsForAdmin(
+            String status,
+            Long opportunityId,
+            String keyword,
+            org.springframework.data.domain.Pageable pageable) {
+        
+        // Lấy applications với filter
+        org.springframework.data.domain.Page<Application> page = applicationRepository.searchApplications(
+                status, opportunityId, keyword, pageable);
+
+        // Chuyển đổi sang DTO và thêm opportunity title
+        return page.map(app -> {
+            List<ApplicationDocument> docs = applicationDocumentRepository.findByApplicationId(app.getId());
+            ApplicationDto dto = ApplicationDto.fromEntity(app, docs);
+            
+            // Lấy opportunity title nếu có
+            if (app.getOpportunityId() != null) {
+                opportunityRepository.findById(app.getOpportunityId())
+                    .ifPresent(opp -> dto.setOpportunityTitle(opp.getTitle()));
+            }
+            
+            return dto;
+        });
+    }
+
+    /**
+     * Admin lấy chi tiết một application
+     */
+    @Transactional(readOnly = true)
+    public ApplicationDto getApplicationByIdForAdmin(Long applicationId) {
+        Application app = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn ứng tuyển với ID: " + applicationId));
+        
+        List<ApplicationDocument> docs = applicationDocumentRepository.findByApplicationId(app.getId());
+        ApplicationDto dto = ApplicationDto.fromEntity(app, docs);
+        
+        // Lấy opportunity title nếu có
+        if (app.getOpportunityId() != null) {
+            opportunityRepository.findById(app.getOpportunityId())
+                .ifPresent(opp -> dto.setOpportunityTitle(opp.getTitle()));
+        }
+        
+        return dto;
+    }
+
+    /**
+     * Admin cập nhật trạng thái application (không cần check ownership)
+     */
+    @Transactional
+    public ApplicationDto updateApplicationStatusByAdmin(Long applicationId, String newStatus) {
+        // 1. Tìm đơn ứng tuyển
+        Application app = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy đơn ứng tuyển với ID: " + applicationId));
+
+        // 2. Cập nhật trạng thái (Admin không cần check ownership)
+        app.setStatus(newStatus);
+        Application savedApp = applicationRepository.save(app);
+
+        // 3. GỬI SỰ KIỆN EMAIL
+        Map<String, Object> emailEvent = Map.of(
+                "applicantUserId", savedApp.getApplicantUserId(),
+                "subject", "Cập nhật trạng thái đơn ứng tuyển",
+                "body", "Trạng thái đơn ứng tuyển của bạn đã được cập nhật thành: " + newStatus
+        );
+
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "notification.send.email", emailEvent);
+        log.info("Admin đã cập nhật trạng thái đơn ứng tuyển ID: {} thành: {}", savedApp.getId(), newStatus);
+
+        // 4. Trả về DTO
+        List<ApplicationDocument> docs = applicationDocumentRepository.findByApplicationId(savedApp.getId());
+        ApplicationDto dto = ApplicationDto.fromEntity(savedApp, docs);
+        
+        // Lấy opportunity title nếu có
+        if (savedApp.getOpportunityId() != null) {
+            opportunityRepository.findById(savedApp.getOpportunityId())
+                .ifPresent(opp -> dto.setOpportunityTitle(opp.getTitle()));
+        }
+        
+        return dto;
+    }
 }

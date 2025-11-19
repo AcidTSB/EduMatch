@@ -9,8 +9,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation'; // 1. Import router
+import { useRouter, useSearchParams } from 'next/navigation'; // 1. Import router and searchParams
 import { useQueryClient } from '@tanstack/react-query'; // 2. Import query client
+import { useEffect } from 'react';
 
 // 3. Import useAuth from AuthContext (not hooks)
 import { useAuth } from '@/lib/auth'; // Use context-based auth
@@ -28,6 +29,17 @@ export default function LoginPage() {
   const { login } = useAuth(); 
   const { t } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Hiển thị message từ query parameter (nếu có)
+  useEffect(() => {
+    const message = searchParams.get('message');
+    if (message) {
+      toast.info(decodeURIComponent(message), {
+        duration: 5000,
+      });
+    }
+  }, [searchParams]);
 
   // validateForm() và handleInputChange() giữ nguyên
   const validateForm = () => {

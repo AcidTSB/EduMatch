@@ -1,14 +1,16 @@
 package com.example.jwt.example.controller;
 
-import com.example.jwt.example.dto.request.RejectScholarshipRequest;
+import com.example.jwt.example.dto.request.RejectEmployerRequestRequest;
 import com.example.jwt.example.dto.request.SignUpRequest;
 import com.example.jwt.example.dto.response.ApiResponse;
-import com.example.jwt.example.dto.response.ScholarshipResponse;
+import com.example.jwt.example.dto.response.OrganizationRequestResponse;
 import com.example.jwt.example.dto.response.UserResponse;
 import com.example.jwt.example.exception.BadRequestException;
 import com.example.jwt.example.exception.ResourceNotFoundException;
 import com.example.jwt.example.model.AuditLog;
+import com.example.jwt.example.model.OrganizationRequest;
 import com.example.jwt.example.model.User;
+import com.example.jwt.example.service.OrganizationRequestService;
 import com.example.jwt.example.service.UserService;
 import com.example.jwt.example.service.AuditLogService;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +19,20 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClientException;
+import org.springframework.beans.factory.annotation.Value;
+import jakarta.validation.Valid;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +45,11 @@ public class AdminController {
 
     private final UserService userService;
     private final AuditLogService auditLogService;
+    private final OrganizationRequestService organizationRequestService;
+    private final RestTemplate restTemplate;
+    
+    @Value("${app.services.scholarship-service.url:http://localhost:8082}")
+    private String scholarshipServiceUrl;
 
     @PostMapping("/create-employer")
     public ResponseEntity<?> createRecruiter(@RequestBody SignUpRequest request) {
@@ -54,9 +71,9 @@ public class AdminController {
                     .body(new ApiResponse(false, e.getMessage()));
         }
     }
-    // lấy tất cả user
+    // lấy tất cả user với pagination
     @GetMapping("/users")
-    public ResponseEntity<List<UserResponse>> getAllUsers(
+    public ResponseEntity<Map<String, Object>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String role,
@@ -65,7 +82,15 @@ public class AdminController {
     ) {
         Page<User> pageUsers = userService.getAllUsers(role, enabled, keyword, page, size);
         List<UserResponse> responseList = userService.toUserResponseList(pageUsers.getContent());
-        return ResponseEntity.ok(responseList);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("users", responseList);
+        response.put("currentPage", pageUsers.getNumber());
+        response.put("totalItems", pageUsers.getTotalElements());
+        response.put("totalPages", pageUsers.getTotalPages());
+        response.put("pageSize", pageUsers.getSize());
+        
+        return ResponseEntity.ok(response);
     }
     // lấy 1 user cụ thể
     @GetMapping("/users/{id}")
@@ -101,91 +126,13 @@ public class AdminController {
                     .body(new ApiResponse(false, e.getMessage()));
         }
     }
-    // dữ liệu giả chưa có scholarships thật nếu có rồi kết nối với scholarships-service và ở đây chỉ gọi lại
-    private List<ScholarshipResponse> mockScholarships = List.of(
-            new ScholarshipResponse(1L, "Học bổng VinFuture", "VinGroup", "PENDING", "Học bổng toàn phần cho sinh viên xuất sắc"),
-            new ScholarshipResponse(2L, "Học bổng Chính phủ Nhật", "JICA", "APPROVED", "Toàn phần du học Nhật Bản"),
-            new ScholarshipResponse(3L, "Học bổng Techcombank", "Techcombank", "REJECTED", "Dành cho sinh viên ngành tài chính"),
-            new ScholarshipResponse(4L, "Học bổng ASEAN", "Singapore Gov", "APPROVED", "Học bổng ASEAN cho sinh viên Việt Nam")
-    );
-    // dữ liệu giả chưa có scholarships thật
-    @GetMapping("/scholarships")
-    public ResponseEntity<List<ScholarshipResponse>> getAllScholarships(
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String provider
-    ) {
-        // Lọc danh sách học bổng theo tiêu chí
-        List<ScholarshipResponse> filtered = mockScholarships.stream()
-                .filter(s -> status == null || s.getStatus().equalsIgnoreCase(status))
-                .filter(s -> provider == null || s.getProvider().toLowerCase().contains(provider.toLowerCase()))
-                .filter(s -> keyword == null || s.getTitle().toLowerCase().contains(keyword.toLowerCase())
-                        || s.getDescription().toLowerCase().contains(keyword.toLowerCase()))
-                .toList();
-
-        return ResponseEntity.ok(filtered);
-    }
-    // dữ liệu giả chưa có scholarships thật
-    @GetMapping("/scholarships/{id}")
-    public ResponseEntity<ScholarshipResponse> getScholarshipById(@PathVariable Long id) {
-        return mockScholarships.stream()
-                .filter(s -> s.getId().equals(id))
-                .findFirst()
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-    // dữ liệu giả chưa có scholarships thật
-    @PatchMapping("/scholarships/{id}/approve")
-    public ResponseEntity<?> approveScholarship(@PathVariable Long id) {
-        for (ScholarshipResponse s : mockScholarships) {
-            if (s.getId().equals(id)) {
-                if ("APPROVED".equalsIgnoreCase(s.getStatus())) {
-                    return ResponseEntity.badRequest()
-                            .body(new ApiResponse(false, "Scholarship already approved"));
-                }
-
-                s.setStatus("APPROVED");
-                return ResponseEntity.ok(
-                        new ApiResponse(true, "Scholarship approved successfully (ID = " + id + ")")
-                );
-            }
-        }
-
-        return ResponseEntity
-                .status(404)
-                .body(new ApiResponse(false, "Scholarship not found with id: " + id));
-    }
-    // dữ liệu giả chưa có scholarships thật
-    @PatchMapping("/scholarships/{id}/reject")
-    public ResponseEntity<?> rejectScholarship(
-            @PathVariable Long id,
-            @RequestBody RejectScholarshipRequest request
-    ) {
-        for (ScholarshipResponse s : mockScholarships) {
-            if (s.getId().equals(id)) {
-                if ("REJECTED".equalsIgnoreCase(s.getStatus())) {
-                    return ResponseEntity.badRequest()
-                            .body(new ApiResponse(false, "Scholarship already rejected"));
-                }
-
-                s.setStatus("REJECTED");
-                String reason = (request.getReason() != null && !request.getReason().isEmpty())
-                        ? request.getReason()
-                        : "No reason provided";
-
-                // Bạn có thể log ra hoặc lưu lý do này trong DB (nếu có)
-                System.out.println("Scholarship " + id + " rejected. Reason: " + reason);
-
-                return ResponseEntity.ok(
-                        new ApiResponse(true, "Scholarship rejected successfully with reason: " + reason)
-                );
-            }
-        }
-
-        return ResponseEntity
-                .status(404)
-                .body(new ApiResponse(false, "Scholarship not found with id: " + id));
-    }
+    // NOTE: Scholarship APIs đã được chuyển sang scholarship-service
+    // Frontend sẽ gọi trực tiếp /api/opportunities/* từ scholarship-service
+    // Các API sau đây đã được loại bỏ để tránh nhầm lẫn:
+    // - GET /api/admin/scholarships -> Sử dụng GET /api/opportunities/all
+    // - GET /api/admin/scholarships/{id} -> Sử dụng GET /api/opportunities/{id}
+    // - PATCH /api/admin/scholarships/{id}/approve -> Sử dụng PUT /api/opportunities/{id}/moderate
+    // - PATCH /api/admin/scholarships/{id}/reject -> Sử dụng PUT /api/opportunities/{id}/moderate
     @GetMapping("/audit/logs")
     public ResponseEntity<Map<String, Object>> getAuditLogs(
             @RequestParam(required = false) String username,
@@ -224,6 +171,177 @@ public class AdminController {
         response.put("logs", logs.getContent());
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Lấy thống kê tổng quan cho admin dashboard
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getAdminStats(HttpServletRequest request) {
+        Map<String, Object> stats = new HashMap<>();
+        
+        // Thống kê users
+        long totalUsers = userService.getAllUsers(null, null, null, 0, 1).getTotalElements();
+        long totalStudents = userService.getAllUsers("ROLE_USER", null, null, 0, 1).getTotalElements();
+        long totalEmployers = userService.getAllUsers("ROLE_EMPLOYER", null, null, 0, 1).getTotalElements();
+        long totalAdmins = userService.getAllUsers("ROLE_ADMIN", null, null, 0, 1).getTotalElements();
+        long activeUsers = userService.getAllUsers(null, true, null, 0, 1).getTotalElements();
+        
+        stats.put("totalUsers", totalUsers);
+        stats.put("totalStudents", totalStudents);
+        stats.put("totalEmployers", totalEmployers);
+        stats.put("totalAdmins", totalAdmins);
+        stats.put("activeUsers", activeUsers);
+        stats.put("inactiveUsers", totalUsers - activeUsers);
+        
+        // Lấy thống kê scholarships và applications từ scholarship-service
+        try {
+            // Lấy JWT token từ request header
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                // Nếu không có token, set giá trị mặc định
+                stats.put("totalScholarships", 0);
+                stats.put("activeScholarships", 0);
+                stats.put("pendingScholarships", 0);
+                stats.put("totalApplications", 0);
+                stats.put("pendingApplications", 0);
+                stats.put("acceptedApplications", 0);
+                stats.put("rejectedApplications", 0);
+                return ResponseEntity.ok(stats);
+            }
+            
+            // Gọi scholarship-service
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", authHeader);
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            String url = scholarshipServiceUrl + "/api/opportunities/stats";
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    Map.class
+            );
+            
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Map<String, Object> scholarshipStats = response.getBody();
+                stats.putAll(scholarshipStats);
+            } else {
+                // Nếu gọi không thành công, set giá trị mặc định
+                stats.put("totalScholarships", 0);
+                stats.put("activeScholarships", 0);
+                stats.put("pendingScholarships", 0);
+                stats.put("totalApplications", 0);
+                stats.put("pendingApplications", 0);
+                stats.put("acceptedApplications", 0);
+                stats.put("rejectedApplications", 0);
+            }
+        } catch (RestClientException e) {
+            // Nếu có lỗi khi gọi scholarship-service, log và set giá trị mặc định
+            System.err.println("Error calling scholarship-service: " + e.getMessage());
+            stats.put("totalScholarships", 0);
+            stats.put("activeScholarships", 0);
+            stats.put("pendingScholarships", 0);
+            stats.put("totalApplications", 0);
+            stats.put("pendingApplications", 0);
+            stats.put("acceptedApplications", 0);
+            stats.put("rejectedApplications", 0);
+        }
+        
+        return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * Lấy danh sách employer requests
+     */
+    @GetMapping("/employer/requests")
+    public ResponseEntity<Map<String, Object>> getEmployerRequests(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Page<OrganizationRequest> pageRequests = organizationRequestService.getAllRequests(status, page, size);
+        List<OrganizationRequestResponse> responseList = organizationRequestService.toResponseList(pageRequests.getContent());
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("requests", responseList);
+        response.put("currentPage", pageRequests.getNumber());
+        response.put("totalItems", pageRequests.getTotalElements());
+        response.put("totalPages", pageRequests.getTotalPages());
+        response.put("pageSize", pageRequests.getSize());
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Lấy một employer request cụ thể
+     */
+    @GetMapping("/employer/requests/{id}")
+    public ResponseEntity<OrganizationRequestResponse> getEmployerRequest(@PathVariable Long id) {
+        try {
+            OrganizationRequest request = organizationRequestService.getRequestById(id);
+            OrganizationRequestResponse response = organizationRequestService.toResponse(request);
+            return ResponseEntity.ok(response);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
+     * Admin approve employer request
+     */
+    @PutMapping("/employer/requests/{id}/approve")
+    public ResponseEntity<?> approveEmployerRequest(@PathVariable Long id) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            
+            User admin = userService.getUserByUsername(username);
+            
+            OrganizationRequest request = organizationRequestService.approveRequest(id, admin.getId());
+            OrganizationRequestResponse response = organizationRequestService.toResponse(request);
+            
+            return ResponseEntity.ok(response);
+        } catch (BadRequestException e) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, e.getMessage()));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound()
+                    .build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                    .body(new ApiResponse(false, "Error approving request: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Admin reject employer request
+     */
+    @PutMapping("/employer/requests/{id}/reject")
+    public ResponseEntity<?> rejectEmployerRequest(
+            @PathVariable Long id,
+            @Valid @RequestBody RejectEmployerRequestRequest rejectRequest
+    ) {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String username = authentication.getName();
+            
+            User admin = userService.getUserByUsername(username);
+            
+            OrganizationRequest request = organizationRequestService.rejectRequest(id, admin.getId(), rejectRequest);
+            OrganizationRequestResponse response = organizationRequestService.toResponse(request);
+            
+            return ResponseEntity.ok(response);
+        } catch (BadRequestException e) {
+            return ResponseEntity.badRequest()
+                    .body(new ApiResponse(false, e.getMessage()));
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound()
+                    .build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500)
+                    .body(new ApiResponse(false, "Error rejecting request: " + e.getMessage()));
+        }
     }
 
 }
