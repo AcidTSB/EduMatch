@@ -34,14 +34,23 @@ export function middleware(request: NextRequest) {
 
   // Protect employer routes
   if (pathname.startsWith('/employer')) {
+    // Allow /employer/register for USER role (they need to register as employer)
+    const isRegisterRoute = pathname === '/employer/register' || pathname.startsWith('/employer/register/');
+    
     if (!isAuthenticated) {
       return NextResponse.redirect(new URL('/auth/login?redirect=' + pathname, request.url));
     }
-    if (userRole !== 'EMPLOYER') {
+    
+    // Allow USER to access /employer/register
+    if (isRegisterRoute && (userRole === 'USER' || userRole === 'ROLE_USER')) {
+      return NextResponse.next();
+    }
+    
+    if (userRole !== 'EMPLOYER' && userRole !== 'ROLE_EMPLOYER') {
       // Redirect wrong role to their own dashboard
-      if (userRole === 'ADMIN') {
+      if (userRole === 'ADMIN' || userRole === 'ROLE_ADMIN') {
         return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-      } else if (userRole === 'USER') {
+      } else if (userRole === 'USER' || userRole === 'ROLE_USER') {
         return NextResponse.redirect(new URL('/user/dashboard', request.url));
       }
       return NextResponse.redirect(new URL('/', request.url));

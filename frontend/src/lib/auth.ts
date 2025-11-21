@@ -128,12 +128,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const { user } = response;
 
         // Transform backend user to AuthUser format
-        const roleStr = user.roles?.[0]?.replace('ROLE_', '') || 'USER';
+        // Prioritize role: ADMIN > EMPLOYER > USER
+        const roles = user.roles || [];
+        let primaryRole = 'USER';
+        
+        // Check if user has ADMIN role (highest priority)
+        if (roles.some((r: string) => r.replace('ROLE_', '').toUpperCase() === 'ADMIN')) {
+          primaryRole = 'ADMIN';
+        } else if (roles.some((r: string) => r.replace('ROLE_', '').toUpperCase() === 'EMPLOYER')) {
+          primaryRole = 'EMPLOYER';
+        } else if (roles.length > 0) {
+          primaryRole = roles[0]?.replace('ROLE_', '') || 'USER';
+        }
+        
         const authUser: AuthUser = {
           id: String(user.id),
           email: user.email,
           name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
-          role: roleStr as UserRole, // Cast to UserRole enum
+          role: primaryRole.toUpperCase() as UserRole, // Cast to UserRole enum
           emailVerified: user.enabled,
           status: 'ACTIVE',
           subscriptionType: 'FREE',
@@ -153,7 +165,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         // Wait a bit then redirect
         setTimeout(() => {
-          // Redirect based on user role
+          // Redirect based on user role - ADMIN always goes to admin dashboard
           if (authUser.role === UserRole.ADMIN) {
             window.location.href = '/admin/dashboard';
           } else if (authUser.role === UserRole.EMPLOYER) {

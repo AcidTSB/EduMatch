@@ -1,9 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Award, FileText, TrendingUp } from 'lucide-react';
+import { adminService, AdminStats } from '@/services/admin.service';
+import { toast } from 'sonner';
 
 // Animation variants
 const cardVariants = {
@@ -30,6 +32,28 @@ const containerVariants = {
 };
 
 export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setIsLoading(true);
+        const data = await adminService.getStats();
+        setStats(data);
+      } catch (error: any) {
+        console.error('Failed to fetch admin stats:', error);
+        toast.error('Không thể tải thống kê', {
+          description: error.message || 'Vui lòng thử lại sau'
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -54,58 +78,66 @@ export default function AdminDashboardPage() {
         >
           <motion.div variants={cardVariants} whileHover="hover">
             <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300 h-full">
-            <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg mr-4 shadow-sm">
-                <Users className="h-6 w-6 text-blue-700" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">1,234</p>
-                <p className="text-xs text-muted-foreground">Total Users</p>
-              </div>
-            </CardContent>
-          </Card>
+              <CardContent className="flex items-center p-6">
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg mr-4 shadow-sm">
+                  <Users className="h-6 w-6 text-blue-700" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">
+                    {isLoading ? '...' : stats?.totalUsers?.toLocaleString() || '0'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Total Users</p>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
 
           <motion.div variants={cardVariants} whileHover="hover">
             <Card className="border-0 bg-gradient-to-br from-white to-green-50/30 shadow-lg hover:shadow-2xl transition-all duration-300 h-full">
-            <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-200 rounded-lg mr-4 shadow-sm">
-                <Award className="h-6 w-6 text-green-700" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-green-900 bg-clip-text text-transparent">456</p>
-                <p className="text-xs text-muted-foreground">Scholarships</p>
-              </div>
-            </CardContent>
-          </Card>
+              <CardContent className="flex items-center p-6">
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-200 rounded-lg mr-4 shadow-sm">
+                  <Award className="h-6 w-6 text-green-700" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-green-900 bg-clip-text text-transparent">
+                    {isLoading ? '...' : stats?.totalScholarships?.toLocaleString() || '0'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Scholarships</p>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
 
           <motion.div variants={cardVariants} whileHover="hover">
             <Card className="border-0 bg-gradient-to-br from-white to-cyan-50/30 shadow-lg hover:shadow-2xl transition-all duration-300 h-full">
-            <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-lg mr-4 shadow-sm">
-                <FileText className="h-6 w-6 text-cyan-700" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-cyan-900 bg-clip-text text-transparent">789</p>
-                <p className="text-xs text-muted-foreground">Applications</p>
-              </div>
-            </CardContent>
-          </Card>
+              <CardContent className="flex items-center p-6">
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-cyan-100 to-cyan-200 rounded-lg mr-4 shadow-sm">
+                  <FileText className="h-6 w-6 text-cyan-700" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-cyan-900 bg-clip-text text-transparent">
+                    {isLoading ? '...' : stats?.totalApplications?.toLocaleString() || '0'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Applications</p>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
 
           <motion.div variants={cardVariants} whileHover="hover">
             <Card className="border-0 bg-gradient-to-br from-white to-yellow-50/30 shadow-lg hover:shadow-2xl transition-all duration-300 h-full">
-            <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-yellow-100 to-amber-200 rounded-lg mr-4 shadow-sm">
-                <TrendingUp className="h-6 w-6 text-yellow-700" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-yellow-900 bg-clip-text text-transparent">+12%</p>
-                <p className="text-xs text-muted-foreground">Growth Rate</p>
-              </div>
-            </CardContent>
-          </Card>
+              <CardContent className="flex items-center p-6">
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-yellow-100 to-amber-200 rounded-lg mr-4 shadow-sm">
+                  <TrendingUp className="h-6 w-6 text-yellow-700" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-yellow-900 bg-clip-text text-transparent">
+                    {isLoading ? '...' : stats?.activeUsers?.toLocaleString() || '0'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Active Users</p>
+                </div>
+              </CardContent>
+            </Card>
           </motion.div>
         </motion.div>
 

@@ -44,45 +44,41 @@ export function UserDirectory({ onStartChat }: UserDirectoryProps) {
   const { user: currentUser } = useAuth();
   const { socket, canChatWith, onlineUsers } = useRealTime();
 
-  // Real users từ mock database + online users
+  // Fetch users from API or use online users from socket
   useEffect(() => {
-    // Lấy tất cả users từ mock database (thực tế sẽ từ API)
-    const allMockUsers: User[] = [
-      {
-        id: '1',
-        name: 'John Student',
-        email: 'student@demo.com',
-        role: 'user',
-        avatar: '👨‍🎓',
-        isOnline: false,
-        school: 'MIT',
-        specialization: 'Computer Science'
-      },
-      {
-        id: '2',
-        name: 'Jane Provider',
-        email: 'provider@demo.com',
-        role: 'employer',
-        avatar: '👩‍🏫',
-        isOnline: false,
-        company: 'Tech Innovation Foundation',
-        specialization: 'AI & Machine Learning'
-      },
-      {
-        id: '3',
-        name: 'Admin User',
-        email: 'admin@demo.com',
-        role: 'admin',
-        avatar: '👨‍💻',
-        isOnline: false,
-        company: 'EduMatch Platform'
+    // TODO: Implement API endpoint to fetch users list
+    // For now, use online users from socket as base
+    // In production, would fetch from /api/users or similar endpoint
+    
+    const fetchUsers = async () => {
+      try {
+        // If there's an API endpoint for users, use it here
+        // const { usersApi } = await import('@/lib/api');
+        // const usersData = await usersApi.getUsers();
+        
+        // For now, create minimal user list from online users
+        // This is a placeholder - real implementation would fetch from API
+        const usersFromSocket: User[] = (onlineUsers || []).map((userId: string) => ({
+          id: userId,
+          name: `User ${userId}`,
+          email: '',
+          role: 'user',
+          avatar: '👤',
+          isOnline: true,
+        }));
+        
+        // Filter out current user
+        const otherUsers = usersFromSocket.filter(u => u.id !== currentUser?.id);
+        setUsers(otherUsers);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+        // Fallback to empty list
+        setUsers([]);
       }
-    ];
+    };
 
-    // Filter out current user
-    const otherUsers = allMockUsers.filter(u => u.id !== currentUser?.id);
-    setUsers(otherUsers);
-  }, [currentUser?.id]);
+    fetchUsers();
+  }, [currentUser?.id, onlineUsers]);
 
   // Update online status based on socket info
   useEffect(() => {

@@ -14,6 +14,7 @@ public class ApplicationDto {
     private Long id;
     private Long applicantUserId;
     private Long opportunityId;
+    private String opportunityTitle; // Thêm title của opportunity
     private String status;
     private LocalDateTime submittedAt;
     private List<ApplicationDocumentDto> documents;

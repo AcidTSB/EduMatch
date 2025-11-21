@@ -14,10 +14,11 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true) // Bật @PreAuthorize
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -27,57 +28,66 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                // Tắt CSRF
-                .csrf(AbstractHttpConfigurer::disable)
-                // Enable CORS cho Frontend
+
+        // ==== 1) CORS + CSRF ====
+        http.csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(request -> {
-                    var corsConfig = new org.springframework.web.cors.CorsConfiguration();
-                    corsConfig.addAllowedOrigin("http://localhost:3000"); // Frontend URL
-                    corsConfig.addAllowedOrigin("http://localhost:8080"); // Gateway URL
-                    corsConfig.addAllowedMethod("*"); // Allow all methods
-                    corsConfig.addAllowedHeader("*"); // Allow all headers
-                    corsConfig.setAllowCredentials(true); // Allow cookies
-                    return corsConfig;
-                }))
-                // Báo lỗi 401 khi user chưa xác thực, 403 khi không đủ quyền
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(unauthorizedHandler)
-                        .accessDeniedHandler(accessDeniedHandler))
+                    CorsConfiguration config = new CorsConfiguration();
+                    config.addAllowedOrigin("http://localhost:3000");  // FE
+                    config.addAllowedOrigin("http://localhost:8080");  // Gateway
+                    config.addAllowedMethod("*");
+                    config.addAllowedHeader("*");
+                    config.setAllowCredentials(true);
+                    return config;
+                }));
 
-                // Không lưu session (vì dùng JWT)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        // ==== 2) Exception Handling ====
+        http.exceptionHandling(ex -> ex
+                .authenticationEntryPoint(unauthorizedHandler)
+                .accessDeniedHandler(accessDeniedHandler)
+        );
 
-                // Định nghĩa các luật truy cập
-                .authorizeHttpRequests(auth -> auth
-                        // --- DEBUG ENDPOINTS ---
-                        .requestMatchers("/debug/**").permitAll()
-                        // --- ACTUATOR ENDPOINTS (Health checks) ---
-                        .requestMatchers("/actuator/**").permitAll()
-                        // --- API Public (Không cần đăng nhập) ---
-                        // Cho phép xem (GET) danh sách và chi tiết học bổng
-                        .requestMatchers(HttpMethod.GET, "/api/scholarships").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/scholarships/**").permitAll()
-                        // --- API CHO PROVIDER (ROLE_EMPLOYER) ---
-                        .requestMatchers(HttpMethod.POST, "/api/opportunities").hasRole("EMPLOYER")
-                        .requestMatchers(HttpMethod.GET, "/api/opportunities/my").hasRole("EMPLOYER")
-                        .requestMatchers(HttpMethod.PUT, "/api/opportunities/**").hasRole("EMPLOYER")
-                        .requestMatchers(HttpMethod.DELETE, "/api/opportunities/**").hasRole("EMPLOYER")
-                        .requestMatchers(HttpMethod.GET, "/api/applications/opportunity/**").hasRole("EMPLOYER")
-                        .requestMatchers(HttpMethod.PUT, "/api/applications/*/status").hasRole("EMPLOYER")
-                        // --- API CHO APPLICANT (ROLE_USER) ---
-                        .requestMatchers(HttpMethod.POST, "/api/bookmarks/**").hasRole("USER")
-                        .requestMatchers(HttpMethod.GET, "/api/bookmarks/my").hasRole("USER")
-                        .requestMatchers(HttpMethod.POST, "/api/applications").hasRole("USER")
-                        .requestMatchers(HttpMethod.GET, "/api/applications/my").hasRole("USER")
-                        // --- API CHO ADMIN ---
-                        .requestMatchers(HttpMethod.GET, "/api/opportunities/all").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/opportunities/**/moderate").hasRole("ADMIN")
-                        // Yêu cầu xác thực cho tất cả các API còn lại
-                        .anyRequest().authenticated()
-                );
+        // ==== 3) JWT = Stateless ====
+        http.sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+        );
 
-        // Thêm bộ lọc JWT vào trước bộ lọc mặc định
+        // ==== 4) AUTHORIZE REQUESTS ====
+        http.authorizeHttpRequests(auth -> auth
+
+                // ---- PUBLIC ----
+                .requestMatchers("/debug/**", "/actuator/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/scholarships/**").permitAll()
+
+                // ---- ADMIN ONLY ----
+                .requestMatchers(HttpMethod.GET,  "/api/opportunities/all").hasAuthority("ROLE_ADMIN")
+                .requestMatchers(HttpMethod.GET,  "/api/opportunities/stats").hasAuthority("ROLE_ADMIN")
+                .requestMatchers(HttpMethod.GET,  "/api/opportunities/{id:[0-9]+}").hasAuthority("ROLE_ADMIN")
+                .requestMatchers(HttpMethod.PUT,  "/api/opportunities/{id:[0-9]+}/moderate").hasAuthority("ROLE_ADMIN")
+                .requestMatchers(HttpMethod.DELETE,"/api/opportunities/{id:[0-9]+}/admin").hasAuthority("ROLE_ADMIN")
+                .requestMatchers(HttpMethod.GET,  "/api/applications/all").hasAuthority("ROLE_ADMIN")
+                .requestMatchers(HttpMethod.GET,  "/api/applications/{id:[0-9]+}").hasAuthority("ROLE_ADMIN")
+                .requestMatchers(HttpMethod.PUT,  "/api/applications/{id:[0-9]+}/admin/status").hasAuthority("ROLE_ADMIN")
+
+                // ---- EMPLOYER ONLY ----
+                .requestMatchers(HttpMethod.GET,    "/api/opportunities/my").hasAuthority("ROLE_EMPLOYER")
+                .requestMatchers(HttpMethod.GET,    "/api/applications/opportunity/**").hasAuthority("ROLE_EMPLOYER")
+                .requestMatchers(HttpMethod.POST,   "/api/opportunities").hasAuthority("ROLE_EMPLOYER")
+                .requestMatchers(HttpMethod.PUT,    "/api/opportunities/{id:[0-9]+}").hasAuthority("ROLE_EMPLOYER")
+                .requestMatchers(HttpMethod.DELETE, "/api/opportunities/{id:[0-9]+}").hasAuthority("ROLE_EMPLOYER")
+                .requestMatchers(HttpMethod.PUT,    "/api/applications/{id:[0-9]+}/status").hasAuthority("ROLE_EMPLOYER")
+
+                // ---- USER ONLY ----
+                .requestMatchers(HttpMethod.POST, "/api/bookmarks/**").hasAuthority("ROLE_USER")
+                .requestMatchers(HttpMethod.GET,  "/api/bookmarks/my").hasAuthority("ROLE_USER")
+                .requestMatchers(HttpMethod.POST, "/api/applications").hasAuthority("ROLE_USER")
+                .requestMatchers(HttpMethod.GET,  "/api/applications/my").hasAuthority("ROLE_USER")
+
+                // ---- EVERYTHING ELSE = REQUIRE LOGIN ----
+                .anyRequest().authenticated()
+        );
+
+        // ==== 5) JWT FILTER ====
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

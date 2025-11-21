@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
   Search, 
@@ -40,6 +41,8 @@ import { scholarshipServiceApi } from '@/services/scholarship.service';
 import { mapPaginatedOpportunities, mapOpportunityDtoToScholarship } from '@/lib/scholarship-mapper';
 import { Scholarship } from '@/types';
 import { useApplications, useSavedScholarships } from '@/hooks/api';
+import { useAuth } from '@/lib/auth';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 
 // Animation variants
@@ -68,6 +71,10 @@ const containerVariants = {
 
 export default function DashboardPage() {
   const { t } = useLanguage();
+  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuth();
+  const queryClient = useQueryClient();
+  
   // Use AppContext hooks
   const { applications } = useApplicationsData();
   const { notifications } = useNotificationsData();
@@ -76,6 +83,97 @@ export default function DashboardPage() {
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
   const [loading, setLoading] = useState(true);
   const { savedScholarships } = useSavedScholarships();
+
+  // Check employer request status and refresh user data if role changed
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    
+    // Only check for USER role
+    if (user.role !== 'USER' && user.role !== 'ROLE_USER') return;
+
+    const checkEmployerRequestStatus = async () => {
+      try {
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080';
+        const token = localStorage.getItem('auth_token');
+
+        if (!token) return;
+
+        const response = await fetch(`${API_BASE_URL}/api/employer/request/my`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // If request is approved, refresh user data
+          if (data.status === 'APPROVED') {
+            // Invalidate and refetch user data immediately
+            await queryClient.invalidateQueries({ queryKey: ['auth', 'me'] });
+            await queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+            
+            // Force refetch user data from backend
+            const userResponse = await fetch(`${API_BASE_URL}/api/user/me`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+              credentials: 'include',
+            });
+            
+            if (userResponse.ok) {
+              const userData = await userResponse.json();
+              const newRole = userData.data?.role || userData.role;
+              
+              // If role changed to EMPLOYER, redirect
+              if (newRole === 'EMPLOYER' || newRole === 'ROLE_EMPLOYER') {
+                toast.success('Yêu cầu của bạn đã được duyệt! Đang chuyển đến trang employer...', {
+                  duration: 3000,
+                });
+                // Small delay to show toast
+                setTimeout(() => {
+                  // Force page reload to get new JWT with updated role
+                  window.location.href = '/employer/dashboard';
+                }, 1500);
+              } else {
+                // Role vẫn là USER (JWT token vẫn cũ) → logout và yêu cầu đăng nhập lại
+                toast.info('Yêu cầu của bạn đã được duyệt! Vui lòng đăng nhập lại để cập nhật quyền truy cập.', {
+                  duration: 5000,
+                });
+                setTimeout(() => {
+                  logout();
+                  // Redirect to login with message
+                  window.location.href = '/auth/login?message=Yêu cầu của bạn đã được duyệt. Vui lòng đăng nhập lại.';
+                }, 2000);
+              }
+            } else {
+              // Không thể fetch user data → logout và yêu cầu đăng nhập lại
+              toast.info('Yêu cầu của bạn đã được duyệt! Vui lòng đăng nhập lại để cập nhật quyền truy cập.', {
+                duration: 5000,
+              });
+              setTimeout(() => {
+                logout();
+                window.location.href = '/auth/login?message=Yêu cầu của bạn đã được duyệt. Vui lòng đăng nhập lại.';
+              }, 2000);
+            }
+          }
+        }
+      } catch (error) {
+        // Silently fail - user might not have a request
+        console.debug('No employer request found or error checking status:', error);
+      }
+    };
+
+    // Check immediately
+    checkEmployerRequestStatus();
+
+    // Poll every 30 seconds to check for role change
+    const interval = setInterval(checkEmployerRequestStatus, 30000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, user, queryClient, router]);
   
   useEffect(() => {
     const fetchScholarships = async () => {

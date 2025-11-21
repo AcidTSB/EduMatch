@@ -18,6 +18,8 @@ import com.edumatch.scholarship.dto.UpdateApplicationStatusRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 @RestController
@@ -32,7 +34,7 @@ public class ApplicationController {
      * Endpoint: POST /api/applications
      */
     @PostMapping
-    @PreAuthorize("hasRole('USER')") // Chỉ ROLE_USER mới được nộp đơn
+    @PreAuthorize("hasRole('ROLE_USER')") // Chỉ ROLE_USER mới được nộp đơn
     public ResponseEntity<ApplicationDto> createApplication(
             @Valid @RequestBody CreateApplicationRequest request,
             @AuthenticationPrincipal UserDetails userDetails
@@ -45,7 +47,7 @@ public class ApplicationController {
      * Endpoint: GET /api/applications/opportunity/{opportunityId}
      */
     @GetMapping("/opportunity/{opportunityId}")
-    @PreAuthorize("hasRole('EMPLOYER')")
+    @PreAuthorize("hasRole('ROLE_EMPLOYER')")
     public ResponseEntity<List<ApplicationDto>> getApplicationsForOpportunity(
             @PathVariable Long opportunityId,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -58,7 +60,7 @@ public class ApplicationController {
      * Endpoint: PUT /api/applications/{applicationId}/status
      */
     @PutMapping("/{applicationId}/status")
-    @PreAuthorize("hasRole('EMPLOYER')")
+    @PreAuthorize("hasRole('ROLE_EMPLOYER')")
     public ResponseEntity<ApplicationDto> updateApplicationStatus(
             @PathVariable Long applicationId,
             @Valid @RequestBody UpdateApplicationStatusRequest request,
@@ -73,11 +75,52 @@ public class ApplicationController {
      * Endpoint: GET /api/applications/my
      */
     @GetMapping("/my")
-    @PreAuthorize("hasRole('USER')") // Chỉ ROLE_USER mới được xem
+    @PreAuthorize("hasRole('ROLE_USER')") // Chỉ ROLE_USER mới được xem
     public ResponseEntity<List<ApplicationDto>> getMyApplications(
             @AuthenticationPrincipal UserDetails userDetails) {
 
         List<ApplicationDto> dtos = applicationService.getMyApplications(userDetails);
         return ResponseEntity.ok(dtos);
+    }
+
+    /**
+     * API để Admin lấy TẤT CẢ applications với filter và pagination
+     * Endpoint: GET /api/applications/all
+     */
+    @GetMapping("/all")
+    @PreAuthorize("hasRole('ROLE_ADMIN')") // Chỉ ADMIN
+    public ResponseEntity<org.springframework.data.domain.Page<ApplicationDto>> getAllApplications(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long opportunityId,
+            @RequestParam(required = false) String keyword,
+            org.springframework.data.domain.Pageable pageable) {
+
+        org.springframework.data.domain.Page<ApplicationDto> page = 
+                applicationService.getAllApplicationsForAdmin(status, opportunityId, keyword, pageable);
+        return ResponseEntity.ok(page);
+    }
+
+    /**
+     * API để Admin xem chi tiết một application
+     * Endpoint: GET /api/applications/{id}
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ROLE_ADMIN')") // Chỉ ADMIN
+    public ResponseEntity<ApplicationDto> getApplicationByIdForAdmin(@PathVariable Long id) {
+        ApplicationDto dto = applicationService.getApplicationByIdForAdmin(id);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * API để Admin cập nhật trạng thái application (không cần check ownership)
+     * Endpoint: PUT /api/applications/{id}/admin/status
+     */
+    @PutMapping("/{id}/admin/status")
+    @PreAuthorize("hasRole('ROLE_ADMIN')") // Chỉ ADMIN
+    public ResponseEntity<ApplicationDto> updateApplicationStatusByAdmin(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateApplicationStatusRequest request) {
+        ApplicationDto dto = applicationService.updateApplicationStatusByAdmin(id, request.getStatus());
+        return ResponseEntity.ok(dto);
     }
 }
