@@ -60,7 +60,7 @@ export default function HomePage() {
               <span className="bg-gradient-to-r from-gray-900 via-blue-800 to-cyan-800 bg-clip-text text-transparent">
                 {t('home.hero.title')}
               </span>
-              <span className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-700 bg-clip-text text-transparent animate-gradient">
+              <span className="block bg-gradient-to-r from-blue-600 via-cyan-600 to-blue-700 bg-clip-text text-transparent animate-gradient pb-1 md:pb-2">
                 {t('home.hero.subtitle')}
               </span>
             </h1>

@@ -44,6 +44,7 @@ public class ChatService {
     private final MessageRepository messageRepository;
     private final FcmTokenRepository fcmTokenRepository;
     private final NotificationRepository notificationRepository;
+    private final FirebaseMessagingService firebaseMessagingService;
     private final RestTemplate restTemplate;
 
     @Value("${app.services.auth-service.url:http://auth-service:8081}") // Lấy URL từ properties
@@ -78,6 +79,28 @@ public class ChatService {
         Message savedMessage = messageRepository.save(message);
         log.info("Đã lưu tin nhắn mới (ID: {}) vào cuộc hội thoại (ID: {})",
                 savedMessage.getId(), conversation.getId());
+
+        // 4. Gửi Push Notification cho người nhận
+        try {
+            // Cắt nội dung tin nhắn nếu dài quá 50 ký tự
+            String notificationBody = request.getContent();
+            if (notificationBody != null && notificationBody.length() > 50) {
+                notificationBody = notificationBody.substring(0, 50) + "...";
+            }
+            
+            // Gửi thông báo qua Firebase
+            firebaseMessagingService.sendNotification(
+                receiverId,
+                "Bạn có tin nhắn mới",
+                notificationBody,
+                "CHAT_MESSAGE",
+                conversation.getId().toString()
+            );
+            log.info("Đã gửi push notification cho User {}", receiverId);
+        } catch (Exception e) {
+            // Không rollback transaction nếu gửi thông báo lỗi
+            log.error("Lỗi khi gửi push notification cho User {}: {}", receiverId, e.getMessage(), e);
+        }
 
         return savedMessage;
     }

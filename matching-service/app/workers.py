@@ -2,12 +2,16 @@
 Celery workers for processing RabbitMQ events
 """
 import logging
+import json
+import pika
 from datetime import datetime
 from sqlalchemy.orm import Session
 from .celery_app import celery_app
 from .database import SessionLocal
 from . import models, schemas
 from .matching import matching_engine
+from .service import MatchingService
+from .config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +155,52 @@ def process_scholarship_created(self, event_data: dict):
         
         logger.info(f"[Worker] ✅ Successfully processed scholarship.created: {event.opportunityId}")
         
+        # ========== Auto-matching and Notification ==========
+        # Find matching candidates and send notifications
+        try:
+            logger.info(f"[Worker] 🚀 Starting auto-match process for Opportunity {opp_id}...")
+            service = MatchingService(db)
+            
+            # Get top matching candidates (limit 50 to avoid overload)
+            logger.info(f"[Worker] 🔍 Searching for matching candidates...")
+            recommendations = service.get_recommendations_for_opportunity(
+                opportunity_id=opp_id,
+                limit=50,
+                page=1
+            )
+            
+            candidate_count = len(recommendations.data)
+            logger.info(f"[Worker] 📊 Found {candidate_count} potential candidates.")
+            
+            # Send notifications to highly matched candidates (score > 70%)
+            notification_count = 0
+            high_match_count = 0
+            
+            for rec in recommendations.data:
+                if rec.matchingScore > 70.0:
+                    high_match_count += 1
+                    logger.info(f"[Worker] 🎯 High match found: User {rec.applicantId} - Score: {rec.matchingScore:.1f}%")
+                    try:
+                        publish_match_notification(
+                            applicant_id=int(rec.applicantId),
+                            opportunity_id=opp_id,
+                            score=rec.matchingScore,
+                            title=event.title or "Học bổng mới"
+                        )
+                        notification_count += 1
+                    except Exception as notify_error:
+                        logger.error(f"[Worker] ⚠️ Failed to notify user {rec.applicantId}: {notify_error}")
+                else:
+                    logger.debug(f"[Worker] ⏭️ Skipping User {rec.applicantId} - Score too low: {rec.matchingScore:.1f}%")
+            
+            logger.info(f"[Worker] 📧 Notification Summary: {notification_count}/{high_match_count} notifications sent successfully")
+            logger.info(f"[Worker] ✅ Auto-match process completed for Opportunity {opp_id}")
+            
+        except Exception as matching_error:
+            logger.error(f"[Worker] ❌ Failed to auto-match candidates for Opportunity {opp_id}: {matching_error}", exc_info=True)
+            # Don't fail the entire task if matching fails
+        # ====================================================
+        
         return {"status": "success", "opportunity_id": event.opportunityId}
         
     except Exception as e:
@@ -243,6 +293,73 @@ def process_scholarship_updated(self, event_data: dict):
 
 
 # ============= Helper Functions =============
+
+def publish_match_notification(applicant_id: int, opportunity_id: str, score: float, title: str):
+    """
+    Publish match notification to RabbitMQ
+    
+    Args:
+        applicant_id: User ID of the applicant
+        opportunity_id: Scholarship/opportunity ID
+        score: Matching score percentage
+        title: Scholarship title
+    """
+    connection = None
+    try:
+        logger.info(f"[Worker] 📤 Attempting to send match notification to User {applicant_id}...")
+        
+        # Create connection to RabbitMQ
+        logger.info(f"[Worker] 🔌 Connecting to RabbitMQ at {settings.RABBITMQ_HOST}:{settings.RABBITMQ_PORT}")
+        credentials = pika.PlainCredentials(settings.RABBITMQ_USER, settings.RABBITMQ_PASSWORD)
+        parameters = pika.ConnectionParameters(
+            host=settings.RABBITMQ_HOST,
+            port=settings.RABBITMQ_PORT,
+            credentials=credentials,
+            heartbeat=600,
+            blocked_connection_timeout=300
+        )
+        connection = pika.BlockingConnection(parameters)
+        channel = connection.channel()
+        logger.info("[Worker] ✅ RabbitMQ connection established")
+        
+        # Declare exchange (events_exchange, topic, durable)
+        channel.exchange_declare(
+            exchange='events_exchange',
+            exchange_type='topic',
+            durable=True
+        )
+        logger.info("[Worker] 📡 Exchange 'events_exchange' declared")
+        
+        # Create notification payload
+        payload = {
+            "userId": int(applicant_id),
+            "opportunityId": str(opportunity_id),
+            "title": "🎯 Cơ hội mới phù hợp với bạn!",
+            "body": f"Học bổng {title} phù hợp {score:.1f}% với hồ sơ của bạn.",
+            "type": "NEW_MATCH"
+        }
+        logger.info(f"[Worker] 📝 Payload created: {json.dumps(payload, ensure_ascii=False)}")
+        
+        # Publish message
+        channel.basic_publish(
+            exchange='events_exchange',
+            routing_key='scholarship.new.match',
+            body=json.dumps(payload),
+            properties=pika.BasicProperties(
+                delivery_mode=2,  # Make message persistent
+                content_type='application/json'
+            )
+        )
+        
+        logger.info(f"[Worker] --> ✅ Sent match notification for User {applicant_id} (Score: {score:.1f}%) success.")
+        
+    except Exception as e:
+        logger.error(f"[Worker] ❌ Failed to publish notification to User {applicant_id}: {e}", exc_info=True)
+    finally:
+        if connection and not connection.is_closed:
+            connection.close()
+            logger.info("[Worker] 🔌 RabbitMQ connection closed")
+
 
 def invalidate_scores_for_applicant(db: Session, applicant_id: str):
     """Invalidate cached scores when applicant profile changes"""

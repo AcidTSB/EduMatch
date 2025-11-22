@@ -9,8 +9,11 @@ import { useRealTime } from '@/providers/RealTimeProvider';
 import { formatDistanceToNow } from 'date-fns';
 import { Message } from '@/types/realtime';
 import { cn } from '@/lib/utils';
+import chatService from '@/services/chat.service';
+import { useSocket } from '@/hooks/useSocket';
 
 interface ChatWindowProps {
+  conversationId?: number; // ID của cuộc hội thoại (nếu đã có)
   roomId: string;
   otherUserId: string;
   otherUserName: string;
@@ -21,6 +24,7 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ 
+  conversationId,
   roomId, 
   otherUserId, 
   otherUserName, 
@@ -31,14 +35,69 @@ export function ChatWindow({
 }: ChatWindowProps) {
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [localMessages, setLocalMessages] = useState<any[]>([]);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { messages, typingUsers, addMessage } = useMessageStore();
-  const { socket, sendMessage, joinChatRoom, leaveChatRoom, markMessagesAsRead } = useRealTime();
+  const { socket, sendMessage: sendMessageViaSocket, joinChatRoom, leaveChatRoom, markMessagesAsRead } = useRealTime();
+  
+  // Get WebSocket hook để lắng nghe tin nhắn realtime
+  const { sendMessage: sendMessageViaWS, isConnected } = useSocket(currentUserId);
   
   const roomMessages = messages[roomId] || [];
   const otherUserTyping = typingUsers[roomId]?.includes(otherUserId) || false;
+
+  // Load lịch sử tin nhắn khi mở chat window
+  useEffect(() => {
+    if (isOpen && conversationId) {
+      loadMessageHistory();
+    }
+  }, [isOpen, conversationId]);
+
+  const loadMessageHistory = async () => {
+    if (!conversationId) return;
+    
+    setIsLoadingMessages(true);
+    try {
+      const response = await chatService.getMessages(conversationId, 0, 50);
+      // Sắp xếp tin nhắn theo thời gian tăng dần
+      const sortedMessages = response.content.sort((a, b) => 
+        new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
+      );
+      setLocalMessages(sortedMessages);
+      console.log('✅ Loaded message history:', sortedMessages.length, 'messages');
+    } catch (error) {
+      console.error('❌ Error loading message history:', error);
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  };
+
+  // Lắng nghe tin nhắn realtime từ WebSocket
+  useEffect(() => {
+    if (!isOpen || !socket) return;
+
+    const handleNewMessage = (message: any) => {
+      // Chỉ thêm tin nhắn nếu thuộc về cuộc hội thoại này
+      if (message.conversationId === conversationId || 
+          (message.senderId === parseInt(otherUserId) || message.senderId === parseInt(currentUserId))) {
+        setLocalMessages(prev => {
+          // Kiểm tra xem tin nhắn đã tồn tại chưa (tránh duplicate)
+          const exists = prev.some(m => m.id === message.id);
+          if (exists) return prev;
+          return [...prev, message];
+        });
+      }
+    };
+
+    socket.on('message', handleNewMessage);
+
+    return () => {
+      socket.off('message', handleNewMessage);
+    };
+  }, [isOpen, socket, conversationId, otherUserId, currentUserId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -65,21 +124,56 @@ export function ChatWindow({
 
   useEffect(() => {
     scrollToBottom();
-  }, [roomMessages, otherUserTyping]);
+  }, [localMessages, otherUserTyping]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    // Send via socket - sendMessage takes roomId, not otherUserId
-    // It will automatically add to local state for instant feedback
-    sendMessage(roomId, newMessage.trim());
+    const messageContent = newMessage.trim();
+    const receiverIdNum = parseInt(otherUserId);
     
+    // Optimistic UI: Thêm tin nhắn vào list ngay lập tức
+    const tempMessage = {
+      id: Date.now(), // Temporary ID
+      conversationId: conversationId || 0,
+      senderId: parseInt(currentUserId),
+      content: messageContent,
+      sentAt: new Date().toISOString(),
+      status: 'sending' as any
+    };
+    
+    setLocalMessages(prev => [...prev, tempMessage]);
     setNewMessage('');
     setIsTyping(false);
+
+    try {
+      // Ưu tiên gửi qua WebSocket nếu đã connect
+      if (isConnected && sendMessageViaWS) {
+        sendMessageViaWS(receiverIdNum, messageContent);
+        console.log('📤 Message sent via WebSocket');
+      } else {
+        // Fallback: Gửi qua HTTP nếu WebSocket chưa connect
+        console.log('⚠️ WebSocket not connected, sending via HTTP...');
+        const sentMessage = await chatService.sendMessage({
+          receiverId: receiverIdNum,
+          content: messageContent
+        });
+        
+        // Cập nhật tin nhắn tạm với tin nhắn thực từ server
+        setLocalMessages(prev => 
+          prev.map(m => m.id === tempMessage.id ? sentMessage : m)
+        );
+      }
+    } catch (error) {
+      console.error('❌ Error sending message:', error);
+      // Xóa tin nhắn tạm nếu gửi thất bại
+      setLocalMessages(prev => prev.filter(m => m.id !== tempMessage.id));
+      alert('Failed to send message. Please try again.');
+    }
   };
 
   const handleTyping = (value: string) => {
@@ -171,7 +265,12 @@ export function ChatWindow({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-        {roomMessages.length === 0 ? (
+        {isLoadingMessages ? (
+          <div className="text-center text-gray-500 mt-8">
+            <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-sm">Loading messages...</p>
+          </div>
+        ) : localMessages.length === 0 ? (
           <div className="text-center text-gray-500 mt-8">
             <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
               <MessageCircle className="h-8 w-8 text-gray-400" />
@@ -180,8 +279,8 @@ export function ChatWindow({
             <p className="text-sm text-gray-400 mt-1">Send a message to {otherUserName}</p>
           </div>
         ) : (
-          roomMessages.map((message) => {
-            const isOwnMessage = message.senderId === currentUserId;
+          localMessages.map((message) => {
+            const isOwnMessage = message.senderId === parseInt(currentUserId);
             return (
               <div
                 key={message.id}
@@ -199,9 +298,9 @@ export function ChatWindow({
                     isOwnMessage ? 'text-blue-100' : 'text-gray-500'
                   }`}>
                     <span className="text-xs">
-                      {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(message.sentAt), { addSuffix: true })}
                     </span>
-                    {isOwnMessage && (
+                    {isOwnMessage && message.status && (
                       <span className="text-xs">
                         {getMessageStatusIcon(message.status)}
                       </span>
