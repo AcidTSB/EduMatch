@@ -1,194 +1,205 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   MessageSquare, 
   Search, 
-  Filter,
   Users,
   Clock,
-  CheckCircle,
   Wifi,
   WifiOff,
-  Plus
+  X
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { MessageList, QuickContacts } from '@/components/messaging/MessageComponents';
-import { ChatWindow } from '@/components/ChatWindow';
-import { useRealTime } from '@/providers/RealTimeProvider';
+import { useSocket } from '@/hooks/useSocket';
 import { useAuth } from '@/lib/auth';
-import { useLanguage } from '@/contexts/LanguageContext';
+import chatService from '@/services/chat.service';
 import Link from 'next/link';
+import { Client } from '@stomp/stompjs';
+
+interface Message {
+  id: number;
+  content: string;
+  senderId: number;
+  receiverId: number;
+  sentAt: string;
+}
+
+interface Conversation {
+  conversationId: number;
+  otherParticipantId: number;
+  otherUserName: string;
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadCount: number;
+}
 
 export default function MessagesPage() {
-  const { t } = useLanguage();
   const { user } = useAuth();
+  
+  // STOMP WebSocket connection
   const { 
-    messages, 
-    chatRooms, 
-    onlineUsers,
-    onlineUsersMap,
-    isConnected,
-    sendMessage,
-    markMessagesAsRead,
-    isRealTimeEnabled 
-  } = useRealTime();
+    socket, 
+    isConnected, 
+    messages: stompMessages,
+    sendMessage: sendStompMessage // Use the sendMessage function from hook
+  } = useSocket(user?.id, user?.role, user?.name);
+  
+  // State
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [chatMessages, setChatMessages] = useState<Message[]>([]);
+  const [messageInput, setMessageInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedContactId, setSelectedContactId] = useState<string>();
-  const [isMessagePanelOpen, setIsMessagePanelOpen] = useState(false);
-  const [isNewChatModalOpen, setIsNewChatModalOpen] = useState(false);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  
+  // Ref for auto-scrolling to bottom
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Get recent conversations (grouped by user, not individual messages)
-  const recentConversations = React.useMemo(() => {
-    if (!user) return [];
+  // Load conversations from backend
+  const loadConversations = async () => {
+    if (!user) return;
     
-    const conversationsMap = new Map<string, any>();
-    
-    // Go through all messages and group by other user
-    Object.entries(messages).forEach(([roomId, roomMessages]) => {
-      if (!roomMessages || roomMessages.length === 0) return;
-      
-      // Get the other participant ID from room ID
-      const otherUserId = roomId.startsWith(user.id + '-') 
-        ? roomId.substring(user.id.length + 1)
-        : roomId.endsWith('-' + user.id)
-        ? roomId.substring(0, roomId.length - user.id.length - 1)
-        : null;
-      
-      if (!otherUserId) return;
-      
-      // Get the last message in this room
-      const sortedMessages = [...(roomMessages as any[])].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      const lastMessage = sortedMessages[0];
-      
-      // Count unread messages from other user
-      const unreadCount = (roomMessages as any[]).filter(
-        msg => msg.senderId === otherUserId && msg.status !== 'read'
-      ).length;
-      
-      // Get user info
-      const userInfo = onlineUsersMap.get(otherUserId);
-      
-      conversationsMap.set(otherUserId, {
-        id: lastMessage.id,
-        userId: otherUserId,
-        senderName: userInfo?.name || otherUserId,
-        senderRole: userInfo?.role || 'applicant',
-        content: lastMessage.content,
-        timestamp: lastMessage.createdAt,
-        isRead: lastMessage.status === 'read',
-        senderAvatar: '',
-        senderId: lastMessage.senderId,
-        isFromCurrentUser: lastMessage.senderId === user.id,
-        unreadCount,
-        isOnline: onlineUsers.includes(otherUserId)
-      });
-    });
-    
-    // Convert to array and sort by timestamp
-    return Array.from(conversationsMap.values()).sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-  }, [messages, user?.id, onlineUsersMap, onlineUsers]);
-
-  // Convert chat rooms to contacts
-  const onlineContacts = React.useMemo(() => {
-    if (!user) return [];
-    
-    // Get contacts from chat rooms
-    const roomContacts = Object.entries(chatRooms)
-      .map(([roomId, room]: [string, any]) => {
-        const otherParticipantId = room.participants?.find((p: string) => p !== user.id);
-        if (!otherParticipantId) return null;
-        
-        const userInfo = onlineUsersMap.get(otherParticipantId);
-        
-        return {
-          id: otherParticipantId,
-          name: userInfo?.name || otherParticipantId,
-          role: userInfo?.role || 'applicant',
-          avatar: '',
-          isOnline: onlineUsers.includes(otherParticipantId),
-          unreadCount: room.unreadCount || 0,
-          lastSeen: room.updatedAt || new Date().toISOString()
-        };
-      })
-      .filter(Boolean) as any[];
-    
-    // Add online users who don't have chat rooms yet
-    const onlineContactsOnly = onlineUsers
-      .filter(userId => userId !== user.id)
-      .filter(userId => !roomContacts.find(c => c.id === userId))
-      .map(userId => {
-        const userInfo = onlineUsersMap.get(userId);
-        return {
-          id: userId,
-          name: userInfo?.name || userId,
-          role: userInfo?.role || 'applicant',
-          avatar: '',
-          isOnline: true,
-          unreadCount: 0,
-          lastSeen: new Date().toISOString()
-        };
-      });
-    
-    return [...roomContacts, ...onlineContactsOnly];
-  }, [chatRooms, onlineUsers, onlineUsersMap, user?.id]);
-
-  // Filter conversations and contacts based on search query
-  const filteredConversations = recentConversations.filter(conv =>
-    conv.senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredContacts = onlineContacts.filter(contact => {
-    return contact.name.toLowerCase().includes(searchQuery.toLowerCase());
-  });
-
-  // Calculate unread count from messages
-  const unreadCount = React.useMemo(() => {
-    let count = 0;
-    Object.entries(messages).forEach(([roomId, roomMessages]) => {
-      (roomMessages as any[]).forEach((msg: any) => {
-        if (msg.receiverId === user?.id && msg.status !== 'read') {
-          count++;
-        }
-      });
-    });
-    return count;
-  }, [messages, user?.id]);
-
-  const handleMessageClick = (conversationId: string) => {
-    // Find the conversation and open chat with that user
-    const conversation = recentConversations.find(c => c.id === conversationId);
-    if (conversation) {
-      setSelectedContactId(conversation.userId);
-      setIsMessagePanelOpen(true);
+    try {
+      setIsLoadingConversations(true);
+      const response = await chatService.getConversations();
+      console.log('✅ Loaded conversations:', response);
+      setConversations(response);
+    } catch (error) {
+      console.error('❌ Error loading conversations:', error);
+    } finally {
+      setIsLoadingConversations(false);
     }
   };
 
-  const handleContactClick = (contactId: string) => {
-    setSelectedContactId(contactId);
-    setIsMessagePanelOpen(true);
+  // Load messages for selected conversation
+  const loadMessages = async (conversationId: number) => {
+    if (!user) return;
+    
+    try {
+      setIsLoadingMessages(true);
+      const response = await chatService.getMessages(conversationId);
+      console.log('✅ Loaded messages:', response);
+      // Response is { content: Message[], totalPages, totalElements }
+      const messages = response.content || [];
+      // Sort by sentAt ascending (oldest first, newest last)
+      const sortedMessages = messages.sort((a, b) => 
+        new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
+      );
+      setChatMessages(sortedMessages);
+    } catch (error) {
+      console.error('❌ Error loading messages:', error);
+      setChatMessages([]);
+    } finally {
+      setIsLoadingMessages(false);
+    }
   };
+
+  // Send message via STOMP
+  const sendMessage = async () => {
+    if (!messageInput.trim() || !selectedConversation || !user || !isConnected) return;
+    
+    try {
+      setIsSending(true);
+      
+      console.log('📤 Sending message to user:', selectedConversation.otherParticipantId);
+      
+      // Use the sendMessage function from useSocket hook
+      sendStompMessage(selectedConversation.otherParticipantId.toString(), messageInput.trim());
+      
+      // Optimistically add message to UI
+      const optimisticMessage: Message = {
+        id: Date.now(),
+        content: messageInput.trim(),
+        senderId: parseInt(user.id),
+        receiverId: selectedConversation.otherParticipantId,
+        sentAt: new Date().toISOString()
+      };
+      
+      setChatMessages(prev => [...prev, optimisticMessage]);
+      setMessageInput('');
+      
+      // Reload conversations to update last message
+      setTimeout(() => loadConversations(), 500);
+    } catch (error) {
+      console.error('❌ Error sending message:', error);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // Handle new STOMP messages
+  useEffect(() => {
+    if (!stompMessages || stompMessages.length === 0) return;
+    
+    console.log('🔔 New STOMP messages:', stompMessages);
+    
+    // Get the latest message
+    const latestMessage = stompMessages[stompMessages.length - 1];
+    
+    // If this message is for the currently selected conversation, add it
+    if (selectedConversation) {
+      const isRelevant = 
+        (latestMessage.senderId === selectedConversation.otherParticipantId && latestMessage.receiverId === parseInt(user?.id || '0')) ||
+        (latestMessage.receiverId === selectedConversation.otherParticipantId && latestMessage.senderId === parseInt(user?.id || '0'));
+      
+      if (isRelevant) {
+        setChatMessages(prev => {
+          // Avoid duplicates
+          if (prev.find(m => m.id === latestMessage.id)) return prev;
+          return [...prev, latestMessage];
+        });
+      }
+    }
+    
+    // Reload conversations to update last message
+    loadConversations();
+  }, [stompMessages, selectedConversation, user?.id]);
+
+  // Initial load
+  useEffect(() => {
+    loadConversations();
+  }, [user]);
+
+  // Load messages when selecting a conversation
+  useEffect(() => {
+    if (selectedConversation) {
+      loadMessages(selectedConversation.conversationId);
+    }
+  }, [selectedConversation]);
+
+  // Filter conversations
+  const filteredConversations = useMemo(() => {
+    if (!searchQuery) return conversations;
+    return conversations.filter(conv => 
+      conv.otherUserName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      conv.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [conversations, searchQuery]);
+
+  // Calculate stats
+  const totalUnread = useMemo(() => {
+    return conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
+  }, [conversations]);
+  
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-          <p className="text-gray-500 text-lg">{t('messages.loginRequired')}</p>
-          <Link href="/auth/login">
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              {t('messages.goToLogin')}
-            </Button>
+          <p className="text-gray-500 text-lg">Please login to view messages</p>
+          <Link href="/login">
+            <Button className="bg-blue-600 hover:bg-blue-700">Go to Login</Button>
           </Link>
         </div>
       </div>
@@ -196,302 +207,270 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-gradient-to-r from-brand-blue-50 to-brand-cyan-50 border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 flex items-center space-x-3">
-                <MessageSquare className="h-10 w-10 text-brand-blue-600" />
-                <span>{t('messages.title')}</span>
-              </h1>
-              <p className="text-gray-600 mt-2">
-                {t('messages.subtitle').replace('{role}', user.role === 'user' ? t('messages.subtitleProvider') : t('messages.subtitleStudent'))}
-              </p>
-            </div>
-            <div className="mt-4 sm:mt-0 flex items-center space-x-4">
-              {/* Real-time Connection Status */}
-              <div className="flex items-center gap-2">
-                {isConnected ? (
-                  <>
-                    <Wifi className="h-4 w-4 text-green-600" />
-                    <Badge variant="outline" className="text-green-700 border-green-300">
-                      {t('messages.connected')}
-                    </Badge>
-                  </>
-                ) : (
-                  <>
-                    <WifiOff className="h-4 w-4 text-red-600" />
-                    <Badge variant="outline" className="text-red-700 border-red-300">
-                      {t('messages.disconnected')}
-                    </Badge>
-                  </>
-                )}
+      <div className="bg-white border-b shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <MessageSquare className="h-8 w-8 text-blue-600" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+                <p className="text-sm text-gray-600">
+                  {isConnected ? (
+                    <span className="flex items-center space-x-1">
+                      <Wifi className="h-3 w-3 text-green-600" />
+                      <span>Connected</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center space-x-1">
+                      <WifiOff className="h-3 w-3 text-red-600" />
+                      <span>Disconnected</span>
+                    </span>
+                  )}
+                </p>
               </div>
-              
-              {unreadCount > 0 && (
-                <Badge variant="destructive" className="text-sm">
-                  {t('messages.unread').replace('{count}', unreadCount.toString())}
-                </Badge>
-              )}
-              <Button variant="outline">
-                <Filter className="h-4 w-4 mr-2" />
-                {t('messages.filter')}
-              </Button>
-              <Dialog open={isNewChatModalOpen} onOpenChange={setIsNewChatModalOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-brand-blue-600 hover:bg-brand-blue-700">
-                    <Plus className="h-4 w-4 mr-2" />
-                    {t('messages.newChat')}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>{t('messages.startNewChat')}</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <p className="text-sm text-gray-600">
-                      {t('messages.selectUser')}
-                    </p>
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {onlineContacts.length === 0 ? (
-                        <p className="text-center text-gray-500 py-4">
-                          {t('messages.noUsersAvailable')}
-                        </p>
-                      ) : (
-                        onlineContacts.map((contact) => (
-                          <div
-                            key={contact.id}
-                            onClick={() => {
-                              setSelectedContactId(contact.id);
-                              setIsMessagePanelOpen(true);
-                              setIsNewChatModalOpen(false);
-                            }}
-                            className="flex items-center space-x-3 p-3 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors"
-                          >
-                            <div className="relative">
-                              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                                <span className="text-xs font-medium">
-                                  {contact.name.substring(0, 2).toUpperCase()}
-                                </span>
-                              </div>
-                              <div className="absolute bottom-0 right-0 w-2 h-2 bg-green-500 border border-white rounded-full"></div>
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium text-sm">{contact.name}</p>
-                              <p className="text-xs text-gray-500 capitalize">{contact.role}</p>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
+            
+            {totalUnread > 0 && (
+              <Badge variant="destructive" className="text-lg px-4 py-2">
+                {totalUnread} unread
+              </Badge>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search */}
-        <div className="mb-8">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('messages.searchPlaceholder')}
-              className="pl-10"
-            />
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
-            <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg mr-4">
-                <MessageSquare className="h-6 w-6 text-blue-700" />
-              </div>
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card>
+            <CardContent className="flex items-center p-4">
+              <MessageSquare className="h-8 w-8 text-blue-600 mr-3" />
               <div>
-                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{recentConversations.length}</p>
-                <p className="text-xs text-muted-foreground">{t('messages.stats.total')}</p>
+                <p className="text-2xl font-bold">{conversations.length}</p>
+                <p className="text-sm text-gray-600">Total Conversations</p>
               </div>
             </CardContent>
           </Card>
-
-          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
-            <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-red-100 to-red-200 rounded-lg mr-4">
-                <Clock className="h-6 w-6 text-red-700" />
-              </div>
+          
+          <Card>
+            <CardContent className="flex items-center p-4">
+              <Clock className="h-8 w-8 text-red-600 mr-3" />
               <div>
-                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{unreadCount}</p>
-                <p className="text-xs text-muted-foreground">{t('messages.stats.unread')}</p>
+                <p className="text-2xl font-bold">{totalUnread}</p>
+                <p className="text-sm text-gray-600">Unread Messages</p>
               </div>
             </CardContent>
           </Card>
-
-          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
-            <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-green-100 to-emerald-200 rounded-lg mr-4">
-                <Users className="h-6 w-6 text-green-700" />
-              </div>
+          
+          <Card>
+            <CardContent className="flex items-center p-4">
+              {isConnected ? (
+                <Wifi className="h-8 w-8 text-green-600 mr-3" />
+              ) : (
+                <WifiOff className="h-8 w-8 text-gray-400 mr-3" />
+              )}
               <div>
-                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{onlineContacts.length}</p>
-                <p className="text-xs text-muted-foreground">{t('messages.stats.onlineUsers')}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-0 bg-gradient-to-br from-white to-blue-50/30 shadow-lg hover:shadow-2xl transition-all duration-300">
-            <CardContent className="flex items-center p-6">
-              <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg mr-4">
-                {isConnected ? (
-                  <Wifi className="h-6 w-6 text-purple-700" />
-                ) : (
-                  <WifiOff className="h-6 w-6 text-purple-700" />
-                )}
-              </div>
-              <div>
-                <p className="text-lg font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">
-                  {isConnected ? t('messages.connected') : t('messages.offline')}
+                <p className="text-lg font-bold">
+                  {isConnected ? 'Connected' : 'Offline'}
                 </p>
-                <p className="text-xs text-muted-foreground">{t('messages.stats.status')}</p>
+                <p className="text-sm text-gray-600">Connection Status</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Messages and Contacts */}
-          <div className="lg:col-span-2">
-            <Tabs defaultValue="messages" className="space-y-6">
-              <TabsList>
-                <TabsTrigger value="messages" className="flex items-center space-x-2">
-                  <MessageSquare className="h-4 w-4" />
-                  <span>{t('messages.tabs.messages')}</span>
-                  {unreadCount > 0 && (
-                    <Badge variant="destructive" className="ml-2">
-                      {unreadCount}
-                    </Badge>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="contacts" className="flex items-center space-x-2">
-                  <Users className="h-4 w-4" />
-                  <span>{t('messages.tabs.contacts')}</span>
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="messages">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('messages.recent')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <MessageList
-                      messages={filteredConversations}
-                      onMessageClick={handleMessageClick}
-                      emptyStateText={searchQuery ? t('messages.noMatches') : t('messages.noMessages')}
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="contacts">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('messages.yourContacts')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {filteredContacts.length === 0 ? (
-                        <div className="text-center py-8">
-                          <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                          <p className="text-gray-500">
-                            {searchQuery 
-                              ? t('messages.noContacts')
-                              : isConnected 
-                                ? t('messages.noOnlineUsers')
-                                : t('messages.connectRequired')
-                            }
-                          </p>
-                          {!isConnected && (
-                            <p className="text-xs text-red-500 mt-2">
-                              {t('messages.connectionRequired')}
-                            </p>
-                          )}
-                        </div>
-                      ) : (
-                        filteredContacts.map((contact) => (
-                          <div
-                            key={contact.id}
-                            onClick={() => handleContactClick(contact.id)}
-                            className="flex items-center justify-between p-4 rounded-lg border hover:bg-gray-50 cursor-pointer transition-colors"
-                          >
-                            <div className="flex items-center space-x-3">
-                              <div className="relative">
-                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                                  <span className="text-sm font-medium">
-                                    {contact.name.substring(0, 2).toUpperCase()}
-                                  </span>
-                                </div>
-                                {contact.isOnline && (
-                                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                                )}
-                              </div>
-                              <div>
-                                <p className="font-medium">{contact.name}</p>
-                                <p className="text-sm text-gray-500 capitalize">{contact.role}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              {contact.unreadCount > 0 && (
-                                <Badge variant="destructive">
-                                  {contact.unreadCount}
+        {/* Main Chat Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Conversations List */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between mb-4">
+                  <CardTitle>Conversations</CardTitle>
+                </div>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search conversations..."
+                    className="pl-10"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {isLoadingConversations ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                    <p className="text-sm text-gray-500">Loading...</p>
+                  </div>
+                ) : filteredConversations.length === 0 ? (
+                  <div className="text-center py-8 px-4">
+                    <MessageSquare className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                    <p className="text-gray-500">No conversations yet</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Start chatting with students or employers
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {filteredConversations.map((conv) => (
+                      <div
+                        key={conv.conversationId}
+                        onClick={() => setSelectedConversation(conv)}
+                        className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                          selectedConversation?.conversationId === conv.conversationId
+                            ? 'bg-blue-50 border-l-4 border-blue-600'
+                            : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <p className="font-semibold text-gray-900 truncate">
+                                {conv.otherUserName || `User ${conv.otherParticipantId}`}
+                              </p>
+                              {conv.unreadCount > 0 && (
+                                <Badge variant="destructive" className="text-xs">
+                                  {conv.unreadCount}
                                 </Badge>
                               )}
-                              <Button variant="outline" size="sm">
-                                {t('messages.messageButton')}
-                              </Button>
                             </div>
+                            <p className="text-sm text-gray-600 truncate">
+                              {conv.lastMessage || 'No messages yet'}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {new Date(conv.lastMessageAt).toLocaleString()}
+                            </p>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Quick Contacts Sidebar */}
-          <div>
-            <QuickContacts
-              contacts={filteredContacts.slice(0, 5)}
-              onContactClick={handleContactClick}
-            />
+          {/* Chat Window */}
+          <div className="lg:col-span-2">
+            <Card className="h-[600px] flex flex-col">
+              {selectedConversation ? (
+                <>
+                  {/* Chat Header */}
+                  <CardHeader className="border-b">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          {selectedConversation.otherUserName?.substring(0, 2).toUpperCase() || 'U'}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">
+                            {selectedConversation.otherUserName || `User ${selectedConversation.otherParticipantId}`}
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            User ID: {selectedConversation.otherParticipantId}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedConversation(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+
+                  {/* Messages */}
+                  <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {isLoadingMessages ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                        <p className="text-sm text-gray-500">Loading messages...</p>
+                      </div>
+                    ) : chatMessages.length === 0 ? (
+                      <div className="text-center py-8">
+                        <MessageSquare className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+                        <p className="text-gray-500">No messages yet</p>
+                        <p className="text-xs text-gray-400">Send a message to start the conversation</p>
+                      </div>
+                    ) : (
+                      <>
+                        {chatMessages.map((msg) => {
+                          const isOwnMessage = msg.senderId === parseInt(user.id);
+                          return (
+                            <div
+                              key={msg.id}
+                              className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
+                            >
+                              <div
+                                className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                                  isOwnMessage
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-200 text-gray-900'
+                                }`}
+                              >
+                                <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                                <p className={`text-xs mt-1 ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
+                                  {new Date(msg.sentAt).toLocaleTimeString()}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {/* Invisible div for auto-scrolling */}
+                        <div ref={messagesEndRef} />
+                      </>
+                    )}
+                  </CardContent>
+
+                  {/* Input */}
+                  <div className="border-t p-4">
+                    <div className="flex space-x-2">
+                      <Input
+                        value={messageInput}
+                        onChange={(e) => setMessageInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            sendMessage();
+                          }
+                        }}
+                        placeholder="Type a message..."
+                        disabled={isSending || !isConnected}
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={sendMessage}
+                        disabled={!messageInput.trim() || isSending || !isConnected}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {isSending ? 'Sending...' : 'Send'}
+                      </Button>
+                    </div>
+                    {!isConnected && (
+                      <p className="text-xs text-red-600 mt-2">
+                        ⚠️ Not connected to chat server. Please refresh the page.
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center">
+                  <div className="text-center">
+                    <MessageSquare className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <p className="text-gray-500 text-lg">Select a conversation to start chatting</p>
+                  </div>
+                </div>
+              )}
+            </Card>
           </div>
         </div>
       </div>
-
-      {/* Chat Window */}
-      {isMessagePanelOpen && selectedContactId && user && (
-        <ChatWindow
-          roomId={[user.id, selectedContactId].sort().join('-')}
-          otherUserId={selectedContactId}
-          otherUserName={filteredContacts.find(c => c.id === selectedContactId)?.name || 'User'}
-          currentUserId={user.id}
-          isOpen={isMessagePanelOpen}
-          onClose={() => {
-            setIsMessagePanelOpen(false);
-            setSelectedContactId(undefined);
-          }}
-        />
-      )}
     </div>
   );
 }

@@ -24,7 +24,9 @@ chatApiClient.interceptors.request.use((config) => {
 
 export interface Conversation {
   id: number;
-  otherUserId: number;
+  conversationId?: number; // backend returns this
+  otherParticipantId?: number; // backend returns this
+  otherUserId?: number; // legacy field name for backward compatibility
   otherUserName?: string;
   lastMessage?: string;
   lastMessageAt?: string;
@@ -85,16 +87,15 @@ export async function getMessages(
 }
 
 /**
- * Gửi tin nhắn mới (qua HTTP, không qua WebSocket)
- * Thường dùng khi WebSocket chưa connect hoặc fallback
- * @param request - Thông tin tin nhắn
+ * Gửi tin nhắn qua HTTP (fallback khi WebSocket không khả dụng)
+ * @param request - ChatMessageRequest với receiverId và content
  */
 export async function sendMessage(request: ChatMessageRequest): Promise<Message> {
   try {
     const response = await chatApiClient.post('/chat/send', request);
     return response.data;
   } catch (error) {
-    console.error('Error sending message:', error);
+    console.error('Error sending message via HTTP:', error);
     throw error;
   }
 }

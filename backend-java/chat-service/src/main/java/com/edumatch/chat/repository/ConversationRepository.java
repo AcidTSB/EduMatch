@@ -22,10 +22,14 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     /**
      * Tìm một cuộc hội thoại chính xác giữa 2 user ID.
      * (Kiểm tra cả 2 chiều: A-B và B-A)
+     * Nếu có nhiều conversation (do lỗi tạo trùng), lấy conversation mới nhất (id lớn nhất)
      */
-    @Query("SELECT c FROM Conversation c WHERE " +
-            "(c.participant1Id = :user1Id AND c.participant2Id = :user2Id) OR " +
-            "(c.participant1Id = :user2Id AND c.participant2Id = :user1Id)")
+    @Query(value = "SELECT * FROM conversations c WHERE " +
+            "(c.participant_1_id = :user1Id AND c.participant_2_id = :user2Id) OR " +
+            "(c.participant_1_id = :user2Id AND c.participant_2_id = :user1Id) " +
+            "ORDER BY c.id DESC " +
+            "LIMIT 1", 
+            nativeQuery = true)
     Optional<Conversation> findByParticipants(
             @Param("user1Id") Long user1Id,
             @Param("user2Id") Long user2Id

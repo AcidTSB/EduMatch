@@ -206,46 +206,12 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
   }, [socket.isConnected, isAuthenticated, enabled, user?.id, activeRoom, addMessage, addNotification, setTyping]);
 
   // Helper functions
+  // DEPRECATED: This sendMessage function is for old Socket.IO implementation
+  // New chat system uses STOMP WebSocket - see ChatWindow component
   const sendMessage = (roomId: string, content: string, attachments?: string[]) => {
-    if (!user?.id || !isAuthenticated || !socket.isConnected) {
-      toast.error('Cannot send message. Please check your connection.');
-      return;
-    }
-    
-    // Extract receiver ID from room ID
-    // Room ID is already calculated as [userId1, userId2].sort().join('-')
-    // So we need to remove current user ID from the room ID
-    // Handle case where user IDs contain hyphens (e.g., "provider-1", "student-1")
-    let receiverId: string;
-    
-    if (roomId.startsWith(user.id + '-')) {
-      // Current user is first: "provider-1-student-1" → receiver is "student-1"
-      receiverId = roomId.substring(user.id.length + 1);
-    } else if (roomId.endsWith('-' + user.id)) {
-      // Current user is last: "provider-1-student-1" → receiver is "provider-1"
-      receiverId = roomId.substring(0, roomId.length - user.id.length - 1);
-    } else {
-      toast.error('Invalid chat room');
-      return;
-    }
-    
-    const messageData = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      senderId: user.id,
-      receiverId,
-      content,
-      attachments,
-      status: 'sent' as const,
-      type: 'text' as const,
-      createdAt: new Date().toISOString(),
-      senderName: user.name || user.email || 'User'
-    };
-    
-    // Add to local store immediately for instant feedback
-    addMessage(roomId, messageData as any);
-    
-    // Emit to server
-    (socket as any).emit('send_message', messageData);
+    console.warn('⚠️ sendMessage called on deprecated RealTimeProvider. Use ChatWindow with STOMP instead.');
+    // Disabled to prevent "Invalid chat room" errors
+    return;
   };
 
   const markMessagesAsRead = (roomId: string, messageIds: string[]) => {

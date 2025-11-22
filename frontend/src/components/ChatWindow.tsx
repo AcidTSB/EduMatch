@@ -4,10 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, MoreHorizontal, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useMessageStore } from '@/stores/realtimeStore';
-import { useRealTime } from '@/providers/RealTimeProvider';
 import { formatDistanceToNow } from 'date-fns';
-import { Message } from '@/types/realtime';
 import { cn } from '@/lib/utils';
 import chatService from '@/services/chat.service';
 import { useSocket } from '@/hooks/useSocket';
@@ -40,14 +37,9 @@ export function ChatWindow({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const { messages, typingUsers, addMessage } = useMessageStore();
-  const { socket, sendMessage: sendMessageViaSocket, joinChatRoom, leaveChatRoom, markMessagesAsRead } = useRealTime();
-  
   // Get WebSocket hook để lắng nghe tin nhắn realtime
-  const { sendMessage: sendMessageViaWS, isConnected } = useSocket(currentUserId);
-  
-  const roomMessages = messages[roomId] || [];
-  const otherUserTyping = typingUsers[roomId]?.includes(otherUserId) || false;
+  const socketHook = useSocket(currentUserId);
+  const { sendMessage: sendMessageViaWS, isConnected } = socketHook;
 
   // Load lịch sử tin nhắn khi mở chat window
   useEffect(() => {
@@ -77,68 +69,74 @@ export function ChatWindow({
 
   // Lắng nghe tin nhắn realtime từ WebSocket
   useEffect(() => {
-    if (!isOpen || !socket) return;
+    if (!isOpen || !socketHook) return;
 
     const handleNewMessage = (message: any) => {
-      // Chỉ thêm tin nhắn nếu thuộc về cuộc hội thoại này
-      if (message.conversationId === conversationId || 
-          (message.senderId === parseInt(otherUserId) || message.senderId === parseInt(currentUserId))) {
+      console.log('📨 ChatWindow received message:', message);
+      console.log('🔍 Current chat:', { otherUserId, currentUserId, conversationId });
+      
+      // Kiểm tra xem tin nhắn có liên quan đến cuộc trò chuyện này không
+      const isRelevant = 
+        (message.senderId === parseInt(otherUserId) && message.receiverId === parseInt(currentUserId)) ||
+        (message.senderId === parseInt(currentUserId) && message.receiverId === parseInt(otherUserId));
+      
+      console.log('🔍 Message relevance:', { isRelevant, messageSenderId: message.senderId, messageReceiverId: message.receiverId });
+      
+      if (isRelevant) {
         setLocalMessages(prev => {
           // Kiểm tra xem tin nhắn đã tồn tại chưa (tránh duplicate)
           const exists = prev.some(m => m.id === message.id);
-          if (exists) return prev;
+          if (exists) {
+            console.log('⚠️ Message already exists, skipping');
+            return prev;
+          }
+          console.log('✅ Adding message to chat');
           return [...prev, message];
         });
+      } else {
+        console.log('❌ Message not relevant to this chat');
       }
     };
 
-    socket.on('message', handleNewMessage);
+    // Subscribe to message event
+    socketHook.on('message', handleNewMessage);
 
     return () => {
-      socket.off('message', handleNewMessage);
+      // Cleanup subscription
+      socketHook.off('message', handleNewMessage);
     };
-  }, [isOpen, socket, conversationId, otherUserId, currentUserId]);
-
-  useEffect(() => {
-    if (isOpen) {
-      joinChatRoom(roomId);
-      
-      // Mark all messages in this room as read when opening chat
-      const unreadMessageIds = roomMessages
-        .filter((msg: any) => msg.senderId === otherUserId && msg.status !== 'read')
-        .map((msg: any) => msg.id);
-      
-      if (unreadMessageIds.length > 0) {
-        markMessagesAsRead(roomId, unreadMessageIds);
-      }
-    } else {
-      leaveChatRoom(roomId);
-    }
-
-    return () => {
-      if (isOpen) {
-        leaveChatRoom(roomId);
-      }
-    };
-  }, [isOpen, roomId, joinChatRoom, leaveChatRoom, markMessagesAsRead, otherUserId, roomMessages.length]);
+  }, [isOpen, conversationId, otherUserId, currentUserId, socketHook]);
 
   useEffect(() => {
     scrollToBottom();
-  }, [localMessages, otherUserTyping]);
+  }, [localMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim()) return;
+    console.log('🔵 handleSendMessage called, newMessage:', newMessage);
+    
+    if (!newMessage.trim()) {
+      console.log('⚠️ Empty message, aborting');
+      return;
+    }
 
     const messageContent = newMessage.trim();
-    const receiverIdNum = parseInt(otherUserId);
+    const receiverIdNum = Number(otherUserId);
+    
+    console.log('📋 ChatWindow Send:', { 
+      receiverId: receiverIdNum,
+      receiverIdType: typeof receiverIdNum,
+      msg: messageContent,
+      wsConnected: isConnected,
+      hasSendFunc: !!sendMessageViaWS
+    });
     
     // Optimistic UI: Thêm tin nhắn vào list ngay lập tức
     const tempMessage = {
-      id: Date.now(), // Temporary ID
+      id: Date.now(),
       conversationId: conversationId || 0,
       senderId: parseInt(currentUserId),
       content: messageContent,
@@ -150,60 +148,22 @@ export function ChatWindow({
     setNewMessage('');
     setIsTyping(false);
 
-    try {
-      // Ưu tiên gửi qua WebSocket nếu đã connect
-      if (isConnected && sendMessageViaWS) {
-        sendMessageViaWS(receiverIdNum, messageContent);
-        console.log('📤 Message sent via WebSocket');
-      } else {
-        // Fallback: Gửi qua HTTP nếu WebSocket chưa connect
-        console.log('⚠️ WebSocket not connected, sending via HTTP...');
-        const sentMessage = await chatService.sendMessage({
-          receiverId: receiverIdNum,
-          content: messageContent
-        });
-        
-        // Cập nhật tin nhắn tạm với tin nhắn thực từ server
-        setLocalMessages(prev => 
-          prev.map(m => m.id === tempMessage.id ? sentMessage : m)
-        );
-      }
-    } catch (error) {
-      console.error('❌ Error sending message:', error);
-      // Xóa tin nhắn tạm nếu gửi thất bại
+    // Gửi thẳng qua WebSocket
+    if (sendMessageViaWS) {
+      console.log('🟢 Calling sendMessageViaWS...');
+      sendMessageViaWS(receiverIdNum, messageContent);
+    } else {
+      console.error('❌ sendMessageViaWS function is missing!');
       setLocalMessages(prev => prev.filter(m => m.id !== tempMessage.id));
-      alert('Failed to send message. Please try again.');
+      alert('Cannot send message: WebSocket not ready');
     }
   };
 
   const handleTyping = (value: string) => {
     setNewMessage(value);
     
-    if (!isTyping && value.trim() && socket) {
-      setIsTyping(true);
-      socket.emit('typing', { userId: currentUserId, roomId, isTyping: true });
-    }
-
-    // Clear previous timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    // Set new timeout to stop typing indicator after 3 seconds of inactivity
-    if (value.trim()) {
-      typingTimeoutRef.current = setTimeout(() => {
-        setIsTyping(false);
-        if (socket) {
-          socket.emit('typing', { userId: currentUserId, roomId, isTyping: false });
-        }
-      }, 3000); // 3 seconds instead of 1
-    } else {
-      // If input is empty, stop typing immediately
-      setIsTyping(false);
-      if (socket) {
-        socket.emit('typing', { userId: currentUserId, roomId, isTyping: false });
-      }
-    }
+    // Typing indicator temporarily disabled for STOMP WebSocket
+    // Can be re-enabled when backend supports typing events
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -213,7 +173,7 @@ export function ChatWindow({
     }
   };
 
-  const getMessageStatusIcon = (status: Message['status']) => {
+  const getMessageStatusIcon = (status: string) => {
     switch (status) {
       case 'sent':
         return <span className="text-gray-400">✓</span>;
@@ -242,9 +202,7 @@ export function ChatWindow({
             </div>
             <div>
               <h3 className="font-medium text-sm">{otherUserName}</h3>
-              <p className="text-xs text-blue-100">
-                {otherUserTyping ? 'typing...' : 'online'}
-              </p>
+              <p className="text-xs text-blue-100">online</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -310,19 +268,6 @@ export function ChatWindow({
               </div>
             );
           })
-        )}
-        
-        {/* Typing indicator */}
-        {otherUserTyping && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 px-3 py-2 rounded-lg">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
-              </div>
-            </div>
-          </div>
         )}
         
         <div ref={messagesEndRef} />
