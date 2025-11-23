@@ -225,11 +225,24 @@ public class AuthService {
      */
     private void publishUserProfileUpdatedEvent(User user) {
         try {
+            // Parse skills and research interests from comma-separated strings
+            java.util.List<String> skillsList = user.getSkills() != null && !user.getSkills().isEmpty()
+                    ? java.util.Arrays.asList(user.getSkills().split(","))
+                    : java.util.List.of();
+            
+            java.util.List<String> researchInterestsList = user.getResearchInterests() != null && !user.getResearchInterests().isEmpty()
+                    ? java.util.Arrays.asList(user.getResearchInterests().split(","))
+                    : java.util.List.of();
+            
             Map<String, Object> eventPayload = Map.of(
                     "userId", user.getId().toString(),
                     "email", user.getEmail(),
-                    "skills", List.of(),  // Empty skills initially
-                    "gpa", 0.0            // Default GPA
+                    "gpa", user.getGpa() != null ? user.getGpa() : 0.0,
+                    "major", user.getMajor() != null ? user.getMajor() : "",
+                    "university", user.getUniversity() != null ? user.getUniversity() : "",
+                    "yearOfStudy", user.getYearOfStudy() != null ? user.getYearOfStudy() : 1,
+                    "skills", skillsList,
+                    "researchInterests", researchInterestsList
             );
 
             rabbitTemplate.convertAndSend(

@@ -14,6 +14,7 @@ import { formatDate, getDaysUntilDeadline, truncateText, getMatchScoreColor, for
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useApplications } from '@/hooks/api';
 import { scholarshipCardVariants } from '@/lib/animations';
+import { MatchingScore } from '@/components/MatchingScore';
 
 interface ScholarshipCardProps {
   scholarship: Scholarship;
@@ -78,14 +79,9 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
           <CardTitle className="text-lg font-semibold line-clamp-2 text-balance bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">
             {scholarship.title}
           </CardTitle>
-          {/* Match Score (Giữ nguyên logic, trường này đã được thêm lại vào type) */}
-          {showMatchScore && scholarship.matchScore && (
-            <div className="flex flex-col items-center flex-shrink-0 min-w-[50px]">
-              <div className={`text-lg font-bold ${getMatchScoreColor(scholarship.matchScore)}`}>
-                {scholarship.matchScore}%
-              </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">{t('scholarshipCard.match')}</span>
-            </div>
+          {/* Match Score with new MatchingScore component */}
+          {showMatchScore && scholarship.matchScore !== undefined && (
+            <MatchingScore score={scholarship.matchScore} size="sm" showLabel={false} />
           )}
         </div>
         

@@ -12,6 +12,11 @@ class ScoreRequest(BaseModel):
     applicantId: str = Field(..., description="UUID of the applicant")
     opportunityId: str = Field(..., description="UUID of the opportunity")
 
+class BatchScoreRequest(BaseModel):
+    """Request body for POST /api/v1/matching/batch-scores"""
+    applicantId: str = Field(..., description="UUID of the applicant")
+    opportunityIds: List[str] = Field(..., description="List of opportunity IDs")
+
 class RecommendationQueryParams(BaseModel):
     """Query parameters for recommendation endpoints"""
     limit: int = Field(default=10, ge=1, le=100, description="Number of results")
@@ -79,7 +84,9 @@ class ScholarshipCreatedEvent(BaseModel):
 
 class ScholarshipUpdatedEvent(BaseModel):
     """Event schema for scholarship.updated (same as created)"""
-    opportunityId: str
+    # Accept both 'opportunityId' (old) and 'id' (from Java service)
+    opportunityId: Optional[str] = None
+    id: Optional[int] = None  # Java sends 'id' instead of 'opportunityId'
     opportunityType: str = "scholarship"
     title: Optional[str] = None
     description: Optional[str] = None
@@ -87,6 +94,10 @@ class ScholarshipUpdatedEvent(BaseModel):
     requiredSkills: Optional[List[str]] = []
     preferredMajors: Optional[List[str]] = []
     researchAreas: Optional[List[str]] = []
+    
+    def get_opportunity_id(self) -> str:
+        """Get opportunity ID from either field"""
+        return str(self.opportunityId or self.id or "")
 
 # ============= Health Check =============
 

@@ -220,16 +220,17 @@ def process_scholarship_updated(self, event_data: dict):
     Process scholarship.updated event
     Similar to created but updates existing record
     """
-    logger.info(f"[Worker] Processing scholarship.updated: {event_data.get('opportunityId')}")
+    logger.info(f"[Worker] Processing scholarship.updated: {event_data.get('opportunityId') or event_data.get('id')}")
     
     db = SessionLocal()
     try:
         # Validate event data
         event = schemas.ScholarshipUpdatedEvent(**event_data)
+        opportunity_id = event.get_opportunity_id()
         
         # Check if opportunity features already exist
         opportunity_feature = db.query(models.OpportunityFeature).filter(
-            models.OpportunityFeature.opportunity_id == event.opportunityId
+            models.OpportunityFeature.opportunity_id == opportunity_id
         ).first()
         
         # Preprocess features
@@ -241,7 +242,7 @@ def process_scholarship_updated(self, event_data: dict):
         
         if opportunity_feature:
             # Update existing
-            logger.info(f"[Worker] Updating existing opportunity features: {event.opportunityId}")
+            logger.info(f"[Worker] Updating existing opportunity features: {opportunity_id}")
             opportunity_feature.opportunity_type = event.opportunityType
             opportunity_feature.title = event.title
             opportunity_feature.description = event.description
@@ -256,9 +257,9 @@ def process_scholarship_updated(self, event_data: dict):
             opportunity_feature.updated_at = datetime.utcnow()
         else:
             # Create new if not exists
-            logger.info(f"[Worker] Creating new opportunity features (from update): {event.opportunityId}")
+            logger.info(f"[Worker] Creating new opportunity features (from update): {opportunity_id}")
             opportunity_feature = models.OpportunityFeature(
-                opportunity_id=event.opportunityId,
+                opportunity_id=opportunity_id,
                 opportunity_type=event.opportunityType,
                 title=event.title,
                 description=event.description,
@@ -274,12 +275,12 @@ def process_scholarship_updated(self, event_data: dict):
             db.add(opportunity_feature)
         
         db.commit()
-        logger.info(f"[Worker] ✅ Successfully processed scholarship.updated: {event.opportunityId}")
+        logger.info(f"[Worker] ✅ Successfully processed scholarship.updated: {opportunity_id}")
         
         # Invalidate cached scores for this opportunity
-        invalidate_scores_for_opportunity(db, event.opportunityId)
+        invalidate_scores_for_opportunity(db, opportunity_id)
         
-        return {"status": "success", "opportunity_id": event.opportunityId}
+        return {"status": "success", "opportunity_id": opportunity_id}
         
     except Exception as e:
         db.rollback()

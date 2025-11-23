@@ -124,9 +124,14 @@ class RabbitMQConsumer:
             handler = self.event_handlers.get(routing_key)
             
             if handler:
-                # Send to Celery worker asynchronously
-                task = handler.delay(message)
-                logger.info(f"✅ Dispatched to Celery task: {task.id}")
+                # Execute task directly WITHOUT Celery routing (avoid queue declaration conflicts)
+                # We just call the task function directly since we're already in the consumer
+                try:
+                    result = handler(message)
+                    logger.info(f"✅ Executed task for routing_key: {routing_key}")
+                except Exception as task_error:
+                    logger.error(f"❌ Task execution failed: {task_error}", exc_info=True)
+                    raise  # Re-raise to trigger nack and requeue
             else:
                 logger.warning(f"⚠️ No handler found for routing_key: {routing_key}")
             

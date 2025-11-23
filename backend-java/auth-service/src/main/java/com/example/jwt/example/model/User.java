@@ -64,6 +64,26 @@ public class User implements UserDetails {
     @Column(name = "organization_id")
     private Long organizationId;
 
+    // ========== Matching System Fields ==========
+    @Column(name = "gpa")
+    private Double gpa;
+
+    @Column(name = "major", length = 100)
+    private String major;
+
+    @Column(name = "university", length = 200)
+    private String university;
+
+    @Column(name = "year_of_study")
+    private Integer yearOfStudy;
+
+    @Column(name = "skills", columnDefinition = "TEXT")
+    private String skills; // Stored as comma-separated values
+
+    @Column(name = "research_interests", columnDefinition = "TEXT")
+    private String researchInterests; // Stored as comma-separated values
+    // ============================================
+
     private Boolean enabled = false;
     private String verificationCode; // mã xác minh hoặc OTP
     private Instant verificationExpiry; // thời gian hết hạn mã
