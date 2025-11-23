@@ -187,6 +187,18 @@ export interface Application {
   linkedinUrl?: string;
   githubUrl?: string;
   documents?: Array<{ documentName: string; documentUrl: string }>; // Full document objects from backend
+  // Extended field for employer/admin view - computed from applicantUserName, applicantEmail, etc.
+  applicant?: {
+    name: string;
+    email: string;
+    profile?: {
+      university?: string;
+      major?: string;
+      gpa?: string | number;
+      graduationYear?: string;
+      skills?: string[];
+    };
+  };
 }
 
 /**

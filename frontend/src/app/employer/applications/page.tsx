@@ -26,14 +26,11 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useProviderApplications, useScholarships } from '@/hooks/api';
-import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
-import { ApplicationStatus } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { scholarshipServiceApi } from '@/services/scholarship.service';
 import { mapOpportunityDtoToScholarship } from '@/lib/scholarship-mapper';
@@ -48,10 +45,16 @@ export default function ProviderApplicationsPage() {
   const [messageText, setMessageText] = useState('');
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false);
   
-  // Thay đổi: Fetch từ API thay vì AppContext
+  // Confirmation dialog states
+  const [confirmAction, setConfirmAction] = useState<{ type: 'accept' | 'reject' | null; appId: string | null }>({ type: null, appId: null });
+  const [rejectReason, setRejectReason] = useState('');
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  
+  // Data states - Fetch từ API thay vì AppContext
   const [applications, setApplications] = useState<Application[]>([]);
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Fetch data từ API - chỉ lấy applications cho scholarships của employer
   useEffect(() => {
@@ -69,39 +72,7 @@ export default function ProviderApplicationsPage() {
         for (const opp of opps) {
           try {
             const apps = await scholarshipServiceApi.getApplicationsForOpportunity(opp.id);
-            const mappedApps = apps.map((app: any) => ({
-              id: app.id?.toString() || '',
-              applicantId: app.applicantUserId?.toString() || '',
-              scholarshipId: app.opportunityId?.toString() || '',
-              status: app.status || 'PENDING',
-              additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
-              createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
-              updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
-              submittedAt: app.submittedAt || app.createdAt,
-              // Include additional fields
-              applicantUserName: app.applicantUserName,
-              applicantEmail: app.applicantEmail,
-              phone: app.phone,
-              gpa: app.gpa ? Number(app.gpa) : undefined,
-              coverLetter: app.coverLetter,
-              motivation: app.motivation,
-              additionalInfo: app.additionalInfo,
-              portfolioUrl: app.portfolioUrl,
-              linkedinUrl: app.linkedinUrl,
-              githubUrl: app.githubUrl,
-              // Map applicant data for display
-              applicant: {
-                name: app.applicantUserName || 'Unknown',
-                email: app.applicantEmail || 'No email',
-                profile: {
-                  university: app.university || 'Not specified',
-                  major: app.major || 'Not specified',
-                  gpa: app.gpa || 'Not provided',
-                  graduationYear: app.graduationYear || 'Not specified',
-                  skills: app.skills || []
-                }
-              }
-            }));
+            const mappedApps = apps.map((app: any) => mapApplicationDto(app));
             allApps.push(...mappedApps);
           } catch (err) {
             console.error(`Error fetching applications for opportunity ${opp.id}:`, err);
@@ -119,60 +90,115 @@ export default function ProviderApplicationsPage() {
     fetchData();
   }, []);
 
+  // Helper function to map application DTO
+  const mapApplicationDto = (app: any): Application => ({
+    id: app.id?.toString() || '',
+    applicantId: app.applicantUserId?.toString() || '',
+    scholarshipId: app.opportunityId?.toString() || '',
+    status: app.status || 'PENDING',
+    additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
+    createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+    updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+    submittedAt: app.submittedAt || app.createdAt,
+    applicantUserName: app.applicantUserName,
+    applicantEmail: app.applicantEmail,
+    phone: app.phone,
+    gpa: app.gpa ? Number(app.gpa) : undefined,
+    coverLetter: app.coverLetter,
+    motivation: app.motivation,
+    additionalInfo: app.additionalInfo,
+    portfolioUrl: app.portfolioUrl,
+    linkedinUrl: app.linkedinUrl,
+    githubUrl: app.githubUrl,
+    applicant: {
+      name: app.applicantUserName || 'Unknown',
+      email: app.applicantEmail || 'No email',
+      profile: {
+        university: app.university || 'Not specified',
+        major: app.major || 'Not specified',
+        gpa: app.gpa || 'Not provided',
+        graduationYear: app.graduationYear || 'Not specified',
+        skills: app.skills || []
+      }
+    }
+  });
+
+  // Refresh applications data
+  const refreshApplications = async () => {
+    try {
+      setLoading(true);
+      const opps = await scholarshipServiceApi.getMyOpportunities();
+      const allApps: Application[] = [];
+      for (const opp of opps) {
+        try {
+          const apps = await scholarshipServiceApi.getApplicationsForOpportunity(opp.id);
+          const mappedApps = apps.map((app: any) => mapApplicationDto(app));
+          allApps.push(...mappedApps);
+        } catch (err) {
+          console.error(`Error fetching applications for opportunity ${opp.id}:`, err);
+        }
+      }
+      setApplications(allApps);
+    } catch (error) {
+      console.error('Error refreshing applications:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Update application status function
   const updateApplicationStatus = async (applicationId: string, status: string) => {
     try {
+      setActionLoading(true);
       await scholarshipServiceApi.updateApplicationStatus(applicationId, status);
-      // Refresh applications after update
-      const fetchData = async () => {
-        const opps = await scholarshipServiceApi.getMyOpportunities();
-        const allApps: Application[] = [];
-        for (const opp of opps) {
-          try {
-            const apps = await scholarshipServiceApi.getApplicationsForOpportunity(opp.id);
-            const mappedApps = apps.map((app: any) => ({
-              id: app.id?.toString() || '',
-              applicantId: app.applicantUserId?.toString() || '',
-              scholarshipId: app.opportunityId?.toString() || '',
-              status: app.status || 'PENDING',
-              additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
-              createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
-              updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
-              submittedAt: app.submittedAt || app.createdAt,
-              applicantUserName: app.applicantUserName,
-              applicantEmail: app.applicantEmail,
-              phone: app.phone,
-              gpa: app.gpa ? Number(app.gpa) : undefined,
-              coverLetter: app.coverLetter,
-              motivation: app.motivation,
-              additionalInfo: app.additionalInfo,
-              portfolioUrl: app.portfolioUrl,
-              linkedinUrl: app.linkedinUrl,
-              githubUrl: app.githubUrl,
-              applicant: {
-                name: app.applicantUserName || 'Unknown',
-                email: app.applicantEmail || 'No email',
-                profile: {
-                  university: app.university || 'Not specified',
-                  major: app.major || 'Not specified',
-                  gpa: app.gpa || 'Not provided',
-                  graduationYear: app.graduationYear || 'Not specified',
-                  skills: app.skills || []
-                }
-              }
-            }));
-            allApps.push(...mappedApps);
-          } catch (err) {
-            console.error(`Error fetching applications for opportunity ${opp.id}:`, err);
-          }
-        }
-        setApplications(allApps);
-      };
-      await fetchData();
+      await refreshApplications();
       return true;
     } catch (error) {
       console.error('Error updating application status:', error);
       throw error;
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Open confirmation dialog
+  const openConfirmDialog = (type: 'accept' | 'reject', appId: string) => {
+    setConfirmAction({ type, appId });
+    setRejectReason('');
+    setIsConfirmDialogOpen(true);
+  };
+
+  // Confirm and execute action
+  const confirmStatusUpdate = async () => {
+    if (!confirmAction.appId || !confirmAction.type) return;
+
+    const statusMap = {
+      accept: 'ACCEPTED',
+      reject: 'REJECTED'
+    };
+
+    try {
+      const newStatus = statusMap[confirmAction.type];
+      await updateApplicationStatus(confirmAction.appId, newStatus);
+      
+      // If reject and has reason, could send message to applicant
+      if (confirmAction.type === 'reject' && rejectReason.trim()) {
+        try {
+          await sendMessage(confirmAction.appId, `Your application has been rejected. Reason: ${rejectReason}`);
+        } catch (err) {
+          console.error('Failed to send rejection message:', err);
+        }
+      }
+      
+      toast.success(
+        confirmAction.type === 'accept' 
+          ? 'Application accepted successfully!' 
+          : 'Application rejected successfully!'
+      );
+      setIsConfirmDialogOpen(false);
+    } catch (error) {
+      toast.error(`Failed to ${confirmAction.type} application`);
     }
   };
 
@@ -202,17 +228,21 @@ export default function ProviderApplicationsPage() {
     }
   };
 
-  useEffect(() => {
-    // refetchApplications(); // Removed as per new fetch logic
-    // refetchScholarships(); // Removed as per new fetch logic
-  }, []);
-
   const handleStatusUpdate = async (applicationId: string, newStatus: string) => {
-    try {
-      await updateApplicationStatus(applicationId, newStatus);
-      toast.success(`Application ${newStatus} successfully!`);
-    } catch (error) {
-      toast.error('Failed to update application status');
+    if (newStatus === 'ACCEPTED' || newStatus === 'REJECTED') {
+      // Show confirmation dialog for accept/reject
+      openConfirmDialog(newStatus === 'ACCEPTED' ? 'accept' : 'reject', applicationId);
+    } else {
+      // Direct update for other status changes
+      try {
+        setActionLoading(true);
+        await updateApplicationStatus(applicationId, newStatus);
+        toast.success('Application status updated successfully!');
+      } catch (error) {
+        toast.error('Failed to update application status');
+      } finally {
+        setActionLoading(false);
+      }
     }
   };
 
@@ -472,8 +502,8 @@ export default function ProviderApplicationsPage() {
         <div className="flex flex-col sm:flex-row gap-4">
           <Button 
             className="flex-1"
-            onClick={() => handleStatusUpdate(application.id, 'ACCEPTED')}
-            disabled={loading}
+            onClick={() => openConfirmDialog('accept', application.id)}
+            disabled={actionLoading || application.status === 'ACCEPTED'}
           >
             <CheckCircle className="h-4 w-4 mr-2" />
             {t('providerApplications.actions.accept')}
@@ -481,8 +511,8 @@ export default function ProviderApplicationsPage() {
           <Button 
             variant="destructive" 
             className="flex-1"
-            onClick={() => handleStatusUpdate(application.id, 'REJECTED')}
-            disabled={loading}
+            onClick={() => openConfirmDialog('reject', application.id)}
+            disabled={actionLoading || application.status === 'REJECTED'}
           >
             <XCircle className="h-4 w-4 mr-2" />
             {t('providerApplications.actions.reject')}
@@ -491,7 +521,7 @@ export default function ProviderApplicationsPage() {
             variant="outline"
             className="flex-1"
             onClick={() => handleStatusUpdate(application.id, 'UNDER_REVIEW')}
-            disabled={loading}
+            disabled={actionLoading}
           >
             <Clock className="h-4 w-4 mr-2" />
             {t('providerApplications.actions.underReview')}
@@ -527,7 +557,7 @@ export default function ProviderApplicationsPage() {
                   </Button>
                   <Button 
                     onClick={handleSendMessage}
-                    disabled={!messageText.trim() || loading}
+                    disabled={!messageText.trim() || actionLoading}
                   >
                     <Send className="h-4 w-4 mr-2" />
                     {t('providerApplications.message.send')}
@@ -543,6 +573,53 @@ export default function ProviderApplicationsPage() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Confirmation Dialog for Accept/Reject */}
+      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {confirmAction.type === 'accept' 
+                ? 'Confirm Accept Application' 
+                : 'Confirm Reject Application'}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmAction.type === 'accept'
+                ? 'Are you sure you want to accept this application? The applicant will be notified.'
+                : 'Are you sure you want to reject this application? The applicant will be notified.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {confirmAction.type === 'reject' && (
+            <div className="space-y-2">
+              <Label htmlFor="rejectReason">Rejection Reason (Optional)</Label>
+              <Textarea
+                id="rejectReason"
+                placeholder="Provide a reason for rejection to help the applicant..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                className="min-h-[100px]"
+              />
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsConfirmDialogOpen(false)}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant={confirmAction.type === 'accept' ? 'default' : 'destructive'}
+              onClick={confirmStatusUpdate}
+              disabled={actionLoading}
+            >
+              {actionLoading ? 'Processing...' : confirmAction.type === 'accept' ? 'Accept' : 'Reject'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Header */}
       <div className="bg-gradient-to-r from-brand-blue-50 to-brand-cyan-50 border-b">
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -708,7 +785,7 @@ export default function ProviderApplicationsPage() {
                     className="mt-4"
                     variant="outline"
                   >
-                    Clear Filters
+                    {t('providerApplications.clearFilters') || 'Clear Filters'}
                   </Button>
                 )}
               </CardContent>
@@ -783,7 +860,7 @@ export default function ProviderApplicationsPage() {
                       <Select
                         value={application.status || 'SUBMITTED'}
                         onValueChange={(value) => handleStatusUpdate(application.id, value)}
-                        disabled={loading}
+                        disabled={actionLoading}
                       >
                         <SelectTrigger className="w-32">
                           <SelectValue />

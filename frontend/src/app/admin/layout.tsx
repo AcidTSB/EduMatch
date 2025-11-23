@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { 
@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/lib/auth';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Toaster } from '@/components/ui/toaster';
+import adminService from '@/services/admin.service';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -34,10 +35,45 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [badgeCounts, setBadgeCounts] = useState({ scholarships: 0, applications: 0, notifications: 0 });
   const pathname = usePathname();
   const router = useRouter();
   const { logout, user } = useAuth();
   const { t, language, setLanguage } = useLanguage();
+
+  // Fetch badge counts from API
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        // Fetch scholarships count (PENDING status)
+        const scholarsResponse = await adminService.getScholarships({ page: 0, size: 1, status: 'PENDING' });
+        const scholarsCount = scholarsResponse.totalElements || 0;
+
+        // Fetch applications count (PENDING + UNDER_REVIEW status)
+        const [pendingApps, reviewApps] = await Promise.all([
+          adminService.getApplications({ page: 0, size: 1, status: 'PENDING' }),
+          adminService.getApplications({ page: 0, size: 1, status: 'UNDER_REVIEW' })
+        ]);
+        const appsCount = (pendingApps.totalElements || 0) + (reviewApps.totalElements || 0);
+
+        // TODO: Fetch notifications count when API is ready
+        const notificationsCount = 0;
+
+        setBadgeCounts({
+          scholarships: scholarsCount,
+          applications: appsCount,
+          notifications: notificationsCount
+        });
+      } catch (error) {
+        console.error('Failed to fetch badge counts:', error);
+      }
+    };
+
+    fetchCounts();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const menuItems = [
     {
@@ -62,13 +98,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       titleKey: 'adminLayout.menu.scholarships',
       icon: GraduationCap,
       href: '/admin/scholarships',
-      badge: '45'
+      badge: badgeCounts.scholarships > 0 ? badgeCounts.scholarships.toString() : null
     },
     {
       titleKey: 'adminLayout.menu.applications',
       icon: FileText,
       href: '/admin/applications',
-      badge: '128'
+      badge: badgeCounts.applications > 0 ? badgeCounts.applications.toString() : null
     },
     {
       titleKey: 'adminLayout.menu.analytics',
@@ -162,12 +198,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </div>
 
               {/* Notifications */}
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500 text-white text-xs">
-                  3
-                </Badge>
-              </Button>
+              <Link href="/admin/notifications">
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {badgeCounts.notifications > 0 && (
+                    <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500 text-white text-xs">
+                      {badgeCounts.notifications}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
 
               {/* User Profile */}
               <div className="flex items-center gap-3">
@@ -190,11 +230,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform ${
+        className={`fixed top-0 left-0 z-40 w-64 pt-20 transition-transform ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         } bg-white border-r border-gray-200`}
+        style={{ height: 'calc(100vh - 0px)' }}
       >
-        <div className="h-full px-3 pb-4 overflow-y-auto">
+        <div className="h-full px-3 pb-24 overflow-y-auto">
           <ul className="space-y-2 font-medium">
             {menuItems.map((item) => {
               const isActive = pathname === item.href;

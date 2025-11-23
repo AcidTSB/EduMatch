@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { mockApi } from '@/lib/mock-data';
 
-// Real API hooks using mockApi
+// Real API hooks - no mock data dependency
 
 export function useApplications() {
   const [applications, setApplications] = useState<any[]>([]);
@@ -164,18 +163,27 @@ export function useScholarships() {
     setError(null);
     try {
       const { scholarshipServiceApi } = await import('@/services/scholarship.service');
-      const { mapPaginatedOpportunities } = await import('@/lib/scholarship-mapper');
+      const { mapPaginatedOpportunities, mapOpportunityDtoToScholarship } = await import('@/lib/scholarship-mapper');
       
-      const response = await scholarshipServiceApi.getScholarships(filters);
+      const response: any = await scholarshipServiceApi.getScholarships(filters);
       
-      // Handle paginated response
-      if (response.content || response.data) {
-        const mapped = mapPaginatedOpportunities(response);
-        setScholarships(mapped.scholarships);
+      // Handle paginated response - check for scholarships property or data/content
+      if (response && typeof response === 'object') {
+        if ('scholarships' in response && Array.isArray(response.scholarships)) {
+          // Already mapped paginated response
+          setScholarships(response.scholarships);
+        } else if ('data' in response || 'content' in response) {
+          // Raw paginated response from backend
+          const mapped = mapPaginatedOpportunities(response);
+          setScholarships(mapped.scholarships);
+        } else if (Array.isArray(response)) {
+          // Direct array response
+          setScholarships(response.map((item: any) => mapOpportunityDtoToScholarship(item)));
+        } else {
+          setScholarships([]);
+        }
       } else if (Array.isArray(response)) {
-        // If response is array, map directly
-        const { mapOpportunityDtoToScholarship } = await import('@/lib/scholarship-mapper');
-        setScholarships(response.map(mapOpportunityDtoToScholarship));
+        setScholarships(response.map((item: any) => mapOpportunityDtoToScholarship(item)));
       } else {
         setScholarships([]);
       }
