@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { 
   Edit3,
@@ -70,9 +70,16 @@ export default function ProfilePage() {
           createdAt: userData.createdAt || null,
           updatedAt: userData.updatedAt || null,
           organizationId: userData.organizationId || null,
+          // Matching system fields
+          gpa: userData.gpa || null,
+          major: userData.major || '',
+          university: userData.university || '',
+          yearOfStudy: userData.yearOfStudy || null,
+          skills: userData.skills || '',
+          researchInterests: userData.researchInterests || '',
         });
       } catch (error) {
-        console.error('Failed to fetch user profile:', error);
+
         toast.error('Không thể tải thông tin hồ sơ', {
           description: error instanceof Error ? error.message : 'Vui lòng thử lại sau'
         });
@@ -95,6 +102,13 @@ export default function ProfilePage() {
           createdAt: null,
           updatedAt: null,
           organizationId: null,
+          // Matching system fields
+          gpa: null,
+          major: '',
+          university: '',
+          yearOfStudy: null,
+          skills: '',
+          researchInterests: '',
         });
       } finally {
         setIsLoading(false);
@@ -102,14 +116,14 @@ export default function ProfilePage() {
     };
 
     fetchProfile();
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
 
-  const handleInputChange = (field: string, value: string | string[] | number) => {
-    setProfile(prev => ({
+  const handleInputChange = useCallback((field: string, value: string | string[] | number | null) => {
+    setProfile((prev: any) => ({
       ...prev,
       [field]: value
     }));
-  };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -170,6 +184,13 @@ export default function ProfilePage() {
         phone: profile.phone || undefined,
         dateOfBirth: profile.dateOfBirth || undefined,
         bio: profile.bio || undefined,
+        // Matching system fields
+        gpa: profile.gpa || undefined,
+        major: profile.major || undefined,
+        university: profile.university || undefined,
+        yearOfStudy: profile.yearOfStudy || undefined,
+        skills: profile.skills || undefined,
+        researchInterests: profile.researchInterests || undefined,
       };
       
       // Chỉ thêm avatarUrl nếu không phải blob URL
@@ -199,7 +220,7 @@ export default function ProfilePage() {
       const updatedData = await response.json();
       
       // Update profile state with backend response
-      setProfile(prev => ({
+      setProfile((prev: any) => ({
         ...prev,
         id: updatedData.id?.toString() || prev.id,
         username: updatedData.username || prev.username,
@@ -218,6 +239,13 @@ export default function ProfilePage() {
         createdAt: updatedData.createdAt || prev.createdAt,
         updatedAt: updatedData.updatedAt || prev.updatedAt,
         organizationId: updatedData.organizationId || prev.organizationId,
+        // Matching system fields
+        gpa: updatedData.gpa !== undefined ? updatedData.gpa : prev.gpa,
+        major: updatedData.major || prev.major,
+        university: updatedData.university || prev.university,
+        yearOfStudy: updatedData.yearOfStudy !== undefined ? updatedData.yearOfStudy : prev.yearOfStudy,
+        skills: updatedData.skills || prev.skills,
+        researchInterests: updatedData.researchInterests || prev.researchInterests,
       }));
       
       toast.success('Cập nhật hồ sơ thành công!', {
@@ -260,7 +288,7 @@ export default function ProfilePage() {
       setPhotoFile(file);
       // Create preview URL
       const previewUrl = URL.createObjectURL(file);
-      setProfile(prev => ({
+      setProfile((prev: any) => ({
         ...prev,
         avatarUrl: previewUrl
       }));
@@ -528,6 +556,152 @@ export default function ProfilePage() {
                   )}
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Academic & Matching Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <span>🎓</span>
+                Academic & Matching Information
+              </CardTitle>
+              <p className="text-sm text-gray-500">
+                This information helps us match you with the best scholarships
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* GPA and Year of Study */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    GPA (0.0 - 4.0)
+                  </label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="4"
+                    step="0.01"
+                    value={profile.gpa || ''}
+                    onChange={(e) => handleInputChange('gpa', e.target.value ? parseFloat(e.target.value) : null)}
+                    disabled={!isEditing}
+                    placeholder="3.5"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Your current GPA on 4.0 scale
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Year of Study
+                  </label>
+                  <select
+                    value={profile.yearOfStudy || ''}
+                    onChange={(e) => handleInputChange('yearOfStudy', e.target.value ? parseInt(e.target.value) : null)}
+                    disabled={!isEditing}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select...</option>
+                    <option value="1">1st Year</option>
+                    <option value="2">2nd Year</option>
+                    <option value="3">3rd Year</option>
+                    <option value="4">4th Year</option>
+                    <option value="5">5th Year / Graduate</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Major and University */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Major / Field of Study
+                  </label>
+                  <Input
+                    value={profile.major || ''}
+                    onChange={(e) => handleInputChange('major', e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="Computer Science, Engineering, etc."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    University / College
+                  </label>
+                  <Input
+                    value={profile.university || ''}
+                    onChange={(e) => handleInputChange('university', e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="MIT, Stanford, etc."
+                  />
+                </div>
+              </div>
+
+              {/* Skills */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Skills
+                </label>
+                <Input
+                  value={profile.skills || ''}
+                  onChange={(e) => handleInputChange('skills', e.target.value)}
+                  disabled={!isEditing}
+                  placeholder="Python, Java, Machine Learning, Data Science (comma-separated)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter skills separated by commas. Example: Python, Java, Machine Learning
+                </p>
+                {profile.skills && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {profile.skills.split(',').filter((skill: string) => skill.trim()).map((skill: string, index: number) => (
+                      <Badge key={index} variant="secondary">
+                        {skill.trim()}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Research Interests */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Research Interests
+                </label>
+                <Input
+                  value={profile.researchInterests || ''}
+                  onChange={(e) => handleInputChange('researchInterests', e.target.value)}
+                  disabled={!isEditing}
+                  placeholder="AI, NLP, Computer Vision, Robotics (comma-separated)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter research areas separated by commas. Example: AI, NLP, Computer Vision
+                </p>
+                {profile.researchInterests && (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {profile.researchInterests.split(',').filter((interest: string) => interest.trim()).map((interest: string, index: number) => (
+                      <Badge key={index} variant="outline">
+                        {interest.trim()}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Info Box */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">💡</span>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-blue-900 mb-1">
+                      Why do we need this information?
+                    </h4>
+                    <p className="text-sm text-blue-700">
+                      We use your academic information to match you with scholarships that best fit your profile. 
+                      A complete profile increases your matching score by up to <strong>50%</strong>!
+                    </p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 

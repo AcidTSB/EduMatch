@@ -25,9 +25,5 @@ celery_app.conf.update(
     worker_max_tasks_per_child=1000,  # Restart worker after 1000 tasks (prevent memory leaks)
 )
 
-# Task routes - routing tasks to specific queues
-celery_app.conf.task_routes = {
-    'app.workers.process_user_profile_updated': {'queue': 'user_events_queue'},
-    'app.workers.process_scholarship_created': {'queue': 'scholarship_events_queue'},
-    'app.workers.process_scholarship_updated': {'queue': 'scholarship_events_queue'},
-}
+# NOTE: We do NOT use task_routes here because the consumer handles
+# routing via RabbitMQ exchanges/queues. Tasks are called directly.

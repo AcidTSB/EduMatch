@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matching Score Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .score-card {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .score-badge {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+        .score-high { background-color: #d4edda; color: #155724; }
+        .score-medium { background-color: #fff3cd; color: #856404; }
+        .score-low { background-color: #f8d7da; color: #721c24; }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background-color: #0056b3; }
+        #output { margin-top: 20px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🎯 Matching Score Test</h1>
+    <p>Test batch-scores API and display matching scores</p>
+    
+    <div>
+        <label>Applicant ID: <input type="text" id="applicantId" value="5"></label>
+        <br><br>
+        <label>Opportunity IDs (comma separated): <input type="text" id="opportunityIds" value="1,2,3" style="width: 300px"></label>
+        <br><br>
+        <button onclick="fetchScores()">Fetch Matching Scores</button>
+    </div>
+    
+    <div id="results"></div>
+    <div id="output"></div>
+    
+    <script>
+        async function fetchScores() {
+            const applicantId = document.getElementById('applicantId').value;
+            const opportunityIds = document.getElementById('opportunityIds').value.split(',').map(id => id.trim());
+            
+            const output = document.getElementById('output');
+            const results = document.getElementById('results');
+            
+            output.textContent = 'Fetching scores...\n';
+            results.innerHTML = '';
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/matching/batch-scores', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        applicantId,
+                        opportunityIds
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+                }
+                
+                const scores = await response.json();
+                output.textContent += 'Success! Scores received:\n' + JSON.stringify(scores, null, 2);
+                
+                // Display scores as cards
+                Object.entries(scores).forEach(([oppId, score]) => {
+                    const card = document.createElement('div');
+                    card.className = 'score-card';
+                    
+                    const info = document.createElement('div');
+                    info.innerHTML = `<strong>Scholarship #${oppId}</strong><br>Opportunity ID: ${oppId}`;
+                    
+                    const badge = document.createElement('div');
+                    badge.className = 'score-badge ' + (
+                        score >= 75 ? 'score-high' : 
+                        score >= 50 ? 'score-medium' : 
+                        'score-low'
+                    );
+                    badge.textContent = `${score}% ${
+                        score >= 75 ? 'Rất phù hợp' :
+                        score >= 50 ? 'Phù hợp' :
+                        'Ít phù hợp'
+                    }`;
+                    
+                    card.appendChild(info);
+                    card.appendChild(badge);
+                    results.appendChild(card);
+                });
+                
+            } catch (error) {
+                output.textContent += 'Error: ' + error.message;
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
