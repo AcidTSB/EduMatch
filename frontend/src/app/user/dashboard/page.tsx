@@ -42,6 +42,7 @@ import { mapPaginatedOpportunities, mapOpportunityDtoToScholarship } from '@/lib
 import { Scholarship } from '@/types';
 import { useApplications, useSavedScholarships } from '@/hooks/api';
 import { useAuth } from '@/lib/auth';
+import { batchGetMatchingScores } from '@/services/matching.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 
@@ -82,6 +83,7 @@ export default function DashboardPage() {
   // Fetch scholarships and saved scholarships from API
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
   const [loading, setLoading] = useState(true);
+  const [matchingScores, setMatchingScores] = useState<Map<string, number>>(new Map());
   const { savedScholarships } = useSavedScholarships();
 
   // Check employer request status and refresh user data if role changed
@@ -187,6 +189,13 @@ export default function DashboardPage() {
         });
         const mapped = mapPaginatedOpportunities(response);
         setScholarships(mapped.scholarships);
+
+        // Fetch matching scores for recommended scholarships
+        try {
+          await fetchMatchingScores(mapped.scholarships);
+        } catch (err) {
+          console.debug('Failed to fetch matching scores on dashboard:', err);
+        }
       } catch (error) {
         console.error('Error fetching recommended scholarships:', error);
         toast.error('Failed to load recommended scholarships');
@@ -197,6 +206,31 @@ export default function DashboardPage() {
     
     fetchScholarships();
   }, []);
+
+  // Fetch matching scores for current user and scholarships
+  const fetchMatchingScores = async (scholarshipList: Scholarship[]) => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return;
+      const user = JSON.parse(userStr);
+      const userId = user.id || user.userId;
+      if (!userId) return;
+
+      const opportunityIds = scholarshipList.map(s => s.id.toString());
+      if (opportunityIds.length === 0) return;
+
+      const scores = await batchGetMatchingScores(userId.toString(), opportunityIds);
+      setMatchingScores(scores);
+
+      // Merge scores into scholarships state so ScholarshipCard can read scholarship.matchScore
+      setScholarships(prev => prev.map(s => ({
+        ...s,
+        matchScore: scores.get(s.id.toString()) || undefined
+      })));
+    } catch (error) {
+      console.debug('Error fetching dashboard matching scores:', error);
+    }
+  };
 
   // Dashboard data from API
   const dashboardData = React.useMemo(() => ({

@@ -32,6 +32,7 @@ import { ScholarshipFilters, type ScholarshipFilterState } from '@/components/Sc
 import { scholarshipServiceApi } from '@/services/scholarship.service';
 import { mapPaginatedOpportunities, mapOpportunityDtoToScholarship } from '@/lib/scholarship-mapper';
 import { Scholarship } from '@/types';
+import { batchGetMatchingScores } from '@/services/matching.service';
 
 export default function ScholarshipsPage() {
   const { t } = useLanguage();
@@ -56,6 +57,7 @@ export default function ScholarshipsPage() {
   const [scholarshipsLoading, setScholarshipsLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
+  const [matchingScores, setMatchingScores] = useState<Map<string, number>>(new Map());
 
   // Use API hooks for saved scholarships
   const { isScholarshipSaved, toggle: toggleSaved } = useSavedScholarshipsData();
@@ -114,6 +116,9 @@ export default function ScholarshipsPage() {
         setScholarships(mapped.scholarships);
         setTotalPages(mapped.totalPages);
         setTotalElements(mapped.totalElements);
+
+        // Fetch matching scores for scholarships
+        await fetchMatchingScores(mapped.scholarships);
       } catch (error) {
         console.error('Error fetching scholarships:', error);
         toast.error('Failed to load scholarships');
@@ -125,6 +130,44 @@ export default function ScholarshipsPage() {
 
     fetchScholarships();
   }, [currentPage, searchTerm, levelFilter, fieldFilter, sortBy, filters]);
+
+  // Fetch matching scores for current user and scholarships
+  const fetchMatchingScores = async (scholarshipList: Scholarship[]) => {
+    try {
+      // Get current user ID from localStorage or auth context
+      const userStr = localStorage.getItem('user');
+      console.log('[MatchingScore] User from localStorage:', userStr);
+      if (!userStr) {
+        console.log('[MatchingScore] No user logged in, skipping matching scores');
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+      const userId = user.id || user.userId;
+      console.log('[MatchingScore] User ID:', userId);
+      if (!userId) {
+        console.log('[MatchingScore] User ID not found, skipping matching scores');
+        return;
+      }
+
+      // Extract opportunity IDs
+      const opportunityIds = scholarshipList.map(s => s.id.toString());
+      if (opportunityIds.length === 0) return;
+
+      // Fetch scores
+      const scores = await batchGetMatchingScores(userId.toString(), opportunityIds);
+      setMatchingScores(scores);
+
+      // Update scholarships with matching scores
+      setScholarships(prev => prev.map(scholarship => ({
+        ...scholarship,
+        matchScore: scores.get(scholarship.id.toString()) || undefined
+      })));
+    } catch (error) {
+      console.error('Error fetching matching scores:', error);
+      // Don't show error toast - matching scores are optional
+    }
+  };
 
   // Reset to page 1 when filters change
   useEffect(() => {

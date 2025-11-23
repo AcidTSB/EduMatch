@@ -8,6 +8,8 @@ import com.example.jwt.example.model.User;
 import com.example.jwt.example.repository.UserRepository;
 import com.example.jwt.example.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,10 +27,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
+@Slf4j
 public class UserController {
 
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
+    private final RabbitTemplate rabbitTemplate;
 
     @GetMapping("/user/me")
     @PreAuthorize("hasAnyRole('USER', 'EMPLOYER')")
@@ -57,6 +61,14 @@ public class UserController {
         response.put("subscriptionType", user.getSubscriptionType());
         response.put("createdAt", user.getCreatedAt());
         response.put("updatedAt", user.getUpdatedAt());
+        
+        // Matching system fields
+        response.put("gpa", user.getGpa());
+        response.put("major", user.getMajor());
+        response.put("university", user.getUniversity());
+        response.put("yearOfStudy", user.getYearOfStudy());
+        response.put("skills", user.getSkills());
+        response.put("researchInterests", user.getResearchInterests());
         
         // Extract role names
         java.util.List<String> roles = user.getRoles().stream()
@@ -98,8 +110,31 @@ public class UserController {
         if (request.getAvatarUrl() != null) {
             user.setAvatarUrl(request.getAvatarUrl());
         }
+        
+        // Update matching system fields
+        if (request.getGpa() != null) {
+            user.setGpa(request.getGpa());
+        }
+        if (request.getMajor() != null) {
+            user.setMajor(request.getMajor());
+        }
+        if (request.getUniversity() != null) {
+            user.setUniversity(request.getUniversity());
+        }
+        if (request.getYearOfStudy() != null) {
+            user.setYearOfStudy(request.getYearOfStudy());
+        }
+        if (request.getSkills() != null) {
+            user.setSkills(request.getSkills());
+        }
+        if (request.getResearchInterests() != null) {
+            user.setResearchInterests(request.getResearchInterests());
+        }
 
         User updatedUser = userRepository.save(user);
+        
+        // Publish user.profile.updated event to RabbitMQ for Matching Service
+        publishUserProfileUpdatedEvent(updatedUser);
 
         // Return updated user details
         java.util.Map<String, Object> response = new java.util.HashMap<>();
@@ -119,6 +154,14 @@ public class UserController {
         response.put("subscriptionType", updatedUser.getSubscriptionType());
         response.put("createdAt", updatedUser.getCreatedAt());
         response.put("updatedAt", updatedUser.getUpdatedAt());
+        
+        // Matching system fields
+        response.put("gpa", updatedUser.getGpa());
+        response.put("major", updatedUser.getMajor());
+        response.put("university", updatedUser.getUniversity());
+        response.put("yearOfStudy", updatedUser.getYearOfStudy());
+        response.put("skills", updatedUser.getSkills());
+        response.put("researchInterests", updatedUser.getResearchInterests());
         
         // Extract role names
         java.util.List<String> roles = updatedUser.getRoles().stream()
@@ -186,6 +229,45 @@ public class UserController {
         } catch (IOException e) {
             return ResponseEntity.status(500)
                     .body(new ApiResponse(false, "Failed to upload avatar: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Publish user.profile.updated event to RabbitMQ
+     * Matching Service will consume this event to update applicant features
+     */
+    private void publishUserProfileUpdatedEvent(User user) {
+        try {
+            // Parse skills and research interests from comma-separated strings
+            java.util.List<String> skillsList = user.getSkills() != null && !user.getSkills().isEmpty()
+                    ? java.util.Arrays.asList(user.getSkills().split(","))
+                    : java.util.List.of();
+            
+            java.util.List<String> researchInterestsList = user.getResearchInterests() != null && !user.getResearchInterests().isEmpty()
+                    ? java.util.Arrays.asList(user.getResearchInterests().split(","))
+                    : java.util.List.of();
+            
+            Map<String, Object> eventPayload = Map.of(
+                    "userId", user.getId().toString(),
+                    "email", user.getEmail(),
+                    "gpa", user.getGpa() != null ? user.getGpa() : 0.0,
+                    "major", user.getMajor() != null ? user.getMajor() : "",
+                    "university", user.getUniversity() != null ? user.getUniversity() : "",
+                    "yearOfStudy", user.getYearOfStudy() != null ? user.getYearOfStudy() : 1,
+                    "skills", skillsList,
+                    "researchInterests", researchInterestsList
+            );
+
+            rabbitTemplate.convertAndSend(
+                    "events_exchange",
+                    "user.profile.updated",
+                    eventPayload
+            );
+
+            log.info("📨 Published user.profile.updated event for user ID: {} to RabbitMQ", user.getId());
+        } catch (Exception e) {
+            log.error("❌ Failed to publish user.profile.updated event for user ID: {}", user.getId(), e);
+            // Don't throw exception - event publishing failure shouldn't block profile update
         }
     }
 }

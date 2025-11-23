@@ -145,6 +145,40 @@ async def calculate_matching_score(
         logger.error(f"Error calculating score: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/v1/matching/batch-scores")
+async def batch_matching_scores(
+    request: schemas.BatchScoreRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Calculate matching scores for multiple opportunities in parallel
+    
+    **Performance:** Optimized for UI display - processes multiple scores efficiently
+    """
+    logger.info(f"Batch scoring: applicant={request.applicantId}, opportunities={len(request.opportunityIds)}")
+    
+    try:
+        service = MatchingService(db)
+        scores = {}
+        
+        for opp_id in request.opportunityIds:
+            try:
+                result = service.calculate_score(
+                    applicant_id=request.applicantId,
+                    opportunity_id=opp_id
+                )
+                scores[opp_id] = result.overallScore
+            except Exception as e:
+                logger.warning(f"Error calculating score for opportunity {opp_id}: {e}")
+                scores[opp_id] = 0  # Default score on error
+        
+        logger.info(f"Batch scoring complete: {len(scores)} scores calculated")
+        return scores
+        
+    except Exception as e:
+        logger.error(f"Error in batch scoring: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/v1/recommendations/applicant/{applicantId}", response_model=schemas.RecommendationResponse)
 async def get_recommendations_for_applicant(
     applicantId: str,
