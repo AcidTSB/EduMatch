@@ -8,7 +8,6 @@ import { AppProvider } from '@/contexts/AppContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import { RealTimeProvider } from '@/providers/RealTimeProvider'
 import { ToastProvider } from '@/providers/ToastProvider'
-import { MessagingWidget } from '@/components/messaging/MessagingWidget'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as HotToaster } from 'react-hot-toast'
 import {QueryProvider} from '@/providers/QueryProvider'
@@ -40,9 +39,7 @@ export default function RootLayout({
                         {children}
                       </main>
                       <Footer />
-                      <MessagingWidget />
                     </div>
-                    {/* Toast Notifications */}
                     <Toaster />
                     <HotToaster 
                       position="top-right"

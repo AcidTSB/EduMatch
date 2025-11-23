@@ -263,6 +263,21 @@ export const scholarshipServiceApi = {
       method: 'DELETE',
     });
   },
+
+  /**
+   * Tăng lượt xem cho một học bổng
+   * POST /api/scholarships/{id}/view
+   */
+  increaseViewCount: async (id: string | number) => {
+    // Nếu backend chưa có API này, dùng hàm giả (mock) bên dưới:
+    // console.log(`[Mock API] Increase view count for scholarship ID: ${id}`);
+    // return Promise.resolve({ success: true });
+
+    // Nếu backend ĐÃ CÓ API này:
+    return apiCall<{ success: true }>(`/api/scholarships/${id}/view`, {
+      method: 'POST',
+    });
+  },
 };
 
 export default scholarshipServiceApi;

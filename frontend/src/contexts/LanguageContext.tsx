@@ -75,6 +75,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.myScholarships': 'My Scholarships',
     'nav.analytics': 'Analytics',
     'nav.users': 'Users',
+    'nav.becomeEmployer': 'Are you an employer?',
     
     // Auth
     'auth.signIn': 'Sign In',
@@ -1377,15 +1378,17 @@ const translations: Record<Language, Record<string, string>> = {
     'messages.offline': 'Offline',
     
     // Register Page
-    'register.title': 'Create account',
+'register.title': 'Create account',
     'register.subtitle': 'Join EduMatch to find scholarship opportunities',
-    'register.fullName': 'Full name',
+    'register.firstName': 'First name', // Mới
+    'register.lastName': 'Last name',   // Mới
+    'register.sex': 'Sex',              // Mới
+    'register.sexMale': 'Male',         // Mới
+    'register.sexFemale': 'Female',     // Mới
+    'register.sexOther': 'Other',       // Mới
     'register.email': 'Email address',
     'register.password': 'Password',
     'register.confirmPassword': 'Confirm password',
-    'register.role': 'I am a...',
-    'register.roleApplicant': 'Student/Applicant',
-    'register.roleProvider': 'Scholarship Provider',
     'register.agreeTerms': 'I agree to the',
     'register.terms': 'Terms and Conditions',
     'register.and': 'and',
@@ -1394,19 +1397,29 @@ const translations: Record<Language, Record<string, string>> = {
     'register.creating': 'Creating account...',
     'register.haveAccount': 'Already have an account?',
     'register.signIn': 'Sign in',
-    'register.errors.nameRequired': 'Full name is required',
+    
+    // Register Errors & Toasts (Updated)
+    'register.errors.firstNameRequired': 'First name is required', // Mới
+    'register.errors.lastNameRequired': 'Last name is required',   // Mới
     'register.errors.nameLength': 'Name must be at least 2 characters',
     'register.errors.emailRequired': 'Email is required',
     'register.errors.emailInvalid': 'Please enter a valid email address',
+    'register.errors.sexRequired': 'Please select your sex',       // Mới
     'register.errors.passwordRequired': 'Password is required',
     'register.errors.passwordLength': 'Password must be at least 8 characters',
     'register.errors.passwordComplexity': 'Password must contain at least one uppercase letter, one lowercase letter, and one number',
     'register.errors.confirmPasswordRequired': 'Please confirm your password',
     'register.errors.passwordMismatch': 'Passwords do not match',
-    'register.errors.roleRequired': 'Please select your account type',
     'register.errors.termsRequired': 'You must agree to the Terms and Conditions',
     'register.errors.submitFailed': 'Registration failed. Please try again.',
     
+    // Toasts (Mới - Dựa trên code trong page.tsx)
+    'register.toast.invalidInfo': 'Invalid Information',
+    'register.toast.checkFields': 'Please check the fields and try again.',
+    'register.toast.creatingAccount': 'Creating your account...',
+    'register.toast.success': 'Account created!',
+    'register.toast.welcome': 'Welcome to EduMatch, {firstName} {lastName}!',
+    'register.toast.failed': 'Registration failed',
     // Applicant Profile Page
     'applicantProfile.title': 'My Profile',
     'applicantProfile.subtitle': 'Manage your personal information and academic details',
@@ -1934,6 +1947,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.myScholarships': 'Học bổng',
     'nav.analytics': 'Thống kê',
     'nav.users': 'Người dùng',
+    'nav.becomeEmployer': 'Bạn là nhà tuyển dụng?',
     
     // Auth
     'auth.signIn': 'Đăng nhập',
@@ -3235,13 +3249,15 @@ const translations: Record<Language, Record<string, string>> = {
     // Register Page
     'register.title': 'Tạo tài khoản',
     'register.subtitle': 'Tham gia EduMatch để tìm cơ hội học bổng',
-    'register.fullName': 'Họ và tên',
+    'register.firstName': 'Tên',        // Mới
+    'register.lastName': 'Họ',          // Mới
+    'register.sex': 'Giới tính',        // Mới
+    'register.sexMale': 'Nam',          // Mới
+    'register.sexFemale': 'Nữ',         // Mới
+    'register.sexOther': 'Khác',        // Mới
     'register.email': 'Địa chỉ email',
     'register.password': 'Mật khẩu',
     'register.confirmPassword': 'Xác nhận mật khẩu',
-    'register.role': 'Tôi là...',
-    'register.roleApplicant': 'Sinh viên/Ứng viên',
-    'register.roleProvider': 'Nhà tài trợ học bổng',
     'register.agreeTerms': 'Tôi đồng ý với',
     'register.terms': 'Điều khoản và Điều kiện',
     'register.and': 'và',
@@ -3250,18 +3266,29 @@ const translations: Record<Language, Record<string, string>> = {
     'register.creating': 'Đang tạo tài khoản...',
     'register.haveAccount': 'Đã có tài khoản?',
     'register.signIn': 'Đăng nhập',
-    'register.errors.nameRequired': 'Họ và tên là bắt buộc',
+
+    // Register Errors & Toasts (Updated)
+    'register.errors.firstNameRequired': 'Vui lòng nhập tên', // Mới
+    'register.errors.lastNameRequired': 'Vui lòng nhập họ',   // Mới
     'register.errors.nameLength': 'Tên phải có ít nhất 2 ký tự',
     'register.errors.emailRequired': 'Email là bắt buộc',
     'register.errors.emailInvalid': 'Vui lòng nhập địa chỉ email hợp lệ',
+    'register.errors.sexRequired': 'Vui lòng chọn giới tính', // Mới
     'register.errors.passwordRequired': 'Mật khẩu là bắt buộc',
     'register.errors.passwordLength': 'Mật khẩu phải có ít nhất 8 ký tự',
     'register.errors.passwordComplexity': 'Mật khẩu phải chứa ít nhất một chữ hoa, một chữ thường và một số',
     'register.errors.confirmPasswordRequired': 'Vui lòng xác nhận mật khẩu của bạn',
     'register.errors.passwordMismatch': 'Mật khẩu không khớp',
-    'register.errors.roleRequired': 'Vui lòng chọn loại tài khoản của bạn',
     'register.errors.termsRequired': 'Bạn phải đồng ý với Điều khoản và Điều kiện',
     'register.errors.submitFailed': 'Đăng ký thất bại. Vui lòng thử lại.',
+
+    // Toasts (Mới - Dựa trên code trong page.tsx)
+    'register.toast.invalidInfo': 'Thông tin không hợp lệ',
+    'register.toast.checkFields': 'Vui lòng kiểm tra lại các trường thông tin.',
+    'register.toast.creatingAccount': 'Đang tạo tài khoản...',
+    'register.toast.success': 'Tạo tài khoản thành công!',
+    'register.toast.welcome': 'Chào mừng đến với EduMatch, {firstName} {lastName}!',
+    'register.toast.failed': 'Đăng ký thất bại',
     
     // Applicant Profile Page
     'applicantProfile.title': 'Hồ sơ của tôi',

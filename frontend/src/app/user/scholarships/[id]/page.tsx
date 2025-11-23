@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -17,7 +17,7 @@ import {
   Bookmark,
   BookmarkCheck,
   Briefcase,
-  Clock, // Thêm Clock
+  Clock,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +45,9 @@ export default function ScholarshipDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasApplied, setHasApplied] = useState(false);
   const [matchScore, setMatchScore] = useState<number | undefined>(undefined);
+  
+  // Ref để tránh đếm view 2 lần (do React Strict Mode)
+  const viewCountedRef = useRef(false);
 
   const { checkApplicationStatus } = useApplications();
   const {
@@ -53,23 +56,19 @@ export default function ScholarshipDetailPage() {
     loading: savedLoading,
   } = useSavedScholarships();
 
+  // 1. Fetch Data & Check Application
   useEffect(() => {
     const fetchData = async () => {
       const scholarshipId = params.id as string;
       setIsLoading(true);
 
       try {
-        // Fetch scholarship detail from API
         const response = await scholarshipServiceApi.getScholarshipById(scholarshipId);
-        
-        // Map backend response to frontend format
         const mapped = mapOpportunityDetailToScholarship(response);
         setScholarship(mapped.scholarship);
         setMatchScore(mapped.matchScore);
 
-        // Check if user has applied - only set to true if explicitly confirmed
         const appStatus = await checkApplicationStatus(scholarshipId);
-        // checkApplicationStatus returns { hasApplied: boolean, application?: ... }
         setHasApplied(appStatus?.hasApplied === true);
       } catch (error) {
         console.error('Error fetching scholarship:', error);
@@ -85,44 +84,90 @@ export default function ScholarshipDetailPage() {
     }
   }, [params.id, t, checkApplicationStatus]);
 
-  // SỬA 2: Thêm kiểm tra null cho scholarship và scholarship.id
+  // 2. Track View Count (Chạy ngầm)
+  useEffect(() => {
+    const trackView = async () => {
+      if (params.id && !viewCountedRef.current) {
+        try {
+          viewCountedRef.current = true;
+          // Gọi API tăng view
+          await scholarshipServiceApi.increaseViewCount(params.id as string);
+          
+          // Cập nhật UI ngay lập tức (Optimistic update)
+          setScholarship(prev => prev ? ({
+            ...prev,
+            viewCount: (prev.viewCount || 0) + 1
+          }) : null);
+        } catch (error) {
+          console.error('Failed to track view:', error);
+        }
+      }
+    };
+    trackView();
+  }, [params.id]);
+
+
+  // --- CHỨC NĂNG SAVE ---
   const handleSaveToggle = async () => {
-    if (!scholarship || !scholarship.id) return; // Đảm bảo scholarship và id tồn tại
+    if (!scholarship || !scholarship.id) return;
 
     const scholarshipIdStr = scholarship.id.toString();
+    const isCurrentlySaved = isScholarshipSaved(scholarshipIdStr);
+
+    // Toggle trạng thái
     await toggleSaved(scholarshipIdStr);
-    toast.success(
-      isScholarshipSaved(scholarshipIdStr)
-        ? 'Removed from saved'
-        : 'Saved for later'
-    );
+    
+    // Hiển thị thông báo
+    if (isCurrentlySaved) {
+         toast.success('Removed from saved list');
+    } else {
+         toast.success('Scholarship saved successfully');
+    }
   };
 
-  // Hàm tính Duration (số tháng)
+  // --- CHỨC NĂNG SHARE ---
+  const handleShare = async () => {
+    try {
+        const url = window.location.href;
+        const title = scholarship?.title || 'Scholarship Opportunity';
+        
+        // Nếu trình duyệt hỗ trợ chia sẻ native (Mobile)
+        if (navigator.share) {
+            await navigator.share({
+                title: title,
+                text: `Check out this scholarship: ${title}`,
+                url: url
+            });
+        } else {
+            // Fallback copy clipboard (Desktop)
+            await navigator.clipboard.writeText(url);
+            toast.success('Link copied to clipboard!');
+        }
+    } catch (error) {
+        // Bỏ qua lỗi nếu người dùng hủy chia sẻ
+        console.log('Share cancelled or failed', error);
+    }
+  };
+
+  // Tính thời gian (Duration)
   const calculateDuration = (start: string, end: string) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
-
-    // Tính số tháng chênh lệch
     let months = (endDate.getFullYear() - startDate.getFullYear()) * 12;
     months -= startDate.getMonth();
     months += endDate.getMonth();
-
-    // Làm tròn nếu cần (ở đây lấy tháng trọn vẹn hoặc hơn)
     return months <= 0 ? 0 : months;
   };
 
-  // SỬA 3: Đổi 'ScholarshipLevel' thành 'ScholarshipType'
   const getLevelColor = (level: ScholarshipType | string) => {
-    // ... (Giữ nguyên logic màu)
     switch (level) {
       case ScholarshipType.UNDERGRADUATE:
         return 'bg-purple-100 text-purple-800 border-purple-200';
-      case ScholarshipType.MASTER: // Lỗi này được sửa trong file types
+      case ScholarshipType.MASTER:
         return 'bg-blue-100 text-blue-800 border-blue-200';
-      case ScholarshipType.PHD: // Lỗi này được sửa trong file types
+      case ScholarshipType.PHD:
         return 'bg-green-100 text-green-800 border-green-200';
-      case ScholarshipType.POSTDOC: // Lỗi này được sửa trong file types
+      case ScholarshipType.POSTDOC:
         return 'bg-orange-100 text-orange-800 border-orange-200';
       case ScholarshipType.RESEARCH:
         return 'bg-teal-100 text-teal-800 border-teal-200';
@@ -179,7 +224,6 @@ export default function ScholarshipDetailPage() {
             <Card>
               <CardContent className="p-6">
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {/* SỬA 4: Các lỗi 'level', 'studyMode', 'moderationStatus' được sửa trong file types */}
                   <Badge
                     className={cn('border', getLevelColor(scholarship.level))}
                   >
@@ -210,30 +254,33 @@ export default function ScholarshipDetailPage() {
                 </h1>
 
                 <div className="flex flex-wrap items-center gap-6 text-sm text-gray-600 mb-6">
-                  {scholarship.university && (
-                    <div className="flex items-center">
-                      <Building2 className="h-4 w-4 mr-2 text-gray-500" />
-                      {scholarship.university}
-                    </div>
-                  )}
+                  <div className="flex items-center">
+                    <Building2 className="h-4 w-4 mr-2 text-gray-500" />
+                    {/* Ưu tiên providerName, nếu không có thì lấy university */}
+                    <span className="font-medium">
+                        {scholarship.providerName || scholarship.university || 'Unknown Provider'}
+                    </span>
+                  </div>
 
-                  {scholarship.location && (
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-2 text-gray-500" />
-                      {scholarship.location}
-                    </div>
-                  )}
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-2 text-gray-500" />
+                    {scholarship.location || (scholarship.isRemote ? "Remote" : "Location TBD")}
+                  </div>
 
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 mr-2 text-gray-500" />
-                    {/* SỬA 5: Thêm fallback cho formatDate */}
+                    {t('scholarshipDetail.due')}{' '}
+                    {formatDate(scholarship.applicationDeadline || '')}
+                  </div>
+
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-2 text-gray-500" />
                     {t('scholarshipDetail.due')}{' '}
                     {formatDate(scholarship.applicationDeadline || '')}
                   </div>
                   <div className="flex items-center">
                     <Users className="h-4 w-4 mr-2 text-gray-500" />
-                    {/* SỬA 6: Đổi 'viewsCnt' thành 'viewCount' */}
-                    {scholarship.viewCount} {t('scholarshipDetail.views')}
+                    {scholarship.viewCount || 0} {t('scholarshipDetail.views')}
                   </div>
                 </div>
 
@@ -264,12 +311,10 @@ export default function ScholarshipDetailPage() {
                         {t('scholarshipDetail.amount')}:
                       </span>
                       <p className="font-medium text-2xl text-green-600">
-                        {/* SỬA 7: Lỗi 'scholarshipAmount' được sửa trong file types */}
                         {formatCurrency(scholarship.scholarshipAmount || 0)}
                       </p>
                     </div>
 
-                    {/* THÊM: Duration (Tính toán) */}
                     {duration > 0 && (
                       <div>
                         <span className="text-gray-600">
@@ -285,7 +330,7 @@ export default function ScholarshipDetailPage() {
 
                 <Separator />
 
-                {/* THÊM: Timeline */}
+                {/* Timeline */}
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-4 flex items-center">
                     <Clock className="h-4 w-4 mr-2" />
@@ -296,9 +341,7 @@ export default function ScholarshipDetailPage() {
                       <span className="text-sm text-gray-600 whitespace-nowrap w-32">
                         {t('scholarshipDetail.applicationDeadline')}:
                       </span>
-                      {/* Thêm pl-1 vào đây */}
                       <span className="text-sm font-medium text-red-600 pl-1">
-                        {/* SỬA 8: Thêm fallback cho formatDate */}
                         {formatDate(scholarship.applicationDeadline || '')}
                       </span>
                     </div>
@@ -306,7 +349,6 @@ export default function ScholarshipDetailPage() {
                       <span className="text-sm text-gray-600 whitespace-nowrap w-32">
                         {t('scholarshipDetail.startDate')}:
                       </span>
-                      {/* Thêm pl-1 vào đây */}
                       <span className="text-sm font-medium text-gray-900 pl-1">
                         {formatDate(scholarship.startDate || '')}
                       </span>
@@ -316,7 +358,6 @@ export default function ScholarshipDetailPage() {
                         <span className="text-sm text-gray-600 whitespace-nowrap w-32">
                           {t('scholarshipDetail.endDate')}:
                         </span>
-                        {/* Thêm pl-1 vào đây */}
                         <span className="text-sm font-medium text-gray-900 pl-1">
                           {formatDate(scholarship.endDate)}
                         </span>
@@ -416,16 +457,17 @@ export default function ScholarshipDetailPage() {
                     hasApplied={hasApplied}
                     className="w-full"
                   />
+                  {/* Save Button */}
                   <Button
                     variant="outline"
                     onClick={handleSaveToggle}
                     disabled={savedLoading}
-                    className="w-full"
+                    className="w-full transition-all duration-200"
                   >
                     {isScholarshipSaved(scholarship?.id.toString() || '') ? (
                       <>
-                        <BookmarkCheck className="h-4 w-4 mr-2" />
-                        {t('scholarshipDetail.saved')}
+                        <BookmarkCheck className="h-4 w-4 mr-2 text-blue-600 fill-blue-50" />
+                        <span className="text-blue-700 font-medium">{t('scholarshipDetail.saved')}</span>
                       </>
                     ) : (
                       <>
@@ -434,7 +476,13 @@ export default function ScholarshipDetailPage() {
                       </>
                     )}
                   </Button>
-                  <Button variant="outline" className="w-full">
+                  
+                  {/* Share Button */}
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleShare}
+                  >
                     <Share2 className="h-4 w-4 mr-2" />
                     {t('scholarshipDetail.share')}
                   </Button>
@@ -454,10 +502,8 @@ export default function ScholarshipDetailPage() {
                   <span className="text-sm text-gray-600">
                     {t('scholarshipDetail.views')}
                   </span>
-                  {/* SỬA 9: Đổi 'viewsCnt' thành 'viewCount' */}
-                  <span className="font-medium">{scholarship.viewCount}</span>
+                  <span className="font-medium">{scholarship.viewCount || 0}</span>
                 </div>
-                {/* Applications count - removed static data, will be fetched from API if needed */}
               </CardContent>
             </Card>
 

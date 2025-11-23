@@ -209,30 +209,6 @@ export default function LoginPage() {
               </Link>
             </div>
           </form>
-
-          {/* Demo accounts */}
-          <div className="mt-6 pt-6 border-t">
-            <p className="text-xs text-muted-foreground text-center mb-3">
-              {t('login.demoAccounts')}
-            </p>
-            <div className="space-y-2 text-xs">
-              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                <p className="font-medium text-blue-900">{t('login.adminAccount')}</p>
-                <p className="text-blue-700">Email: admin@edumatch.com</p>
-                <p className="text-blue-700">Password: any password</p>
-              </div>
-              <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                <p className="font-medium text-green-900">{t('login.studentAccount')}</p>
-                <p className="text-green-700">Email: john.doe@student.edu</p>
-                <p className="text-green-700">Password: any password</p>
-              </div>
-              <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                <p className="font-medium text-purple-900">{t('login.providerAccount')}</p>
-                <p className="text-purple-700">Email: mit@scholarships.edu</p>
-                <p className="text-purple-700">Password: any password</p>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
