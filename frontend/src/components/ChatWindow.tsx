@@ -4,13 +4,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, MoreHorizontal, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useMessageStore } from '@/stores/realtimeStore';
-import { useRealTime } from '@/providers/RealTimeProvider';
 import { formatDistanceToNow } from 'date-fns';
-import { Message } from '@/types/realtime';
 import { cn } from '@/lib/utils';
+import chatService from '@/services/chat.service';
+import { useSocket } from '@/hooks/useSocket';
 
 interface ChatWindowProps {
+  conversationId?: number; // ID của cuộc hội thoại (nếu đã có)
   roomId: string;
   otherUserId: string;
   otherUserName: string;
@@ -21,6 +21,7 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({ 
+  conversationId,
   roomId, 
   otherUserId, 
   otherUserName, 
@@ -31,85 +32,138 @@ export function ChatWindow({
 }: ChatWindowProps) {
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [localMessages, setLocalMessages] = useState<any[]>([]);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const { messages, typingUsers, addMessage } = useMessageStore();
-  const { socket, sendMessage, joinChatRoom, leaveChatRoom, markMessagesAsRead } = useRealTime();
-  
-  const roomMessages = messages[roomId] || [];
-  const otherUserTyping = typingUsers[roomId]?.includes(otherUserId) || false;
+  // Get WebSocket hook để lắng nghe tin nhắn realtime
+  const socketHook = useSocket(currentUserId);
+  const { sendMessage: sendMessageViaWS, isConnected } = socketHook;
 
+  // Load lịch sử tin nhắn khi mở chat window
   useEffect(() => {
-    if (isOpen) {
-      joinChatRoom(roomId);
-      
-      // Mark all messages in this room as read when opening chat
-      const unreadMessageIds = roomMessages
-        .filter((msg: any) => msg.senderId === otherUserId && msg.status !== 'read')
-        .map((msg: any) => msg.id);
-      
-      if (unreadMessageIds.length > 0) {
-        markMessagesAsRead(roomId, unreadMessageIds);
-      }
-    } else {
-      leaveChatRoom(roomId);
+    if (isOpen && conversationId) {
+      loadMessageHistory();
     }
+  }, [isOpen, conversationId]);
 
-    return () => {
-      if (isOpen) {
-        leaveChatRoom(roomId);
+  const loadMessageHistory = async () => {
+    if (!conversationId) return;
+    
+    setIsLoadingMessages(true);
+    try {
+      const response = await chatService.getMessages(conversationId, 0, 50);
+      // Sắp xếp tin nhắn theo thời gian tăng dần
+      const sortedMessages = response.content.sort((a, b) => 
+        new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
+      );
+      setLocalMessages(sortedMessages);
+      console.log('✅ Loaded message history:', sortedMessages.length, 'messages');
+    } catch (error) {
+      console.error('❌ Error loading message history:', error);
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  };
+
+  // Lắng nghe tin nhắn realtime từ WebSocket
+  useEffect(() => {
+    if (!isOpen || !socketHook) return;
+
+    const handleNewMessage = (message: any) => {
+      console.log('📨 ChatWindow received message:', message);
+      console.log('🔍 Current chat:', { otherUserId, currentUserId, conversationId });
+      
+      // Kiểm tra xem tin nhắn có liên quan đến cuộc trò chuyện này không
+      const isRelevant = 
+        (message.senderId === parseInt(otherUserId) && message.receiverId === parseInt(currentUserId)) ||
+        (message.senderId === parseInt(currentUserId) && message.receiverId === parseInt(otherUserId));
+      
+      console.log('🔍 Message relevance:', { isRelevant, messageSenderId: message.senderId, messageReceiverId: message.receiverId });
+      
+      if (isRelevant) {
+        setLocalMessages(prev => {
+          // Kiểm tra xem tin nhắn đã tồn tại chưa (tránh duplicate)
+          const exists = prev.some(m => m.id === message.id);
+          if (exists) {
+            console.log('⚠️ Message already exists, skipping');
+            return prev;
+          }
+          console.log('✅ Adding message to chat');
+          return [...prev, message];
+        });
+      } else {
+        console.log('❌ Message not relevant to this chat');
       }
     };
-  }, [isOpen, roomId, joinChatRoom, leaveChatRoom, markMessagesAsRead, otherUserId, roomMessages.length]);
+
+    // Subscribe to message event
+    socketHook.on('message', handleNewMessage);
+
+    return () => {
+      // Cleanup subscription
+      socketHook.off('message', handleNewMessage);
+    };
+  }, [isOpen, conversationId, otherUserId, currentUserId, socketHook]);
 
   useEffect(() => {
     scrollToBottom();
-  }, [roomMessages, otherUserTyping]);
+  }, [localMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
-
-    // Send via socket - sendMessage takes roomId, not otherUserId
-    // It will automatically add to local state for instant feedback
-    sendMessage(roomId, newMessage.trim());
+  const handleSendMessage = async () => {
+    console.log('🔵 handleSendMessage called, newMessage:', newMessage);
     
+    if (!newMessage.trim()) {
+      console.log('⚠️ Empty message, aborting');
+      return;
+    }
+
+    const messageContent = newMessage.trim();
+    const receiverIdNum = Number(otherUserId);
+    
+    console.log('📋 ChatWindow Send:', { 
+      receiverId: receiverIdNum,
+      receiverIdType: typeof receiverIdNum,
+      msg: messageContent,
+      wsConnected: isConnected,
+      hasSendFunc: !!sendMessageViaWS
+    });
+    
+    // Optimistic UI: Thêm tin nhắn vào list ngay lập tức
+    const tempMessage = {
+      id: Date.now(),
+      conversationId: conversationId || 0,
+      senderId: parseInt(currentUserId),
+      content: messageContent,
+      sentAt: new Date().toISOString(),
+      status: 'sending' as any
+    };
+    
+    setLocalMessages(prev => [...prev, tempMessage]);
     setNewMessage('');
     setIsTyping(false);
+
+    // Gửi thẳng qua WebSocket
+    if (sendMessageViaWS) {
+      console.log('🟢 Calling sendMessageViaWS...');
+      sendMessageViaWS(receiverIdNum, messageContent);
+    } else {
+      console.error('❌ sendMessageViaWS function is missing!');
+      setLocalMessages(prev => prev.filter(m => m.id !== tempMessage.id));
+      alert('Cannot send message: WebSocket not ready');
+    }
   };
 
   const handleTyping = (value: string) => {
     setNewMessage(value);
     
-    if (!isTyping && value.trim() && socket) {
-      setIsTyping(true);
-      socket.emit('typing', { userId: currentUserId, roomId, isTyping: true });
-    }
-
-    // Clear previous timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-
-    // Set new timeout to stop typing indicator after 3 seconds of inactivity
-    if (value.trim()) {
-      typingTimeoutRef.current = setTimeout(() => {
-        setIsTyping(false);
-        if (socket) {
-          socket.emit('typing', { userId: currentUserId, roomId, isTyping: false });
-        }
-      }, 3000); // 3 seconds instead of 1
-    } else {
-      // If input is empty, stop typing immediately
-      setIsTyping(false);
-      if (socket) {
-        socket.emit('typing', { userId: currentUserId, roomId, isTyping: false });
-      }
-    }
+    // Typing indicator temporarily disabled for STOMP WebSocket
+    // Can be re-enabled when backend supports typing events
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -119,7 +173,7 @@ export function ChatWindow({
     }
   };
 
-  const getMessageStatusIcon = (status: Message['status']) => {
+  const getMessageStatusIcon = (status: string) => {
     switch (status) {
       case 'sent':
         return <span className="text-gray-400">✓</span>;
@@ -148,9 +202,7 @@ export function ChatWindow({
             </div>
             <div>
               <h3 className="font-medium text-sm">{otherUserName}</h3>
-              <p className="text-xs text-blue-100">
-                {otherUserTyping ? 'typing...' : 'online'}
-              </p>
+              <p className="text-xs text-blue-100">online</p>
             </div>
           </div>
           <div className="flex items-center gap-1">
@@ -171,7 +223,12 @@ export function ChatWindow({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-        {roomMessages.length === 0 ? (
+        {isLoadingMessages ? (
+          <div className="text-center text-gray-500 mt-8">
+            <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-sm">Loading messages...</p>
+          </div>
+        ) : localMessages.length === 0 ? (
           <div className="text-center text-gray-500 mt-8">
             <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
               <MessageCircle className="h-8 w-8 text-gray-400" />
@@ -180,8 +237,8 @@ export function ChatWindow({
             <p className="text-sm text-gray-400 mt-1">Send a message to {otherUserName}</p>
           </div>
         ) : (
-          roomMessages.map((message) => {
-            const isOwnMessage = message.senderId === currentUserId;
+          localMessages.map((message) => {
+            const isOwnMessage = message.senderId === parseInt(currentUserId);
             return (
               <div
                 key={message.id}
@@ -199,9 +256,9 @@ export function ChatWindow({
                     isOwnMessage ? 'text-blue-100' : 'text-gray-500'
                   }`}>
                     <span className="text-xs">
-                      {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(message.sentAt), { addSuffix: true })}
                     </span>
-                    {isOwnMessage && (
+                    {isOwnMessage && message.status && (
                       <span className="text-xs">
                         {getMessageStatusIcon(message.status)}
                       </span>
@@ -211,19 +268,6 @@ export function ChatWindow({
               </div>
             );
           })
-        )}
-        
-        {/* Typing indicator */}
-        {otherUserTyping && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 px-3 py-2 rounded-lg">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150"></div>
-              </div>
-            </div>
-          </div>
         )}
         
         <div ref={messagesEndRef} />

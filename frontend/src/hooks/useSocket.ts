@@ -1,129 +1,243 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { Client } from '@stomp/stompjs';
 import { SocketEvents } from '@/types/realtime';
+import { createStompClient } from '@/lib/stomp';
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3003';
+// WebSocket URL qua Nginx Gateway
+const SOCKET_URL = 'ws://localhost:8080/api/ws';
+
+// Tạo biến global client bên ngoài hook để giữ kết nối qua các lần render
+let globalClient: Client | null = null;
+let globalUserId: string | null = null;
 
 export function useSocket(userId?: string, userRole?: string, userName?: string) {
-  const socketRef = useRef<Socket | null>(null);
+  const clientRef = useRef<Client | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [messages, setMessages] = useState<any[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  
+  // Store event handlers
+  const eventHandlers = useRef<Map<string, Function[]>>(new Map());
+
+  // Helper to trigger registered callbacks
+  const trigger = (event: string, data: any) => {
+    const handlers = eventHandlers.current.get(event);
+    if (handlers) {
+      handlers.forEach(cb => cb(data));
+    }
+  };
 
   useEffect(() => {
     if (!userId) return;
 
-    // Initialize socket connection
-    socketRef.current = io(SOCKET_URL, {
-      auth: {
-        userId,
-        role: userRole,
-        name: userName
-      },
-      transports: ['websocket'],
-    });
-
-    const socket = socketRef.current;
-
-    // Connection events
-    socket.on('connect', () => {
-      console.log('Socket connected:', socket.id);
+    // Nếu đã có client đang chạy và đúng user thì dùng lại, không tạo mới
+    if (globalClient && globalClient.active && globalUserId === userId) {
+      console.log('♻️ Reusing existing STOMP connection for user:', userId);
+      clientRef.current = globalClient;
       setIsConnected(true);
-    });
+      return;
+    }
 
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+      console.warn('⚠️ No auth token found. Cannot connect to WebSocket.');
+      return;
+    }
+    
+    console.log('🔐 Auth token found, connecting WebSocket for user:', userId);
+    console.log('🔑 Token (first 20 chars):', token.substring(0, 20) + '...');
+    
+    // Sử dụng createStompClient từ lib/stomp.ts
+    const client = createStompClient(token);
+
+    client.onConnect = (frame: any) => {
+      console.log('✅ STOMP Connected successfully');
+      console.log('📡 Connection frame:', frame);
+      setIsConnected(true);
+      trigger('connect', {});
+      
+      // Subscribe vào topic cá nhân: /topic/messages/{userId}
+      client.subscribe(`/topic/messages/${userId}`, (message: any) => {
+        try {
+          const body = JSON.parse(message.body);
+          console.log('📨 Received message:', body);
+          
+          // Update messages state
+          setMessages(prev => [...prev, body]);
+          
+          // Trigger callback cho listener
+          trigger('message', body);
+        } catch (e) {
+          console.error('❌ Error parsing message:', e);
+        }
+      });
+
+      // Subscribe vào notifications
+      client.subscribe(`/topic/notifications/${userId}`, (message: any) => {
+        try {
+          const body = JSON.parse(message.body);
+          console.log('🔔 Received notification:', body);
+          trigger('notification', body);
+        } catch (e) {
+          console.error('❌ Error parsing notification:', e);
+        }
+      });
+    };
+
+    client.onStompError = (frame: any) => {
+      console.error('🔴 Broker reported error:', frame.headers['message']);
+      console.error('Details:', frame.body);
       setIsConnected(false);
-    });
+      trigger('connect_error', frame);
+    };
 
-    socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+    client.onWebSocketClose = () => {
+      console.log('⚠️ WebSocket closed');
       setIsConnected(false);
-    });
+      trigger('disconnect', {});
+    };
 
-    // User presence events
-    socket.on('user_online', (userData: { userId: string; role: string; name: string }) => {
-      setOnlineUsers(prev => [...prev.filter(id => id !== userData.userId), userData.userId]);
-      console.log(`${userData.name} (${userData.role}) came online`);
-    });
+    client.activate();
+    clientRef.current = client;
+    globalClient = client; // Lưu vào global để reuse
+    globalUserId = userId; // Lưu userId để check
 
-    socket.on('user_offline', (userData: { userId: string; role: string; name: string }) => {
-      setOnlineUsers(prev => prev.filter(id => id !== userData.userId));
-      console.log(`${userData.name} (${userData.role}) went offline`);
-    });
-
-    socket.on('online_users', (users: Array<{ userId: string; role: string; name: string }>) => {
-      setOnlineUsers(users.map(u => u.userId));
-      console.log('Current online users:', users);
-    });
-
-    socket.on('users_list_update', (data: { onlineUsers: Array<{ userId: string; role: string; name: string }>; totalOnline: number }) => {
-      setOnlineUsers(data.onlineUsers.map(u => u.userId));
-      console.log(`Online users updated: ${data.totalOnline} total`, data.onlineUsers);
-    });
-
-    // Chat error handling
-    socket.on('chat_error', (error) => {
-      console.error('Chat error:', error.message);
-      alert(`Chat Error: ${error.message}`);
-    });
-
-    // Cleanup on unmount
+    // Cleanup: TẠM THỜI COMMENT để tránh mất kết nối khi re-render
     return () => {
-      if (socket) {
-        socket.off('user_online');
-        socket.off('user_offline');
-        socket.off('online_users');
-        socket.off('users_list_update');
-        socket.off('chat_error');
-        socket.disconnect();
-        socketRef.current = null;
-      }
+      console.log('🔌 Component cleanup called, but keeping connection alive...');
+      // client.deactivate(); // <--- COMMENT để giữ kết nối
+      // clientRef.current = null;
+      // setIsConnected(false);
     };
   }, [userId, userRole, userName]);
 
-  // Socket event listeners
+  /**
+   * Gửi tin nhắn qua WebSocket
+   * @param receiverId - ID người nhận
+   * @param content - Nội dung tin nhắn
+   */
+  const sendMessage = (receiverId: any, content: string) => {
+    console.log('🚀 Đang gửi tin nhắn tới ID:', receiverId, 'Kiểu:', typeof receiverId);
+    
+    if (!clientRef.current) {
+      console.error('❌ Cannot send message: STOMP client is null');
+      return;
+    }
+    
+    if (!clientRef.current.connected) {
+      console.error('❌ Chưa kết nối WebSocket, không thể gửi!');
+      return;
+    }
+
+    // Ép kiểu sang số nguyên (Backend Java yêu cầu Long)
+    const receiverIdLong = Number(receiverId);
+
+    if (isNaN(receiverIdLong)) {
+      console.error('❌ Lỗi: receiverId không phải là số!', receiverId);
+      return;
+    }
+
+    const payload = {
+      receiverId: receiverIdLong, // ✅ Đảm bảo luôn là số
+      content
+    };
+
+    try {
+      console.log('📤 Publishing to /app/chat.send | Payload:', payload);
+      
+      // Check lại client state trước khi gửi
+      console.log('🔌 Client State:', { 
+        connected: clientRef.current?.connected, 
+        active: clientRef.current?.active 
+      });
+
+      clientRef.current.publish({
+        destination: '/app/chat.send',
+        body: JSON.stringify(payload)
+      });
+      console.log('✅ Message published successfully');
+    } catch (error) {
+      console.error('❌ Error sending message:', error);
+    }
+  };
+
+  // Mimic Socket.IO API for compatibility
   const on = <K extends keyof SocketEvents>(
     event: K,
     callback: SocketEvents[K]
   ) => {
-    if (socketRef.current) {
-      socketRef.current.on(event as string, callback);
+    const evt = event as string;
+    if (!eventHandlers.current.has(evt)) {
+        eventHandlers.current.set(evt, []);
     }
+    eventHandlers.current.get(evt)?.push(callback as Function);
   };
 
   const off = <K extends keyof SocketEvents>(
     event: K,
     callback?: SocketEvents[K]
   ) => {
-    if (socketRef.current) {
-      socketRef.current.off(event as string, callback);
-    }
+     const evt = event as string;
+     if (eventHandlers.current.has(evt)) {
+         if (callback) {
+             const handlers = eventHandlers.current.get(evt) || [];
+             const index = handlers.indexOf(callback as Function);
+             if (index !== -1) {
+                 handlers.splice(index, 1);
+             }
+         } else {
+             eventHandlers.current.delete(evt);
+         }
+     }
   };
 
-  // Socket event emitters
   const emit = <K extends keyof SocketEvents>(
     event: K,
     ...args: Parameters<SocketEvents[K]>
   ) => {
-    if (socketRef.current && isConnected) {
-      socketRef.current.emit(event as string, ...args);
+    if (clientRef.current && clientRef.current.connected) {
+        const data = args[0];
+        
+        if (event === 'send_message') {
+            // Backend expects payload at /app/chat.send
+            clientRef.current.publish({
+                destination: '/app/chat.send',
+                body: JSON.stringify(data)
+            });
+        } 
+        // Add other event mappings here if backend supports them
+        // e.g. typing, mark_read
     }
   };
 
   const joinRoom = (roomId: string) => {
-    emit('join_room', roomId);
+     // STOMP: No-op for 1-on-1 if using user-specific topics
   };
 
   const leaveRoom = (roomId: string) => {
-    emit('leave_room', roomId);
+     // STOMP: No-op
+  };
+
+  // Mock socket object to pass to RealTimeProvider
+  const socket = {
+      id: 'stomp-client',
+      connected: isConnected,
+      on,
+      off,
+      emit,
+      disconnect: () => clientRef.current?.deactivate(),
+      joinRoom,
+      leaveRoom
   };
 
   return {
-    socket: socketRef.current,
+    socket, 
     isConnected,
+    messages,
     onlineUsers,
+    sendMessage, // Export sendMessage function
     on,
     off,
     emit,

@@ -278,26 +278,74 @@ services:
       retries: 10
       start_period: 90s
   
-  # # chat-service:
-  # #   container_name: chat-service
-  # #   build: ./backend/chat-service
-  # #   ports:
-  # #     - "8084:8080"
-  # #   networks:
-  # #     - test-network
+  # === CHAT SERVICE (Java - Port 8083) ===
+  chat-service:
+    build:
+      context: ./backend-java/chat-service
+      dockerfile: Dockerfile
+    container_name: chat-service-test
+    ports:
+      - "8083:8083"
+      - "8084:8084"  # WebSocket port
+    environment:
+      - SPRING_PROFILES_ACTIVE=dev
+      - SPRING_DATASOURCE_URL=jdbc:mysql://chat-db-test:3306/chat_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=rootpass
+      - APP_JWT_SECRET=EduMatch_Super_Secret_Key_!@#_DoNotShare_!@#
+      - SPRING_RABBITMQ_HOST=rabbitmq-test
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+      - APP_FIREBASE_SDK_PATH=classpath:firebase-adminsdk-key.json
+    depends_on:
+      chat-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:8083/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
 
-  # # === OTHER DATABASES ===
-  # # java-db:
-  # #   image: postgres:14-alpine
-  # #   container_name: java-db
-  # #   environment:
-  # #     - POSTGRES_USER=java_admin
-  # #     - POSTGRES_PASSWORD=secure_password
-  # #     - POSTGRES_DB=java_edumatch_db
-  # #   ports:
-  # #     - "5433:5432"
-  # #   networks:
-  # #     - test-network
+  # === CHAT DATABASE (MySQL for Chat Service) ===
+  chat-db:
+    image: mysql:8.0
+    container_name: chat-db-test
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpass
+      - MYSQL_DATABASE=chat_db
+      - MYSQL_USER=chat_user
+      - MYSQL_PASSWORD=chat_pass
+    ports:
+      - "3309:3306"
+    volumes:
+      - chat_test_data:/var/lib/mysql
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    command: --default-authentication-plugin=mysql_native_password
+
+  # === OTHER DATABASES ===
+  # java-db:
+  #   image: postgres:14-alpine
+  #   container_name: java-db
+  #   environment:
+  #     - POSTGRES_USER=java_admin
+  #     - POSTGRES_PASSWORD=secure_password
+  #     - POSTGRES_DB=java_edumatch_db
+  #   ports:
+  #     - "5433:5432"
+  #   networks:
+  #     - test-network
 
 # === NETWORKS & VOLUMES ===
 
@@ -309,3 +357,4 @@ volumes:
   matching_test_data:
   auth_test_data:
   scholarship_test_data:
+  chat_test_data:

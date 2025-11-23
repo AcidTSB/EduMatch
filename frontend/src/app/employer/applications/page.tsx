@@ -177,9 +177,29 @@ export default function ProviderApplicationsPage() {
   };
 
   const sendMessage = async (applicationId: string, message: string) => {
-    // This would send message to applicant in real implementation
-    console.log('Sending message to application', applicationId, ':', message);
-    return true;
+    try {
+      // Find the application to get applicant user ID
+      const app = applications.find(a => a.id === applicationId);
+      if (!app || !app.applicantId) {
+        throw new Error('Applicant not found');
+      }
+      
+      // Import chat service
+      const { default: chatService } = await import('@/services/chat.service');
+      
+      // Send message via chat service HTTP endpoint
+      const applicantUserId = parseInt(app.applicantId);
+      await chatService.sendMessage({
+        receiverId: applicantUserId,
+        content: message
+      });
+      
+      console.log('✅ Message sent successfully to applicant:', applicantUserId);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to send message:', error);
+      throw error;
+    }
   };
 
   useEffect(() => {

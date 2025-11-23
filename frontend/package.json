@@ -45,6 +45,8 @@
     "react-hot-toast": "^2.6.0",
     "react-query": "^3.39.3",
     "socket.io-client": "^4.7.4",
+    "@stomp/stompjs": "^7.0.0",
+    "sockjs-client": "^1.6.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",

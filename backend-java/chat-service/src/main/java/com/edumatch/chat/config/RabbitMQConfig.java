@@ -17,9 +17,10 @@ public class RabbitMQConfig {
     // Tên Queue cho service này
     public static final String NOTIFICATION_QUEUE = "notification_queue";
 
-    // Lắng nghe: notification.send.email và scholarship.new.match
+    // Lắng nghe: notification.send.email, scholarship.new.match, notification.application.status
     public static final String EMAIL_ROUTING_KEY = "notification.send.email";
     public static final String MATCH_ROUTING_KEY = "scholarship.new.match";
+    public static final String APPLICATION_STATUS_ROUTING_KEY = "notification.application.status";
 
     @Bean
     public TopicExchange exchange() {
@@ -45,6 +46,12 @@ public class RabbitMQConfig {
     public Binding matchBinding(Queue notificationQueue, TopicExchange exchange) {
         // Bind key: scholarship.new.match
         return BindingBuilder.bind(notificationQueue).to(exchange).with(MATCH_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding applicationStatusBinding(Queue notificationQueue, TopicExchange exchange) {
+        // Bind key: notification.application.status
+        return BindingBuilder.bind(notificationQueue).to(exchange).with(APPLICATION_STATUS_ROUTING_KEY);
     }
 
     @Bean

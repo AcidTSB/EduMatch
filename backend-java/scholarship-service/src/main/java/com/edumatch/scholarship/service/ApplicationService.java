@@ -268,7 +268,40 @@ public class ApplicationService {
         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "notification.send.email", emailEvent);
         log.info("Admin đã cập nhật trạng thái đơn ứng tuyển ID: {} thành: {}", savedApp.getId(), newStatus);
 
-        // 4. Trả về DTO
+        // 4. GỬI REAL-TIME NOTIFICATION EVENT
+        String notificationTitle = "";
+        String notificationBody = "";
+        
+        switch (newStatus) {
+            case "ACCEPTED":
+                notificationTitle = "✅ Đơn ứng tuyển được chấp nhận!";
+                notificationBody = "Chúc mừng! Đơn ứng tuyển của bạn đã được chấp nhận.";
+                break;
+            case "REJECTED":
+                notificationTitle = "❌ Đơn ứng tuyển bị từ chối";
+                notificationBody = "Rất tiếc, đơn ứng tuyển của bạn không được chấp nhận lần này.";
+                break;
+            case "UNDER_REVIEW":
+                notificationTitle = "🔍 Đơn đang được xem xét";
+                notificationBody = "Đơn ứng tuyển của bạn đang được nhà tuyển dụng xem xét.";
+                break;
+            default:
+                notificationTitle = "📋 Cập nhật đơn ứng tuyển";
+                notificationBody = "Trạng thái đơn ứng tuyển: " + newStatus;
+        }
+        
+        Map<String, Object> notificationEvent = Map.of(
+                "recipientId", savedApp.getApplicantUserId(),
+                "title", notificationTitle,
+                "body", notificationBody,
+                "applicationId", savedApp.getId(),
+                "status", newStatus
+        );
+        
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "notification.application.status", notificationEvent);
+        log.info("📨 Đã gửi notification event cho applicant userId: {}", savedApp.getApplicantUserId());
+
+        // 5. Trả về DTO
         List<ApplicationDocument> docs = applicationDocumentRepository.findByApplicationId(savedApp.getId());
         ApplicationDto dto = ApplicationDto.fromEntity(savedApp, docs);
         
