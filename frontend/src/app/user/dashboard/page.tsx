@@ -273,7 +273,9 @@ export default function DashboardPage() {
         <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">{t('dashboard.welcomeUser').replace('{name}', 'John')}</h1>
+             <h1 className="text-4xl font-bold text-gray-900">
+                {t('dashboard.welcomeUser').replace('{name}', user?.name || user?.email?.split('@')[0] || 'User')}
+              </h1>
               <p className="text-gray-600 mt-2">
                 {t('dashboard.subtitle')}
               </p>

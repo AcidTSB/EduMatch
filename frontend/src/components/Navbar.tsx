@@ -430,7 +430,7 @@ export function Navbar() {
                     href="/employer/register"
                     className="text-sm font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-md border border-blue-200 transition-colors whitespace-nowrap"
                   >
-                    Bạn là nhà tuyển dụng?
+                    {t('nav.becomeEmployer')}
                   </Link>
                 )}
 
@@ -493,7 +493,7 @@ export function Navbar() {
                             onClick={() => setIsUserMenuOpen(false)}
                           >
                             <User className="h-4 w-4 mr-3 text-blue-600" />
-                            Bạn là nhà tuyển dụng?
+                            {t('nav.becomeEmployer')}
                           </Link>
                         )}
                         
@@ -690,7 +690,7 @@ export function Navbar() {
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <User className="h-4 w-4 mr-3 text-blue-600" />
-                      Bạn là nhà tuyển dụng?
+                      {t('nav.becomeEmployer')}
                     </Link>
                   )}
                   <Link
