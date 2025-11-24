@@ -66,4 +66,14 @@ public class ScholarshipPublicController {
         OpportunityDetailDto dto = scholarshipService.getOpportunityDetails(id, userDetails);
         return ResponseEntity.ok(dto);
     }
+
+    /**
+     * API để tăng view count khi user xem scholarship
+     * Endpoint: POST /api/scholarships/{id}/view
+     */
+    @org.springframework.web.bind.annotation.PostMapping("/{id}/view")
+    public ResponseEntity<Void> incrementViewCount(@PathVariable Long id) {
+        scholarshipService.incrementViewCount(id);
+        return ResponseEntity.ok().build();
+    }
 }

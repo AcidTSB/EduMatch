@@ -67,6 +67,9 @@ export default function ScholarshipDetailPage() {
         setScholarship(mapped.scholarship);
         setMatchScore(mapped.matchScore);
 
+        // Increment view count
+        scholarshipServiceApi.incrementViewCount(scholarshipId);
+
         // Check if user has applied - only set to true if explicitly confirmed
         const appStatus = await checkApplicationStatus(scholarshipId);
         // checkApplicationStatus returns { hasApplied: boolean, application?: ... }

@@ -263,6 +263,21 @@ export const scholarshipServiceApi = {
       method: 'DELETE',
     });
   },
+
+  /**
+   * Tăng view count khi user xem chi tiết scholarship
+   * POST /api/scholarships/{id}/view
+   */
+  incrementViewCount: async (id: string | number) => {
+    try {
+      return apiCall<void>(`/api/scholarships/${id}/view`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.debug('Failed to increment view count:', error);
+      // Không throw error - view count là optional feature
+    }
+  },
 };
 
 export default scholarshipServiceApi;

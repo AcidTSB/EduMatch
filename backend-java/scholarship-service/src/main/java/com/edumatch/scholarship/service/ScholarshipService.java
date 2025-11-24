@@ -519,4 +519,19 @@ public class ScholarshipService {
         
         return stats;
     }
+
+    /**
+     * Increment view count for a scholarship
+     */
+    @Transactional
+    public void incrementViewCount(Long opportunityId) {
+        Opportunity opportunity = opportunityRepository.findById(opportunityId)
+                .orElseThrow(() -> new ResourceNotFoundException("Opportunity not found with id: " + opportunityId));
+        
+        Integer currentViews = opportunity.getViewsCnt();
+        opportunity.setViewsCnt(currentViews != null ? currentViews + 1 : 1);
+        opportunityRepository.save(opportunity);
+        
+        log.debug("Incremented view count for opportunity {} to {}", opportunityId, opportunity.getViewsCnt());
+    }
 }
