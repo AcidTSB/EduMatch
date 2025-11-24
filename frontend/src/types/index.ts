@@ -85,6 +85,7 @@ export interface AuthUser {
   email: string;
   name: string;
   role: UserRole;
+  profile?: Partial<UserProfile>;
   emailVerified: boolean;
   status: 'ACTIVE' | 'SUSPENDED' | 'PENDING';
   subscriptionType: 'FREE' | 'PREMIUM' | 'ENTERPRISE';

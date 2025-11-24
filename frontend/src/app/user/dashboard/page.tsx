@@ -91,7 +91,7 @@ export default function DashboardPage() {
     if (!isAuthenticated || !user) return;
     
     // Only check for USER role
-    if (user.role !== 'USER' && user.role !== 'ROLE_USER') return;
+    if (user.role !== 'USER') return;
 
     const checkEmployerRequestStatus = async () => {
       try {
@@ -141,7 +141,7 @@ export default function DashboardPage() {
                 }, 1500);
               } else {
                 // Role vẫn là USER (JWT token vẫn cũ) → logout và yêu cầu đăng nhập lại
-                toast.info('Yêu cầu của bạn đã được duyệt! Vui lòng đăng nhập lại để cập nhật quyền truy cập.', {
+                toast('Yêu cầu của bạn đã được duyệt! Vui lòng đăng nhập lại để cập nhật quyền truy cập.', {
                   duration: 5000,
                 });
                 setTimeout(() => {
@@ -152,7 +152,7 @@ export default function DashboardPage() {
               }
             } else {
               // Không thể fetch user data → logout và yêu cầu đăng nhập lại
-              toast.info('Yêu cầu của bạn đã được duyệt! Vui lòng đăng nhập lại để cập nhật quyền truy cập.', {
+              toast('Yêu cầu của bạn đã được duyệt! Vui lòng đăng nhập lại để cập nhật quyền truy cập.', {
                 duration: 5000,
               });
               setTimeout(() => {

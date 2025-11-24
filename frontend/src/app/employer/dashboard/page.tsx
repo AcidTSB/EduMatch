@@ -121,32 +121,64 @@ export default function ProviderDashboardPage() {
 
   // Calculate real stats from AppContext data
   const dashboardData = React.useMemo(() => {
+    // --- Tính toán Logic cho Quick Stats ---
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // 1. Applications this week (7 ngày qua)
+    const appsThisWeek = applications.filter(app => {
+        const appDate = app.createdAt ? new Date(app.createdAt) : new Date();
+        return appDate >= oneWeekAgo;
+    }).length;
+
+    // 2. Pending reviews (Trạng thái chờ)
+    const pendingReviews = applications.filter(app => 
+        ['PENDING', 'SUBMITTED', 'UNDER_REVIEW'].includes(app.status?.toUpperCase())
+    ).length;
+
+    // 3. Acceptance rate (Tỷ lệ chấp thuận)
+    const acceptedCount = applications.filter(app => app.status?.toUpperCase() === 'ACCEPTED').length;
+    const acceptanceRate = applications.length > 0 
+        ? Math.round((acceptedCount / applications.length) * 100) 
+        : 0;
+
+    // 4. Avg. GPA (Điểm trung bình)
+    const appsWithGpa = applications.filter(app => app.gpa && Number(app.gpa) > 0);
+    const totalGpa = appsWithGpa.reduce((sum, app) => sum + Number(app.gpa), 0);
+    const avgGpa = appsWithGpa.length > 0 
+        ? (totalGpa / appsWithGpa.length).toFixed(1) 
+        : '0.0';
+
     return {
       stats: {
         totalScholarships: scholarships.length,
         activeScholarships: scholarships.filter(s => s.status === ScholarshipStatus.PUBLISHED).length,
         totalApplications: applications.length,
-        acceptedStudents: applications.filter(a => a.status === 'ACCEPTED').length
+        acceptedStudents: acceptedCount
+      },
+      // Object chứa số liệu thống kê nhanh đã tính toán
+      quickStats: {
+        appsThisWeek,
+        pendingReviews,
+        acceptanceRate,
+        avgGpa
       },
       recentApplications: applications.slice(0, 3).map(app => {
-        // Use fields directly from ApplicationDto (mapped in useApplications hook)
-        // applicantUserName, applicantEmail, gpa come from backend ApplicationDto
         return {
           id: app.id,
           applicantName: app.applicantUserName || 'Unknown Applicant',
           applicantEmail: app.applicantEmail || 'No email',
-          // Use opportunityTitle from ApplicationDto (backend includes this)
-          scholarshipTitle: app.opportunityTitle || 
+          scholarshipTitle: (app as any).opportunityTitle || 
                            scholarships.find(s => s.id === app.scholarshipId)?.title || 
                            'Unknown Scholarship',
-          appliedDate: app.submittedAt 
-            ? (app.submittedAt instanceof Date 
-               ? app.submittedAt.toISOString().split('T')[0] 
-               : new Date(app.submittedAt).toISOString().split('T')[0])
-            : (app.createdAt ? app.createdAt.toISOString().split('T')[0] : ''),
+          appliedDate: app.createdAt 
+            ? (app.createdAt instanceof Date 
+               ? app.createdAt.toISOString().split('T')[0] 
+               : new Date(app.createdAt).toISOString().split('T')[0])
+            : '',
           status: app.status.toLowerCase(),
-          gpa: app.gpa || 0, // GPA from ApplicationDto
-          university: 'N/A' // University not in ApplicationDto, would need separate fetch
+          gpa: app.gpa || 0,
+          university: 'N/A'
         };
       }),
       myScholarships: scholarships.slice(0, 4).map(s => ({
@@ -295,43 +327,49 @@ export default function ProviderDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {dashboardData.recentApplications.map((application, index) => (
-                    <div
-                      key={application.id}
-                      className="flex items-center justify-between p-4 border border-blue-100 rounded-lg bg-gradient-to-r from-white to-blue-50/30 shadow-sm hover:shadow-md transition-shadow duration-200"
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h4 className="font-semibold text-gray-900">{application.applicantName}</h4>
-                          <Badge variant={getStatusVariant(application.status)}>
-                            <div className="flex items-center space-x-1">
-                              {getStatusIcon(application.status)}
-                              <span>{getStatusLabel(application.status)}</span>
+                  {dashboardData.recentApplications.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                          {t('provider.recentApplications.noApplications')}
+                      </div>
+                  ) : (
+                    dashboardData.recentApplications.map((application, index) => (
+                        <div
+                        key={application.id}
+                        className="flex items-center justify-between p-4 border border-blue-100 rounded-lg bg-gradient-to-r from-white to-blue-50/30 shadow-sm hover:shadow-md transition-shadow duration-200"
+                        >
+                        <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                            <h4 className="font-semibold text-gray-900">{application.applicantName}</h4>
+                            <Badge variant={getStatusVariant(application.status)}>
+                                <div className="flex items-center space-x-1">
+                                {getStatusIcon(application.status)}
+                                <span>{getStatusLabel(application.status)}</span>
+                                </div>
+                            </Badge>
                             </div>
-                          </Badge>
+                            <p className="text-sm text-gray-600 mb-1">{application.scholarshipTitle}</p>
+                            <div className="flex items-center text-xs text-gray-500 space-x-4">
+                            <span>{t('provider.recentApplications.gpa')}: {application.gpa}</span>
+                            <span>{application.university}</span>
+                            <span>{t('provider.recentApplications.applied')}: {formatDate(application.appliedDate)}</span>
+                            </div>
                         </div>
-                        <p className="text-sm text-gray-600 mb-1">{application.scholarshipTitle}</p>
-                        <div className="flex items-center text-xs text-gray-500 space-x-4">
-                          <span>{t('provider.recentApplications.gpa')}: {application.gpa}</span>
-                          <span>{application.university}</span>
-                          <span>{t('provider.recentApplications.applied')}: {formatDate(application.appliedDate)}</span>
+                        <div className="flex items-center space-x-2">
+                            <Button variant="outline" size="sm" className="border-blue-300 hover:bg-blue-50" asChild>
+                            <Link href={`/employer/applications`}>
+                                <Eye className="h-4 w-4" />
+                            </Link>
+                            </Button>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm" className="border-blue-300 hover:bg-blue-50" asChild>
-                          <Link href={`/employer/applications`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                        </div>
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Quick Stats */}
+          {/* Quick Stats - SỬ DỤNG DỮ LIỆU ĐỘNG */}
           <div>
             <Card className="border-0 bg-gradient-to-br from-white to-cyan-50/20 shadow-lg">
               <CardHeader>
@@ -341,19 +379,31 @@ export default function ProviderDashboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-blue-50 to-cyan-50">
                     <span className="text-sm text-gray-600">{t('provider.quickStats.applicationsWeek')}</span>
-                    <span className="font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">24</span>
+                    {/* Dynamic Data */}
+                    <span className="font-semibold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                        {dashboardData.quickStats.appsThisWeek}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50">
                     <span className="text-sm text-gray-600">{t('provider.quickStats.pendingReviews')}</span>
-                    <span className="font-semibold text-yellow-700">8</span>
+                    {/* Dynamic Data */}
+                    <span className="font-semibold text-yellow-700">
+                        {dashboardData.quickStats.pendingReviews}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50">
                     <span className="text-sm text-gray-600">{t('provider.quickStats.acceptanceRate')}</span>
-                    <span className="font-semibold text-green-700">15%</span>
+                    {/* Dynamic Data */}
+                    <span className="font-semibold text-green-700">
+                        {dashboardData.quickStats.acceptanceRate}%
+                    </span>
                   </div>
                   <div className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
                     <span className="text-sm text-gray-600">{t('provider.quickStats.avgGPA')}</span>
-                    <span className="font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">3.7</span>
+                    {/* Dynamic Data */}
+                    <span className="font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                        {dashboardData.quickStats.avgGpa}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -483,4 +533,3 @@ export default function ProviderDashboardPage() {
     </div>
   );
 }
-

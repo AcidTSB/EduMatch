@@ -17,7 +17,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toast } from 'sonner';
-import { useAuth } from '@/lib/auth';
 
 export default function RegisterPage() {
   const { t } = useLanguage();
@@ -28,7 +27,6 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
     sex: '' as 'MALE' | 'FEMALE' | 'OTHER' | '',
-    // Đã xóa 'role' khỏi state
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -36,7 +34,6 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
-  const { register } = useAuth();
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -77,8 +74,6 @@ export default function RegisterPage() {
       newErrors.sex = t('register.errors.sexRequired');
     }
 
-    // Đã xóa validate cho 'role'
-
     if (!agreeToTerms) {
       newErrors.terms = t('register.errors.termsRequired');
     }
@@ -91,35 +86,37 @@ export default function RegisterPage() {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast.error('Thông tin không hợp lệ', {
-        description: 'Vui lòng kiểm tra lại các trường thông tin',
+      toast.error(t('register.toast.invalidInfo'), {
+        description: t('register.toast.checkFields'),
       });
       return;
     }
 
     setIsLoading(true);
-    const toastId = toast.loading('Đang tạo tài khoản...');
+    const toastId = toast.loading(t('register.toast.creatingAccount'));
 
     try {
-      // Use real auth service to register
-      await register({
+      const { authService } = await import('@/services/auth.service');
+      
+      await authService.register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         email: formData.email,
         password: formData.password,
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
-        role: 'USER' as any, // Backend will assign ROLE_USER automatically
+        // sex: formData.sex as 'MALE' | 'FEMALE' | 'OTHER',
       });
 
-      toast.success('Đăng ký thành công!', {
+      toast.success(t('register.toast.success'), {
         id: toastId,
-        description: `Chào mừng ${formData.firstName} ${formData.lastName} đến với EduMatch!`,
+        description: t('register.toast.welcome', { firstName: formData.firstName, lastName: formData.lastName }),
       });
 
-      // Auth context will handle redirect automatically
-      // No need to manually redirect here
+      setTimeout(() => {
+        router.push('/user/dashboard');
+      }, 1000);
     } catch (error: any) {
-      console.error('Registration failed:', error);
-      const errorMessage = error?.message || t('register.errors.submitFailed');
-      toast.error('Đăng ký thất bại', {
+      const errorMessage = error.message || t('register.errors.submitFailed');
+      toast.error(t('register.toast.failed'), {
         id: toastId,
         description: errorMessage,
       });
@@ -168,7 +165,7 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* --- THAY ĐỔI: Gộp First Name và Last Name --- */}
+            {/* First Name & Last Name */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <div className="relative">
@@ -177,19 +174,15 @@ export default function RegisterPage() {
                     type="text"
                     placeholder={t('register.firstName')}
                     value={formData.firstName}
-                    onChange={(e) =>
-                      handleInputChange('firstName', e.target.value)
-                    }
+                    onChange={(e) => handleInputChange('firstName', e.target.value)}
                     className="pl-10"
                     error={errors.firstName}
                   />
                 </div>
-                {/* THÊM: Hiển thị lỗi */}
                 {errors.firstName && (
                   <p className="text-xs text-danger-500">{errors.firstName}</p>
                 )}
               </div>
-
               <div className="space-y-2">
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -197,21 +190,18 @@ export default function RegisterPage() {
                     type="text"
                     placeholder={t('register.lastName')}
                     value={formData.lastName}
-                    onChange={(e) =>
-                      handleInputChange('lastName', e.target.value)
-                    }
+                    onChange={(e) => handleInputChange('lastName', e.target.value)}
                     className="pl-10"
                     error={errors.lastName}
                   />
                 </div>
-                {/* THÊM: Hiển thị lỗi */}
                 {errors.lastName && (
                   <p className="text-xs text-danger-500">{errors.lastName}</p>
                 )}
               </div>
             </div>
-            {/* --- KẾT THÚC THAY ĐỔI --- */}
 
+            {/* Email */}
             <div className="space-y-2">
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -224,12 +214,12 @@ export default function RegisterPage() {
                   error={errors.email}
                 />
               </div>
-              {/* THÊM: Hiển thị lỗi */}
               {errors.email && (
                 <p className="text-xs text-danger-500">{errors.email}</p>
               )}
             </div>
 
+            {/* Sex */}
             <div className="space-y-2">
               <Select
                 value={formData.sex}
@@ -240,9 +230,7 @@ export default function RegisterPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="MALE">{t('register.sexMale')}</SelectItem>
-                  <SelectItem value="FEMALE">
-                    {t('register.sexFemale')}
-                  </SelectItem>
+                  <SelectItem value="FEMALE">{t('register.sexFemale')}</SelectItem>
                   <SelectItem value="OTHER">{t('register.sexOther')}</SelectItem>
                 </SelectContent>
               </Select>
@@ -251,8 +239,7 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* --- THAY ĐỔI: Đã xóa trường chọn Role --- */}
-
+            {/* Password */}
             <div className="space-y-2">
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -260,9 +247,7 @@ export default function RegisterPage() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder={t('register.password')}
                   value={formData.password}
-                  onChange={(e) =>
-                    handleInputChange('password', e.target.value)
-                  }
+                  onChange={(e) => handleInputChange('password', e.target.value)}
                   className="pl-10 pr-10"
                   error={errors.password}
                 />
@@ -280,12 +265,12 @@ export default function RegisterPage() {
                   )}
                 </Button>
               </div>
-              {/* THÊM: Hiển thị lỗi */}
               {errors.password && (
                 <p className="text-xs text-danger-500">{errors.password}</p>
               )}
             </div>
 
+            {/* Confirm Password */}
             <div className="space-y-2">
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -293,9 +278,7 @@ export default function RegisterPage() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder={t('register.confirmPassword')}
                   value={formData.confirmPassword}
-                  onChange={(e) =>
-                    handleInputChange('confirmPassword', e.target.value)
-                  }
+                  onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                   className="pl-10 pr-10"
                   error={errors.confirmPassword}
                 />
@@ -313,42 +296,27 @@ export default function RegisterPage() {
                   )}
                 </Button>
               </div>
-              {/* THÊM: Hiển thị lỗi */}
               {errors.confirmPassword && (
-                <p className="text-xs text-danger-500">
-                  {errors.confirmPassword}
-                </p>
+                <p className="text-xs text-danger-500">{errors.confirmPassword}</p>
               )}
             </div>
 
+            {/* Terms & Conditions */}
             <div className="space-y-2">
               <div className="flex items-start space-x-2">
                 <Checkbox
                   id="terms"
                   checked={agreeToTerms}
-                  onCheckedChange={(checked) =>
-                    setAgreeToTerms(checked === true)
-                  }
+                  onCheckedChange={(checked) => setAgreeToTerms(checked === true)}
                   className="mt-1"
                 />
-                <label
-                  htmlFor="terms"
-                  className="text-sm text-muted-foreground cursor-pointer leading-5"
-                >
+                <label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer leading-5">
                   {t('register.agreeTerms')}{' '}
-                  <Link
-                    href="/terms"
-                    className="text-brand-blue-500 hover:underline"
-                    target="_blank"
-                  >
+                  <Link href="/terms" className="text-brand-blue-500 hover:underline" target="_blank">
                     {t('register.terms')}
                   </Link>{' '}
                   {t('register.and')}{' '}
-                  <Link
-                    href="/privacy"
-                    className="text-brand-blue-500 hover:underline"
-                    target="_blank"
-                  >
+                  <Link href="/privacy" className="text-brand-blue-500 hover:underline" target="_blank">
                     {t('register.privacy')}
                   </Link>
                 </label>
@@ -358,22 +326,16 @@ export default function RegisterPage() {
               )}
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              loading={isLoading}
-              disabled={isLoading}
-            >
+            {/* Submit Button */}
+            <Button type="submit" className="w-full" loading={isLoading} disabled={isLoading}>
               {isLoading ? t('register.creating') : t('register.button')}
               {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
             </Button>
 
+            {/* Link to Login */}
             <div className="text-center text-sm text-muted-foreground">
               {t('register.haveAccount')}{' '}
-              <Link
-                href="/auth/login"
-                className="text-brand-blue-500 hover:underline font-medium"
-              >
+              <Link href="/auth/login" className="text-brand-blue-500 hover:underline font-medium">
                 {t('register.signIn')}
               </Link>
             </div>

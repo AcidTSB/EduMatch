@@ -203,7 +203,7 @@ export function Navbar() {
                   </Link>
                   
                   {/* Role-specific key items */}
-                  {(user?.role === UserRole.USER || user?.role === 'USER') && (
+                  {(user?.role === UserRole.USER) && (
                     <>
                       <Link
                         href="/user/dashboard"
@@ -241,7 +241,7 @@ export function Navbar() {
                     </>
                   )}
                   
-                  {(user?.role === UserRole.EMPLOYER || user?.role === 'EMPLOYER') && (
+                  {(user?.role === UserRole.EMPLOYER) && (
                     <>
                       <Link
                         href="/employer/dashboard"
@@ -290,7 +290,7 @@ export function Navbar() {
                     </>
                   )}
                   
-                  {(user?.role === UserRole.ADMIN || user?.role === 'ADMIN') && (
+                  {(user?.role === UserRole.ADMIN) && (
                     <>
                       <Link
                         href="/admin"
@@ -425,12 +425,12 @@ export function Navbar() {
                 <NotificationDropdown />
 
                 {/* Bạn là nhà tuyển dụng? - Moved to right side */}
-                {(user?.role === UserRole.USER || user?.role === 'USER') && (
+                {(user?.role === UserRole.USER) && (
                   <Link
                     href="/employer/register"
                     className="text-sm font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-md border border-blue-200 transition-colors whitespace-nowrap"
                   >
-                    {t('nav.becomeEmployer')}
+                    {t('nav.becomeProvider')}
                   </Link>
                 )}
 
@@ -486,14 +486,14 @@ export function Navbar() {
                           </p>
                         </div>
                         
-                        {(user?.role === UserRole.USER || user?.role === 'USER') && (
+                        {(user?.role === UserRole.USER) && (
                           <Link
                             href="/employer/register"
                             className="flex items-center px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 font-semibold bg-blue-50 border border-blue-200 rounded-md mb-2"
                             onClick={() => setIsUserMenuOpen(false)}
                           >
                             <User className="h-4 w-4 mr-3 text-blue-600" />
-                            {t('nav.becomeEmployer')}
+                            {t('nav.becomeProvider')}
                           </Link>
                         )}
                         
@@ -683,14 +683,14 @@ export function Navbar() {
                     </div>
                   </div>
                   
-                  {(user?.role === UserRole.USER || user?.role === 'USER') && (
+                  {(user?.role === UserRole.USER) && (
                     <Link
                       href="/employer/register"
                       className="flex items-center px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md font-semibold bg-blue-50 border border-blue-200 mb-2"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       <User className="h-4 w-4 mr-3 text-blue-600" />
-                      {t('nav.becomeEmployer')}
+                      {t('nav.becomeProvider')}
                     </Link>
                   )}
                   <Link

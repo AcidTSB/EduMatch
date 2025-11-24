@@ -151,6 +151,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           subscriptionType: 'FREE',
           createdAt: new Date(),
           updatedAt: new Date(),
+          profile: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+          }
         };
 
         console.log('💾 [Auth.ts] Saving user to storage:', authUser);
@@ -216,6 +220,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           subscriptionType: 'FREE',
           createdAt: new Date(),
           updatedAt: new Date(),
+          profile: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+          }
         };
 
         // Save user to localStorage and cookies
