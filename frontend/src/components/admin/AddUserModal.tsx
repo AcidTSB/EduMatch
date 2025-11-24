@@ -1,40 +1,103 @@
 'use client';
 
-import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { UserRole } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { CreateOrganizationModal } from './CreateOrganizationModal';
+
+interface Organization {
+  id: number;
+  name: string;
+}
 
 interface AddUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (userData: {
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
     role: UserRole;
     password: string;
+    organizationId?: number;
   }) => void;
 }
 
 export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
   const { t } = useLanguage();
   const [formData, setFormData] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     role: UserRole.USER,
     password: '',
+    organizationId: undefined as number | undefined,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [loadingOrgs, setLoadingOrgs] = useState(false);
+  const [isCreateOrgModalOpen, setIsCreateOrgModalOpen] = useState(false);
+
+  // Fetch organizations when modal opens and role is EMPLOYER
+  useEffect(() => {
+    if (isOpen && formData.role === UserRole.EMPLOYER) {
+      fetchOrganizations();
+    } else {
+      setOrganizations([]);
+    }
+  }, [isOpen, formData.role]);
+
+  const fetchOrganizations = async () => {
+    try {
+      setLoadingOrgs(true);
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080';
+      const token = localStorage.getItem('auth_token');
+      
+      const response = await fetch(`${API_BASE_URL}/api/organizations?page=0&size=100`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setOrganizations(data.organizations || []);
+      } else {
+        console.error('Failed to fetch organizations');
+        setOrganizations([]);
+      }
+    } catch (error) {
+      console.error('Error fetching organizations:', error);
+      setOrganizations([]);
+    } finally {
+      setLoadingOrgs(false);
+    }
+  };
+
+  const handleOrganizationCreated = (organizationId: number) => {
+    // Refresh organizations list
+    fetchOrganizations();
+    // Auto-select the newly created organization
+    setFormData({ ...formData, organizationId });
+  };
 
   if (!isOpen) return null;
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = t('addUserModal.error.nameRequired');
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = t('addUserModal.error.firstNameRequired');
+    }
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = t('addUserModal.error.lastNameRequired');
     }
 
     if (!formData.email.trim()) {
@@ -49,6 +112,11 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
       newErrors.password = t('addUserModal.error.passwordTooShort');
     }
 
+    // Validate organization for EMPLOYER role
+    if (formData.role === UserRole.EMPLOYER && !formData.organizationId) {
+      newErrors.organizationId = t('addUserModal.error.organizationRequired');
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -57,12 +125,21 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
     e.preventDefault();
     
     if (validateForm()) {
-      onSubmit(formData);
+      onSubmit({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        role: formData.role,
+        password: formData.password,
+        organizationId: formData.role === UserRole.EMPLOYER ? formData.organizationId : undefined,
+      });
       setFormData({
-        name: '',
+        firstName: '',
+        lastName: '',
         email: '',
         role: UserRole.USER,
         password: '',
+        organizationId: undefined,
       });
       setErrors({});
       onClose();
@@ -71,10 +148,12 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
 
   const handleClose = () => {
     setFormData({
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       role: UserRole.USER,
       password: '',
+      organizationId: undefined,
     });
     setErrors({});
     onClose();
@@ -96,20 +175,37 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name */}
+          {/* First Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('addUserModal.fullName')} *
+              {t('addUserModal.firstName')} *
             </label>
             <Input
               type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder={t('addUserModal.fullNamePlaceholder')}
-              className={errors.name ? 'border-red-500' : ''}
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              placeholder={t('addUserModal.firstNamePlaceholder')}
+              className={errors.firstName ? 'border-red-500' : ''}
             />
-            {errors.name && (
-              <p className="text-sm text-red-600 mt-1">{errors.name}</p>
+            {errors.firstName && (
+              <p className="text-sm text-red-600 mt-1">{errors.firstName}</p>
+            )}
+          </div>
+
+          {/* Last Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('addUserModal.lastName')} *
+            </label>
+            <Input
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              placeholder={t('addUserModal.lastNamePlaceholder')}
+              className={errors.lastName ? 'border-red-500' : ''}
+            />
+            {errors.lastName && (
+              <p className="text-sm text-red-600 mt-1">{errors.lastName}</p>
             )}
           </div>
 
@@ -137,7 +233,14 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
             </label>
             <select
               value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+              onChange={(e) => {
+                const newRole = e.target.value as UserRole;
+                setFormData({ 
+                  ...formData, 
+                  role: newRole,
+                  organizationId: newRole === UserRole.EMPLOYER ? formData.organizationId : undefined
+                });
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value={UserRole.USER}>{t('addUserModal.roleStudent')}</option>
@@ -145,6 +248,48 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
               <option value={UserRole.ADMIN}>{t('addUserModal.roleAdmin')}</option>
             </select>
           </div>
+
+          {/* Organization - Only show for EMPLOYER role */}
+          {formData.role === UserRole.EMPLOYER && (
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  {t('addUserModal.organization')} *
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCreateOrgModalOpen(true)}
+                  className="text-xs h-7 px-2"
+                >
+                  <Plus className="w-3 h-3 mr-1" />
+                  {t('addUserModal.createOrganization') || 'Tạo mới'}
+                </Button>
+              </div>
+              <select
+                value={formData.organizationId || ''}
+                onChange={(e) => setFormData({ ...formData, organizationId: e.target.value ? Number(e.target.value) : undefined })}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.organizationId ? 'border-red-500' : ''}`}
+                disabled={loadingOrgs}
+              >
+                <option value="">{loadingOrgs ? 'Đang tải...' : 'Chọn tổ chức'}</option>
+                {organizations.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+              {errors.organizationId && (
+                <p className="text-sm text-red-600 mt-1">{errors.organizationId}</p>
+              )}
+              {organizations.length === 0 && !loadingOrgs && (
+                <p className="text-sm text-yellow-600 mt-1">
+                  {t('addUserModal.noOrganizations') || 'Không có tổ chức nào. Vui lòng tạo tổ chức trước khi thêm nhà cung cấp.'}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Password */}
           <div>
@@ -182,6 +327,13 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
           </div>
         </form>
       </div>
+
+      {/* Create Organization Modal */}
+      <CreateOrganizationModal
+        isOpen={isCreateOrgModalOpen}
+        onClose={() => setIsCreateOrgModalOpen(false)}
+        onSuccess={handleOrganizationCreated}
+      />
     </div>
   );
 }

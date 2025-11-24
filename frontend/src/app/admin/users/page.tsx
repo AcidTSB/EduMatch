@@ -105,8 +105,9 @@ export default function UsersManagement() {
         });
       }
       
+      const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.email;
       toast.success(t('adminUsers.userCreated'), {
-        description: t('adminUsers.userCreatedDesc').replace('{name}', userData.name || userData.email).replace('{role}', userData.role),
+        description: t('adminUsers.userCreatedDesc').replace('{name}', fullName).replace('{role}', userData.role),
       });
       
       // Refresh users list
