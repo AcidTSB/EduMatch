@@ -111,6 +111,7 @@ export default function RegisterPage() {
         description: t('register.toast.welcome', { firstName: formData.firstName, lastName: formData.lastName }),
       });
 
+      // Redirect to dashboard
       setTimeout(() => {
         router.push('/user/dashboard');
       }, 1000);

@@ -159,16 +159,6 @@ export function Navbar() {
     return `${user.profile.firstName || ''} ${user.profile.lastName || ''}`.trim() || user.email;
   };
 
-  // Debug logging
-  console.log('🔍 Navbar State:', {
-    isAuthenticated,
-    user,
-    role: user?.role,
-    roleType: typeof user?.role,
-    isUserRole: user?.role === UserRole.USER,
-    isUserString: user?.role === 'USER',
-  });
-
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
@@ -203,7 +193,7 @@ export function Navbar() {
                   </Link>
                   
                   {/* Role-specific key items */}
-                  {(user?.role === UserRole.USER) && (
+                  {(user?.role === UserRole.USER || user?.role === 'USER') && (
                     <>
                       <Link
                         href="/user/dashboard"
@@ -241,7 +231,7 @@ export function Navbar() {
                     </>
                   )}
                   
-                  {(user?.role === UserRole.EMPLOYER) && (
+                  {(user?.role === UserRole.EMPLOYER || user?.role === 'EMPLOYER') && (
                     <>
                       <Link
                         href="/employer/dashboard"
@@ -290,7 +280,7 @@ export function Navbar() {
                     </>
                   )}
                   
-                  {(user?.role === UserRole.ADMIN) && (
+                  {(user?.role === UserRole.ADMIN || user?.role === 'ADMIN') && (
                     <>
                       <Link
                         href="/admin"
@@ -425,7 +415,8 @@ export function Navbar() {
                 <NotificationDropdown />
 
                 {/* Bạn là nhà tuyển dụng? - Moved to right side */}
-                {(user?.role === UserRole.USER) && (
+                {/* FIX: Check for both USER enum and string to ensure button shows up */}
+                {(user?.role === UserRole.USER || user?.role === 'USER' || user?.role === 'ROLE_USER') && (
                   <Link
                     href="/employer/register"
                     className="text-sm font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-md border border-blue-200 transition-colors whitespace-nowrap"
@@ -486,7 +477,7 @@ export function Navbar() {
                           </p>
                         </div>
                         
-                        {(user?.role === UserRole.USER) && (
+                        {(user?.role === UserRole.USER || user?.role === 'USER' || user?.role === 'ROLE_USER') && (
                           <Link
                             href="/employer/register"
                             className="flex items-center px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 font-semibold bg-blue-50 border border-blue-200 rounded-md mb-2"
@@ -683,7 +674,7 @@ export function Navbar() {
                     </div>
                   </div>
                   
-                  {(user?.role === UserRole.USER) && (
+                  {(user?.role === UserRole.USER || user?.role === 'USER' || user?.role === 'ROLE_USER') && (
                     <Link
                       href="/employer/register"
                       className="flex items-center px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-md font-semibold bg-blue-50 border border-blue-200 mb-2"

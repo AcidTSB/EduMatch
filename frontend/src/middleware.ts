@@ -14,11 +14,33 @@ export function middleware(request: NextRequest) {
     try {
       const userData = request.cookies.get('auth_user')?.value;
       if (userData) {
-        const user = JSON.parse(decodeURIComponent(userData));
+        // Try to parse - userData might already be decoded by Next.js
+        let user;
+        try {
+          user = JSON.parse(userData);
+        } catch {
+          // If fails, try decoding first
+          user = JSON.parse(decodeURIComponent(userData));
+        }
         userRole = user.role;
+        
+        // Debug: log để check
+        if (pathname.includes('/profile')) {
+          console.log('🔍 [Middleware] Profile access attempt');
+          console.log('🔍 Token exists:', !!token);
+          console.log('🔍 Parsed role:', userRole);
+        }
+      } else {
+        console.log('⚠️ [Middleware] No auth_user cookie found for path:', pathname);
       }
     } catch (error) {
       // Invalid user data in cookies
+      console.error('❌ [Middleware] Cookie parse error:', error);
+      console.error('❌ Path:', pathname);
+    }
+  } else {
+    if (pathname.startsWith('/user') || pathname.startsWith('/employer') || pathname.startsWith('/admin')) {
+      console.log('⚠️ [Middleware] No auth_token for protected route:', pathname);
     }
   }
 

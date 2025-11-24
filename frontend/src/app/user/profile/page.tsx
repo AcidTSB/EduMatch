@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { clearProfileCompletionSkipped } from '@/lib/profile-utils';
 
 export default function ProfilePage() {
   const { t } = useLanguage();
@@ -252,6 +253,9 @@ export default function ProfilePage() {
         id: toastId,
         description: 'Thông tin của bạn đã được lưu'
       });
+      
+      // Clear profile completion skip flag when user completes profile
+      clearProfileCompletionSkipped();
       
       setIsEditing(false);
     } catch (error) {

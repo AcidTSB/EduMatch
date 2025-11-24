@@ -194,6 +194,20 @@ const translations: Record<Language, Record<string, string>> = {
     'profile.skills': 'Skills',
     'profile.documents': 'Documents',
     'profile.update': 'Update Profile',
+    'profile.completeYourProfile': 'Complete Your Profile',
+    'profile.profileIncomplete': 'Profile Incomplete',
+    'profile.postRegistrationMessage': 'Welcome to EduMatch! To get the best experience and increase your scholarship acceptance chances, please complete your profile information.',
+    'profile.whyCompleteProfile': 'Why complete your profile?',
+    'profile.betterMatching': 'Better scholarship matching',
+    'profile.higherAcceptance': 'Higher acceptance rates',
+    'profile.fasterApplication': 'Faster application process',
+    'profile.incompleteWarning': 'Your profile is missing information',
+    'profile.completeNowMessage': 'Please update your complete personal information to access all system features and increase your scholarship acceptance chances.',
+    'profile.completeNow': 'Complete Now',
+    
+    // Common
+    'common.skipForNow': 'Skip for now',
+    'common.remindLater': 'Remind me later',
     
     // Settings
     'settings.general': 'General',
@@ -2044,6 +2058,8 @@ const translations: Record<Language, Record<string, string>> = {
     'common.submit': 'Gửi',
     'common.back': 'Quay lại',
     'common.next': 'Tiếp theo',
+    'common.skipForNow': 'Bỏ qua',
+    'common.remindLater': 'Nhắc lại sau',
     'common.previous': 'Trước',
     'common.confirm': 'Xác nhận',
     'common.yes': 'Có',
@@ -2066,6 +2082,16 @@ const translations: Record<Language, Record<string, string>> = {
     'profile.skills': 'Kỹ năng',
     'profile.documents': 'Tài liệu',
     'profile.update': 'Cập nhật hồ sơ',
+    'profile.completeYourProfile': 'Hoàn thiện hồ sơ của bạn',
+    'profile.profileIncomplete': 'Hồ sơ chưa đầy đủ',
+    'profile.postRegistrationMessage': 'Chào mừng bạn đến với EduMatch! Để có trải nghiệm tốt nhất và tăng cơ hội được chấp nhận học bổng, vui lòng hoàn thiện thông tin hồ sơ của bạn.',
+    'profile.whyCompleteProfile': 'Tại sao cần hoàn thiện hồ sơ?',
+    'profile.betterMatching': 'Tìm kiếm học bổng phù hợp hơn',
+    'profile.higherAcceptance': 'Tăng cơ hội được chấp nhận',
+    'profile.fasterApplication': 'Nộp đơn nhanh chóng hơn',
+    'profile.incompleteWarning': 'Hồ sơ của bạn chưa đầy đủ thông tin',
+    'profile.completeNowMessage': 'Vui lòng cập nhật đầy đủ thông tin cá nhân để sử dụng đầy đủ tính năng của hệ thống và tăng cơ hội được chấp nhận học bổng.',
+    'profile.completeNow': 'Hoàn thiện ngay',
     
     // Settings
     'settings.general': 'Chung',

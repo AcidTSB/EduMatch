@@ -16,6 +16,8 @@ import { useEffect } from 'react';
 // 3. Import useAuth from AuthContext (not hooks)
 import { useAuth } from '@/lib/auth'; // Use context-based auth
 import { UserRole } from '@/types';
+import { ProfileCompletionModal } from '@/components/ProfileCompletionModal';
+import { shouldShowProfileCompletionPrompt, markProfileCompletionSkipped } from '@/lib/profile-utils';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');

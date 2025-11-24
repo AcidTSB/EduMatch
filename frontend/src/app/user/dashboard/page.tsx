@@ -45,6 +45,9 @@ import { useAuth } from '@/lib/auth';
 import { batchGetMatchingScores } from '@/services/matching.service';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
+import { ProfileCompletionModal } from '@/components/ProfileCompletionModal';
+import { useProfileCompletionCheck } from '@/hooks/useProfileCompletionCheck';
+import { markProfileCompletionSkipped } from '@/lib/profile-utils';
 
 // Animation variants
 const cardVariants = {
@@ -75,6 +78,21 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuth();
   const queryClient = useQueryClient();
+  
+  // Profile completion check
+  const { shouldShowModal, hideModal, onProfileCompleted } = useProfileCompletionCheck();
+  
+  // Auto-close modal after 3 seconds
+  useEffect(() => {
+    if (shouldShowModal) {
+      const timer = setTimeout(() => {
+        hideModal();
+        markProfileCompletionSkipped();
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [shouldShowModal, hideModal]);
   
   // Use AppContext hooks
   const { applications } = useApplicationsData();
@@ -448,6 +466,24 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Profile Completion Modal - Auto close after 3s */}
+      <ProfileCompletionModal
+        isOpen={shouldShowModal}
+        onClose={() => {
+          hideModal();
+        }}
+        onSkip={() => {
+          markProfileCompletionSkipped();
+          hideModal();
+        }}
+        onCompleteProfile={() => {
+          onProfileCompleted();
+          hideModal();
+          router.push('/user/profile');
+        }}
+        isPostRegistration={false}
+      />
     </div>
   );
 }
