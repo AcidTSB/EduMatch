@@ -47,7 +47,7 @@ export default function MessagesPage() {
   const { 
     isConnected, 
     messages: stompMessages,
-    sendMessage: sendStompMessage 
+    sendMessage: sendStompMessage
   } = useSocket(user?.id, user?.role, user?.name);
   
   // --- State ---
@@ -100,79 +100,143 @@ export default function MessagesPage() {
   const sendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation || !user || !isConnected || !selectedConversation.otherParticipantId) return;
     
+    const content = messageInput.trim();
+    const receiverId = selectedConversation.otherParticipantId;
+    const tempId = `temp-${Date.now()}`; // Temporary ID với prefix để dễ phân biệt
+    
+    // 1. Optimistic UI - Show message immediately
+    const optimisticMessage: Message = {
+      id: tempId as any,
+      content: content,
+      senderId: parseInt(user.id),
+      receiverId: receiverId,
+      sentAt: new Date().toISOString()
+    };
+    
+    setChatMessages(prev => [...prev, optimisticMessage]);
+    setMessageInput('');
+    setIsSending(true);
+    
     try {
-      setIsSending(true);
-      sendStompMessage(selectedConversation.otherParticipantId.toString(), messageInput.trim());
+      // 2. Send via WebSocket
+      sendStompMessage(receiverId.toString(), content);
       
-      const optimisticMessage: Message = {
-        id: Date.now(),
-        content: messageInput.trim(),
-        senderId: parseInt(user.id),
-        receiverId: selectedConversation.otherParticipantId,
-        sentAt: new Date().toISOString()
-      };
-      
-      setChatMessages(prev => [...prev, optimisticMessage]);
-      setMessageInput('');
-      
-      setTimeout(() => loadConversations(), 500);
+      // 3. Update conversation list locally (no API call)
+      setConversations(prev => {
+        const updated = [...prev];
+        const index = updated.findIndex(c => c.conversationId === selectedConversation.conversationId);
+        if (index > -1) {
+          updated[index] = {
+            ...updated[index],
+            lastMessage: content,
+            lastMessageAt: new Date().toISOString()
+          };
+          // Move to top
+          const item = updated.splice(index, 1)[0];
+          updated.unshift(item);
+        }
+        return updated;
+      });
     } catch (error) {
       console.error('❌ Error sending message:', error);
+      // Remove optimistic message on error
+      setChatMessages(prev => prev.filter(m => m.id !== tempId));
     } finally {
       setIsSending(false);
     }
   };
 
   // --- Effects ---
+  
+  // Load conversations on mount
   useEffect(() => {
-    if (!stompMessages || stompMessages.length === 0) return;
-    const latestMessage = stompMessages[stompMessages.length - 1];
-    
-    console.log('🔔 New STOMP message received:', latestMessage);
-    
-    if (selectedConversation && selectedConversation.otherParticipantId && user?.id) {
-      const currentUserId = parseInt(user.id);
-      const otherUserId = selectedConversation.otherParticipantId;
-      
-      // Check if message belongs to current conversation
-      const isRelevant = 
-        (latestMessage.senderId === otherUserId && latestMessage.receiverId === currentUserId) ||
-        (latestMessage.receiverId === otherUserId && latestMessage.senderId === currentUserId);
-      
-      console.log('🔍 Message relevance check:', { 
-        isRelevant, 
-        messageSender: latestMessage.senderId, 
-        messageReceiver: latestMessage.receiverId,
-        currentUser: currentUserId,
-        otherUser: otherUserId 
-      });
-      
-      if (isRelevant) {
-        setChatMessages(prev => {
-          // Prevent duplicates
-          if (prev.find(m => m.id === latestMessage.id)) {
-            console.log('⚠️ Duplicate message, skipping');
-            return prev;
-          }
-          console.log('✅ Adding new message to chat');
-          return [...prev, latestMessage];
-        });
-      }
+    if (user) {
+      loadConversations();
     }
-    
-    // Reload conversations to update last message
-    loadConversations();
-  }, [stompMessages]);
-
-  useEffect(() => {
-    loadConversations();
   }, [user]);
 
+  // Load messages when conversation changes
   useEffect(() => {
-    if (selectedConversation && selectedConversation.conversationId) {
+    if (selectedConversation?.conversationId) {
       loadMessages(selectedConversation.conversationId);
     }
-  }, [selectedConversation]);
+  }, [selectedConversation?.conversationId]);
+  
+  // --- FIX FINAL: REALTIME UPDATE (Dùng conversationId) ---
+  useEffect(() => {
+    if (!stompMessages || stompMessages.length === 0 || !selectedConversation) return;
+
+    const latestMessage = stompMessages[stompMessages.length - 1];
+    
+    // DEBUG LOG
+    console.log('⚡ Check Match:', {
+      msgConvId: latestMessage.conversationId,
+      currentConvId: selectedConversation.conversationId,
+      msgContent: latestMessage.content
+    });
+
+    // --- FIX LOGIC: Dùng conversationId để xác định ---
+    // Ép kiểu String hết cho chắc cú
+    const isMatchingConversation = String(latestMessage.conversationId) === String(selectedConversation.conversationId);
+    
+    if (isMatchingConversation) {
+      setChatMessages(prev => {
+        // 1. Check trùng ID (Server đã lưu)
+        if (prev.some(m => String(m.id) === String(latestMessage.id))) {
+           console.log('⚠️ Duplicate ID, skipping');
+           return prev;
+        }
+
+        // 2. Tìm tin ảo (có ID bắt đầu bằng "temp-") để replace
+        const tempIndex = prev.findIndex(m => 
+             String(m.id).startsWith('temp-') &&
+             m.content === latestMessage.content && 
+             String(m.senderId) === String(latestMessage.senderId)
+        );
+
+        if (tempIndex !== -1) {
+             console.log('🔄 Replace tin ảo bằng tin thật (ID: ' + latestMessage.id + ')');
+             const newArr = [...prev];
+             newArr[tempIndex] = latestMessage;
+             return newArr;
+        }
+
+        // 3. Nếu không tìm thấy tin ảo, kiểm tra trùng lặp theo nội dung + thời gian
+        const duplicateByContent = prev.some(m =>
+             m.content === latestMessage.content && 
+             String(m.senderId) === String(latestMessage.senderId) &&
+             Math.abs(new Date(m.sentAt).getTime() - new Date(latestMessage.sentAt).getTime()) < 5000
+        );
+        
+        if (duplicateByContent) {
+             console.log('⚠️ Duplicate by content, skipping');
+             return prev;
+        }
+
+        console.log('✅ Thêm tin mới (ID: ' + latestMessage.id + ')');
+        return [...prev, latestMessage];
+      });
+      
+      // Update sidebar (move to top)
+      setConversations(prev => {
+         const updated = [...prev];
+         const index = updated.findIndex(c => String(c.conversationId) === String(selectedConversation.conversationId));
+         
+         if (index > -1) {
+             const conv = updated[index];
+             updated.splice(index, 1);
+             updated.unshift({
+                 ...conv,
+                 lastMessage: latestMessage.content,
+                 lastMessageAt: latestMessage.sentAt
+             });
+         }
+         return updated;
+      });
+    } else {
+        console.log('❌ Tin này của hội thoại khác (ID: ' + latestMessage.conversationId + ')');
+    }
+  }, [stompMessages, selectedConversation]);
 
   const filteredConversations = useMemo(() => {
     if (!searchQuery) return conversations;
