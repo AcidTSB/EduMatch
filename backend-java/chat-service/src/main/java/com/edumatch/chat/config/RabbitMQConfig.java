@@ -21,6 +21,8 @@ public class RabbitMQConfig {
     public static final String EMAIL_ROUTING_KEY = "notification.send.email";
     public static final String MATCH_ROUTING_KEY = "scholarship.new.match";
     public static final String APPLICATION_STATUS_ROUTING_KEY = "notification.application.status";
+    public static final String SCHOLARSHIP_CREATED_KEY = "scholarship.created";
+    public static final String SCHOLARSHIP_UPDATED_KEY = "scholarship.updated";
 
     @Bean
     public TopicExchange exchange() {
@@ -52,6 +54,18 @@ public class RabbitMQConfig {
     public Binding applicationStatusBinding(Queue notificationQueue, TopicExchange exchange) {
         // Bind key: notification.application.status
         return BindingBuilder.bind(notificationQueue).to(exchange).with(APPLICATION_STATUS_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding scholarshipCreatedBinding(Queue notificationQueue, TopicExchange exchange) {
+        // Bind key: scholarship.created
+        return BindingBuilder.bind(notificationQueue).to(exchange).with(SCHOLARSHIP_CREATED_KEY);
+    }
+
+    @Bean
+    public Binding scholarshipUpdatedBinding(Queue notificationQueue, TopicExchange exchange) {
+        // Bind key: scholarship.updated
+        return BindingBuilder.bind(notificationQueue).to(exchange).with(SCHOLARSHIP_UPDATED_KEY);
     }
 
     @Bean

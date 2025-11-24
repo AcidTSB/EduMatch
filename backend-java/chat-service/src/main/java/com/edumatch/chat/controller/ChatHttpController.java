@@ -7,6 +7,7 @@ import com.edumatch.chat.dto.FcmRegisterRequest;
 import com.edumatch.chat.dto.MessageDto;
 import com.edumatch.chat.model.Message;
 import com.edumatch.chat.service.ChatService;
+import com.edumatch.chat.service.FirebaseMessagingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api") // Tiền tố chung cho các API
@@ -25,6 +27,7 @@ public class ChatHttpController {
 
     private final ChatService chatService;
     private final SimpMessagingTemplate simpMessagingTemplate;
+    private final FirebaseMessagingService firebaseMessagingService;
 
     /**
      * API: POST /api/chat/send
@@ -87,5 +90,44 @@ public class ChatHttpController {
                 conversationId, pageable, authentication
         );
         return ResponseEntity.ok(messages);
+    }
+    
+    /**
+     * API: POST /api/fcm/test
+     * Test endpoint để gửi notification thử nghiệm
+     * Body: { "userId": 123, "title": "Test", "body": "Test message" }
+     */
+    @PostMapping("/fcm/test")
+    public ResponseEntity<ApiResponse> testFcmNotification(
+            @RequestBody Map<String, Object> payload,
+            Authentication authentication) {
+        
+        Long userId = Long.valueOf(payload.get("userId").toString());
+        String title = payload.getOrDefault("title", "Test Notification").toString();
+        String body = payload.getOrDefault("body", "This is a test notification").toString();
+        
+        firebaseMessagingService.sendNotification(
+            userId, 
+            title, 
+            body, 
+            "TEST",
+            "test-ref-" + System.currentTimeMillis()
+        );
+        
+        return ResponseEntity.ok(new ApiResponse(true, "Test notification sent. Check logs for details."));
+    }
+    
+    /**
+     * API: GET /api/fcm/status
+     * Kiểm tra trạng thái Firebase initialization
+     */
+    @GetMapping("/fcm/status")
+    public ResponseEntity<Map<String, Object>> checkFirebaseStatus() {
+        boolean isInitialized = firebaseMessagingService.isFirebaseInitialized();
+        return ResponseEntity.ok(Map.of(
+            "firebase_initialized", isInitialized,
+            "status", isInitialized ? "OK" : "ERROR",
+            "message", isInitialized ? "Firebase is ready" : "Firebase initialization failed"
+        ));
     }
 }

@@ -132,22 +132,43 @@ public class ChatService {
      */
     @Transactional
     public void registerFcmToken(FcmRegisterRequest request, Authentication authentication) {
+        log.info("📱 [FCM Register] Bắt đầu đăng ký FCM token");
+        log.debug("📱 [FCM Register] Auth principal: {}", authentication.getName());
+        
         // 1. Lấy UserID (Long)
         UserDetailDto user = getUserDetailsFromAuthService(
                 authentication.getName(),
                 (String) authentication.getCredentials()
         );
         Long userId = user.getId();
+        log.info("📱 [FCM Register] User ID: {}", userId);
+
+        // Validate token
+        if (request.getFcmToken() == null || request.getFcmToken().trim().isEmpty()) {
+            log.error("❌ [FCM Register] FCM token is null or empty for User {}", userId);
+            throw new IllegalArgumentException("FCM token cannot be empty");
+        }
+        
+        log.debug("📱 [FCM Register] New token: {}...", 
+                  request.getFcmToken().length() > 20 ? request.getFcmToken().substring(0, 20) : request.getFcmToken());
 
         // 2. Tìm token cũ (nếu có)
         FcmToken token = fcmTokenRepository.findByUserId(userId)
                 .orElse(new FcmToken()); // Nếu không có, tạo mới
 
+        boolean isNewToken = token.getId() == null;
+        if (isNewToken) {
+            log.info("📱 [FCM Register] Creating NEW token entry for User {}", userId);
+        } else {
+            log.info("📱 [FCM Register] UPDATING existing token (ID: {}) for User {}", token.getId(), userId);
+        }
+
         // 3. Cập nhật
         token.setUserId(userId);
         token.setDeviceToken(request.getFcmToken());
         fcmTokenRepository.save(token);
-        log.info("Đã cập nhật FCM token cho User {}", userId);
+        
+        log.info("✅ [FCM Register] Token {} successfully for User {}", isNewToken ? "created" : "updated", userId);
     }
 
     /**

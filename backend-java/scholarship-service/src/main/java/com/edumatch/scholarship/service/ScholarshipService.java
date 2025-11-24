@@ -425,9 +425,36 @@ public class ScholarshipService {
         // Khi Admin duyệt bài (APPROVED), chúng ta phải báo cho MatchingService
         // biết rằng bài này "sẵn sàng" để được xử lý và hiển thị.
         if ("APPROVED".equals(newStatus)) {
+            // Gửi event cho Matching Service
             OpportunityDto dto = OpportunityDto.fromEntity(savedOpp);
             rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "scholarship.updated", dto);
             log.info("Đã gửi sự kiện 'scholarship.updated' (Admin Approved) cho ID: {}", savedOpp.getId());
+            
+            // Gửi notification cho người tạo học bổng
+            java.util.Map<String, Object> notificationEvent = new java.util.HashMap<>();
+            notificationEvent.put("recipientId", savedOpp.getCreatorUserId()); // Gửi cho người tạo
+            notificationEvent.put("creatorUserId", savedOpp.getCreatorUserId());
+            notificationEvent.put("title", "Học bổng của bạn đã được duyệt!");
+            notificationEvent.put("body", "Học bổng \"" + savedOpp.getTitle() + "\" đã được công khai.");
+            notificationEvent.put("type", "SCHOLARSHIP_APPROVED");
+            notificationEvent.put("referenceId", savedOpp.getId().toString());
+            notificationEvent.put("opportunityId", savedOpp.getId().toString());
+            
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "scholarship.updated", notificationEvent);
+            log.info("Đã gửi notification event cho creator ID: {}", savedOpp.getCreatorUserId());
+        } else if ("REJECTED".equals(newStatus)) {
+            // Gửi notification cho người tạo khi bị từ chối
+            java.util.Map<String, Object> notificationEvent = new java.util.HashMap<>();
+            notificationEvent.put("recipientId", savedOpp.getCreatorUserId());
+            notificationEvent.put("creatorUserId", savedOpp.getCreatorUserId());
+            notificationEvent.put("title", "Học bổng của bạn bị từ chối");
+            notificationEvent.put("body", "Học bổng \"" + savedOpp.getTitle() + "\" không được duyệt.");
+            notificationEvent.put("type", "SCHOLARSHIP_REJECTED");
+            notificationEvent.put("referenceId", savedOpp.getId().toString());
+            notificationEvent.put("opportunityId", savedOpp.getId().toString());
+            
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "scholarship.updated", notificationEvent);
+            log.info("Đã gửi rejection notification cho creator ID: {}", savedOpp.getCreatorUserId());
         }
 
         return OpportunityDto.fromEntity(savedOpp);

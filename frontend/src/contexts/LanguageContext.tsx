@@ -3545,6 +3545,8 @@ const translations: Record<Language, Record<string, string>> = {
     // Notification Templates
     'notification.applicationAccepted': 'Chúc mừng! Đơn xin học bổng {scholarshipName} đã được chấp nhận 🎉',
     'notification.applicationAccepted.title': 'Đơn được chấp nhận! 🎉',
+    'notification.applicationRejected': 'Rất tiếc, đơn xin học bổng {scholarshipName} đã bị từ chối',
+    'notification.applicationRejected.title': 'Đơn bị từ chối',
     'notification.applicationReceived': 'Đơn xin học bổng {scholarshipName} đã được nhận',
     'notification.applicationReceived.title': 'Đã nhận đơn',
     'notification.applicationUnderReview': 'Đơn xin học bổng {scholarshipName} đang được xem xét',

@@ -1,5 +1,6 @@
 package com.edumatch.chat.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -46,9 +47,22 @@ public class Notification {
 
     @Builder.Default
     @Column(name = "is_read")
+    @JsonProperty("isRead") // Map to isRead in JSON
     private boolean isRead = false;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+    
+    // Add getter for frontend compatibility (message = body)
+    @JsonProperty("message")
+    public String getMessage() {
+        return this.body;
+    }
+    
+    // Add getter for frontend compatibility (read = isRead)
+    @JsonProperty("read")
+    public boolean isRead() {
+        return this.isRead;
+    }
 }

@@ -22,6 +22,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import java.util.stream.Collectors;
 import java.util.Map;
+import java.util.HashMap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -157,6 +158,11 @@ public class ApplicationService {
         // 3. Cập nhật trạng thái
         app.setStatus(newStatus); // Ví dụ: "APPROVED", "REJECTED"
         Application savedApp = applicationRepository.save(app);
+        
+        // 3.1 Lấy thông tin Opportunity (scholarship) để đưa vào notification
+        Opportunity opportunity = opportunityRepository.findById(savedApp.getOpportunityId())
+                .orElse(null);
+        String opportunityTitle = opportunity != null ? opportunity.getTitle() : "học bổng";
 
         // 4. GỬI SỰ KIỆN EMAIL
         // (Gửi 1 Map đơn giản chứa ID người nhận, tiêu đề, nội dung)
@@ -170,7 +176,56 @@ public class ApplicationService {
         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "notification.send.email", emailEvent);
         log.info("Đã gửi sự kiện 'notification.send.email' cho user ID: {}", savedApp.getApplicantUserId());
 
-        // 5. Trả về DTO
+        // 5. GỬI REAL-TIME NOTIFICATION EVENT
+        log.info("📨 [Application Status] Employer changed application {} status to: {}", applicationId, newStatus);
+        log.info("📨 [Application Status] Opportunity: {}", opportunityTitle);
+        
+        String notificationTitle = "";
+        String notificationBody = "";
+        
+        switch (newStatus) {
+            case "ACCEPTED":
+                notificationTitle = "✅ Đơn ứng tuyển được chấp nhận!";
+                notificationBody = String.format("Chúc mừng! Đơn ứng tuyển của bạn cho học bổng \"%s\" đã được chấp nhận bởi nhà tuyển dụng.", opportunityTitle);
+                break;
+            case "REJECTED":
+                notificationTitle = "❌ Đơn ứng tuyển bị từ chối";
+                notificationBody = String.format("Rất tiếc, đơn ứng tuyển của bạn cho học bổng \"%s\" không được chấp nhận lần này.", opportunityTitle);
+                break;
+            case "UNDER_REVIEW":
+                notificationTitle = "🔍 Đơn đang được xem xét";
+                notificationBody = String.format("Đơn ứng tuyển của bạn cho học bổng \"%s\" đang được nhà tuyển dụng xem xét.", opportunityTitle);
+                break;
+            case "WAITLISTED":
+                notificationTitle = "⏳ Đơn trong danh sách chờ";
+                notificationBody = String.format("Đơn ứng tuyển của bạn cho học bổng \"%s\" đã được đưa vào danh sách chờ.", opportunityTitle);
+                break;
+            default:
+                notificationTitle = "📋 Cập nhật đơn ứng tuyển";
+                notificationBody = String.format("Trạng thái đơn ứng tuyển cho học bổng \"%s\": %s", opportunityTitle, newStatus);
+        }
+        
+        Map<String, Object> notificationEvent = new HashMap<>();
+        notificationEvent.put("recipientId", savedApp.getApplicantUserId());
+        notificationEvent.put("title", notificationTitle);
+        notificationEvent.put("body", notificationBody);
+        notificationEvent.put("type", "APPLICATION_STATUS");
+        notificationEvent.put("applicationId", savedApp.getId());
+        notificationEvent.put("status", newStatus);
+        notificationEvent.put("opportunityTitle", opportunityTitle); // Add scholarship name
+        
+        // Add opportunity info if available
+        if (savedApp.getOpportunityId() != null) {
+            notificationEvent.put("referenceId", savedApp.getOpportunityId().toString());
+            notificationEvent.put("opportunityId", savedApp.getOpportunityId()); // Add for reference
+        }
+        
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "notification.application.status", notificationEvent);
+        log.info("✅ [Application Status] Sent notification event to RabbitMQ for applicant userId: {}", savedApp.getApplicantUserId());
+        log.info("📤 [Application Status] Scholarship: '{}', Status: {}", opportunityTitle, newStatus);
+        log.info("📤 [Application Status] Event published to routing key: notification.application.status");
+
+        // 6. Trả về DTO
         List<ApplicationDocument> docs = applicationDocumentRepository.findByApplicationId(savedApp.getId());
         return ApplicationDto.fromEntity(savedApp, docs);
     }
@@ -257,6 +312,11 @@ public class ApplicationService {
         // 2. Cập nhật trạng thái (Admin không cần check ownership)
         app.setStatus(newStatus);
         Application savedApp = applicationRepository.save(app);
+        
+        // 2.1 Lấy thông tin Opportunity (scholarship) để đưa vào notification
+        Opportunity opportunity = opportunityRepository.findById(savedApp.getOpportunityId())
+                .orElse(null);
+        String opportunityTitle = opportunity != null ? opportunity.getTitle() : "học bổng";
 
         // 3. GỬI SỰ KIỆN EMAIL
         Map<String, Object> emailEvent = Map.of(
@@ -275,31 +335,39 @@ public class ApplicationService {
         switch (newStatus) {
             case "ACCEPTED":
                 notificationTitle = "✅ Đơn ứng tuyển được chấp nhận!";
-                notificationBody = "Chúc mừng! Đơn ứng tuyển của bạn đã được chấp nhận.";
+                notificationBody = String.format("Chúc mừng! Đơn ứng tuyển của bạn cho học bổng \"%s\" đã được chấp nhận.", opportunityTitle);
                 break;
             case "REJECTED":
                 notificationTitle = "❌ Đơn ứng tuyển bị từ chối";
-                notificationBody = "Rất tiếc, đơn ứng tuyển của bạn không được chấp nhận lần này.";
+                notificationBody = String.format("Rất tiếc, đơn ứng tuyển của bạn cho học bổng \"%s\" không được chấp nhận lần này.", opportunityTitle);
                 break;
             case "UNDER_REVIEW":
                 notificationTitle = "🔍 Đơn đang được xem xét";
-                notificationBody = "Đơn ứng tuyển của bạn đang được nhà tuyển dụng xem xét.";
+                notificationBody = String.format("Đơn ứng tuyển của bạn cho học bổng \"%s\" đang được xem xét.", opportunityTitle);
                 break;
             default:
                 notificationTitle = "📋 Cập nhật đơn ứng tuyển";
-                notificationBody = "Trạng thái đơn ứng tuyển: " + newStatus;
+                notificationBody = String.format("Trạng thái đơn ứng tuyển cho học bổng \"%s\": %s", opportunityTitle, newStatus);
         }
         
-        Map<String, Object> notificationEvent = Map.of(
-                "recipientId", savedApp.getApplicantUserId(),
-                "title", notificationTitle,
-                "body", notificationBody,
-                "applicationId", savedApp.getId(),
-                "status", newStatus
-        );
+        Map<String, Object> notificationEvent = new HashMap<>();
+        notificationEvent.put("recipientId", savedApp.getApplicantUserId());
+        notificationEvent.put("title", notificationTitle);
+        notificationEvent.put("body", notificationBody);
+        notificationEvent.put("type", "APPLICATION_STATUS");
+        notificationEvent.put("applicationId", savedApp.getId());
+        notificationEvent.put("status", newStatus);
+        notificationEvent.put("opportunityTitle", opportunityTitle); // Add scholarship name
+        
+        // Add opportunity info if available
+        if (savedApp.getOpportunityId() != null) {
+            notificationEvent.put("referenceId", savedApp.getOpportunityId().toString());
+            notificationEvent.put("opportunityId", savedApp.getOpportunityId());
+        }
         
         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "notification.application.status", notificationEvent);
-        log.info("📨 Đã gửi notification event cho applicant userId: {}", savedApp.getApplicantUserId());
+        log.info("📨 [Admin] Sent notification event for application {} to userId: {}", savedApp.getId(), savedApp.getApplicantUserId());
+        log.info("📤 [Admin] Scholarship: '{}', Status: {}", opportunityTitle, newStatus);
 
         // 5. Trả về DTO
         List<ApplicationDocument> docs = applicationDocumentRepository.findByApplicationId(savedApp.getId());

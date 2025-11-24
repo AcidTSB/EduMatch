@@ -153,6 +153,10 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
 
     // Notification events
     socket.on('notification', (notification: NotificationModel) => {
+      console.log('🔔 [RealTimeProvider] Received notification:', notification);
+      console.log('🔔 [RealTimeProvider] Notification type:', notification.type);
+      console.log('🔔 [RealTimeProvider] Notification opportunityTitle:', (notification as any).opportunityTitle);
+      
       addNotification(notification);
       
       // Show toast

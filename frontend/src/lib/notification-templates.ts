@@ -19,13 +19,27 @@ export function parseNotification(notification: {
   type: string;
   title: string;
   message: string;
+  opportunityTitle?: string; // Added from backend
 }): { templateKey: string; params: NotificationParams } {
-  const { type, message } = notification;
+  const { type, message, opportunityTitle } = notification;
 
-  // Extract scholarship name from message
-  // Match patterns like "to MIT AI Research Fellowship has been", "for Stanford Program is", "to Google Scholarship matches"
-  const scholarshipMatch = message.match(/(?:to|for)\s+(.+?)\s+(?:has been|has|is being|is|matches)/);
-  const scholarshipName = scholarshipMatch ? scholarshipMatch[1].trim() : undefined;
+  // Validate message exists
+  if (!message || typeof message !== 'string') {
+    return {
+      templateKey: 'notification.default',
+      params: {},
+    };
+  }
+
+  // Use opportunityTitle from backend if available, otherwise try to extract from message
+  let scholarshipName = opportunityTitle;
+  
+  if (!scholarshipName) {
+    // Fallback: Extract scholarship name from message
+    // Match patterns like "to MIT AI Research Fellowship has been", "for Stanford Program is", "to Google Scholarship matches"
+    const scholarshipMatch = message.match(/(?:to|for|cho học bổng)\s+"?([^"]+)"?\s+(?:has been|has|is being|is|matches|đã|được)/);
+    scholarshipName = scholarshipMatch ? scholarshipMatch[1].trim() : undefined;
+  }
 
   // Extract user name from message
   const userMatch = message.match(/^([^\s]+(?:\s+[^\s]+)?)\s+has applied/);
@@ -43,13 +57,15 @@ export function parseNotification(notification: {
 
   switch (type) {
     case 'APPLICATION_STATUS':
-      if (message.includes('accepted')) {
+      if (message.includes('accepted') || message.includes('chấp nhận')) {
         templateKey = 'notification.applicationAccepted';
-      } else if (message.includes('received')) {
+      } else if (message.includes('rejected') || message.includes('từ chối')) {
+        templateKey = 'notification.applicationRejected';
+      } else if (message.includes('received') || message.includes('nhận được')) {
         templateKey = 'notification.applicationReceived';
-      } else if (message.includes('reviewed') || message.includes('being reviewed')) {
+      } else if (message.includes('reviewed') || message.includes('being reviewed') || message.includes('xem xét')) {
         templateKey = 'notification.applicationUnderReview';
-      } else if (message.includes('waitlist')) {
+      } else if (message.includes('waitlist') || message.includes('danh sách chờ')) {
         templateKey = 'notification.applicationWaitlist';
       }
       break;
