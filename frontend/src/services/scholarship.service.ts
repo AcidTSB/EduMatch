@@ -203,9 +203,18 @@ export const scholarshipServiceApi = {
    * POST /api/bookmarks/{opportunityId}
    */
   toggleBookmark: async (opportunityId: string | number) => {
-    return apiCall<{ bookmarked: boolean }>(`/api/bookmarks/${opportunityId}`, {
+    // Gọi vào: /api/bookmarks/{id} (của Next.js)
+    const token = getAuthToken();
+    const response = await fetch(`/api/bookmarks/${opportunityId}`, {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     });
+
+    if (!response.ok) throw new Error('Failed to toggle bookmark');
+    return await response.json();
   },
 
   /**
@@ -213,11 +222,18 @@ export const scholarshipServiceApi = {
    * GET /api/bookmarks/my
    */
   getMyBookmarks: async () => {
-    return apiCall<Array<{
-      id: number;
-      applicantUserId: number;
-      opportunity: Scholarship;
-    }>>('/api/bookmarks/my');
+    // Gọi vào: /api/bookmarks/my (của Next.js)
+    const token = getAuthToken();
+    const response = await fetch(`/api/bookmarks/my`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch bookmarks');
+    return await response.json();
   },
 
   // ============================================
@@ -278,6 +294,7 @@ export const scholarshipServiceApi = {
       // Không throw error - view count là optional feature
     }
   },
+  
 };
 
 export default scholarshipServiceApi;

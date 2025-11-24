@@ -77,6 +77,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.users': 'Users',
     'nav.becomeEmployer': 'Are you an employer?',
     'nav.becomeProvider': 'Become a Provider',
+    'nav.savedScholarships': 'Saved Scholarships',
     
     // Auth
     'auth.signIn': 'Sign In',
@@ -139,6 +140,16 @@ const translations: Record<Language, Record<string, string>> = {
     'scholarship.active': 'Active',
     'scholarship.inactive': 'Inactive',
     'scholarship.expired': 'Expired',
+
+    // Saved Scholarships Page
+    'savedScholarships.title': 'My Saved Scholarships',
+    'savedScholarships.loading': 'Loading your saved list...',
+    'savedScholarships.empty': 'You haven\'t saved any scholarships yet.',
+    'savedScholarships.browse': 'Browse Scholarships',
+    'savedScholarships.remove': 'Remove from saved',
+    'savedScholarships.removeSuccess': 'Removed from saved list',
+    'savedScholarships.removeError': 'Could not remove scholarship',
+    'savedScholarships.loadError': 'Failed to load saved scholarships',
     
     // Applications
     'application.submit': 'Submit Application',
@@ -1964,6 +1975,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.users': 'Người dùng',
     'nav.becomeEmployer': 'Bạn là nhà tuyển dụng?',
     'nav.becomeProvider': 'Đăng ký Nhà tuyển dụng',
+    'nav.savedScholarships': 'Học bổng đã lưu',
     
     // Auth
     'auth.signIn': 'Đăng nhập',
@@ -2026,6 +2038,16 @@ const translations: Record<Language, Record<string, string>> = {
     'scholarship.active': 'Đang mở',
     'scholarship.inactive': 'Không hoạt động',
     'scholarship.expired': 'Hết hạn',
+
+    // Saved Scholarships Page
+    'savedScholarships.title': 'Học bổng đã lưu',
+    'savedScholarships.loading': 'Đang tải danh sách đã lưu...',
+    'savedScholarships.empty': 'Bạn chưa lưu học bổng nào.',
+    'savedScholarships.browse': 'Khám phá học bổng',
+    'savedScholarships.remove': 'Bỏ lưu',
+    'savedScholarships.removeSuccess': 'Đã xóa khỏi danh sách lưu',
+    'savedScholarships.removeError': 'Không thể xóa học bổng',
+    'savedScholarships.loadError': 'Không thể tải danh sách học bổng',
     
     // Applications
     'application.submit': 'Nộp đơn',

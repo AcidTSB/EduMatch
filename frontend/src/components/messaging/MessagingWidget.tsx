@@ -6,6 +6,8 @@ import { MessageSquare, Users, Minimize2, Maximize2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { UserDirectory } from '@/components/UserDirectory';
+import { ChatWindow} from '@/components/ChatWindow';
 import { useMessageStore } from '@/stores/realtimeStore';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';

@@ -25,7 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ApplyButton } from '@/components/ApplyButton';
-import { useApplications, useSavedScholarships } from '@/hooks/api';
+import { useApplications } from '@/hooks/api';
 import { scholarshipServiceApi } from '@/services/scholarship.service';
 import { mapOpportunityDetailToScholarship } from '@/lib/scholarship-mapper';
 import {
@@ -36,6 +36,7 @@ import {
 } from '@/types';
 import { formatDate, formatCurrency, cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
+import { useSavedScholarships } from '@/hooks/useSavedScholarships';
 
 export default function ScholarshipDetailPage() {
   const params = useParams();
