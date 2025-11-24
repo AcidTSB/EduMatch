@@ -162,13 +162,31 @@ public class ChatService {
                 (String) authentication.getCredentials()
         );
         Long currentUserId = user.getId();
+        String token = (String) authentication.getCredentials();
 
         // 2. Lấy danh sách Entity
         List<Conversation> conversations = conversationRepository.findByParticipantId(currentUserId);
 
-        // 3. Chuyển đổi sang DTO
+        // 3. Chuyển đổi sang DTO với thông tin user name
         return conversations.stream()
-                .map(conv -> ConversationDto.fromEntity(conv, currentUserId))
+                .map(conv -> {
+                    // Tìm ID của người "kia"
+                    Long otherId = conv.getParticipant1Id().equals(currentUserId)
+                            ? conv.getParticipant2Id()
+                            : conv.getParticipant1Id();
+                    
+                    // Lấy tên user từ Auth-Service
+                    UserDetailDto otherUser = getUserDetailsByIdFromAuthService(otherId, token);
+                    String otherUserName = (otherUser != null && otherUser.getUsername() != null) 
+                            ? otherUser.getUsername() 
+                            : "User " + otherId;
+                    
+                    // Lấy tin nhắn cuối cùng
+                    Message lastMsg = messageRepository.findTopByConversationIdOrderBySentAtDesc(conv.getId());
+                    String lastMessage = (lastMsg != null) ? lastMsg.getContent() : null;
+                    
+                    return ConversationDto.fromEntity(conv, currentUserId, otherUserName, lastMessage);
+                })
                 .collect(Collectors.toList());
     }
 
@@ -200,6 +218,34 @@ public class ChatService {
         // 3. Lấy dữ liệu (phân trang)
         // (Chúng ta trả về Page<Message> (Entity) vì MessageDto gần như giống hệt Message Entity)
         return messageRepository.findByConversationIdOrderBySentAtDesc(conversationId, pageable);
+    }
+
+    /**
+     * Lấy thông tin user bằng ID từ Auth-Service
+     */
+    private UserDetailDto getUserDetailsByIdFromAuthService(Long userId, String token) {
+        String url = authServiceUrl + "/api/internal/user/id/" + userId;
+        log.info("ChatService: Calling Auth-Service to get user details for userId: {}", userId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<UserDetailDto> response = restTemplate.exchange(
+                    url, HttpMethod.GET, entity, UserDetailDto.class
+            );
+            UserDetailDto user = response.getBody();
+            if (user == null || user.getId() == null) {
+                log.warn("Không thể lấy thông tin user ID {} từ Auth-Service.", userId);
+                return null;
+            }
+            log.info("ChatService: Successfully received user details, username={}", user.getUsername());
+            return user;
+        } catch (Exception ex) {
+            log.error("Lỗi khi gọi Auth-Service để lấy user ID {}: {}", userId, ex.getMessage());
+            return null;
+        }
     }
 
     /**

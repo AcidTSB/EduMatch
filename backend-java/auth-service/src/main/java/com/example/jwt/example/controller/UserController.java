@@ -193,6 +193,26 @@ public class UserController {
     }
 
     /**
+     * API nội bộ, lấy thông tin user theo ID
+     * Dùng cho Chat-Service
+     */
+    @GetMapping("/internal/user/id/{userId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserDetailDto> getUserDetailsById(@PathVariable Long userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+
+        UserDetailDto dto = UserDetailDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .organizationId(user.getOrganizationId())
+                .build();
+
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
      * Upload avatar image
      * POST /api/users/avatar
      */

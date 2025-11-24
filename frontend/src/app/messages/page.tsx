@@ -128,20 +128,41 @@ export default function MessagesPage() {
     if (!stompMessages || stompMessages.length === 0) return;
     const latestMessage = stompMessages[stompMessages.length - 1];
     
-    if (selectedConversation && selectedConversation.otherParticipantId) {
+    console.log('🔔 New STOMP message received:', latestMessage);
+    
+    if (selectedConversation && selectedConversation.otherParticipantId && user?.id) {
+      const currentUserId = parseInt(user.id);
+      const otherUserId = selectedConversation.otherParticipantId;
+      
+      // Check if message belongs to current conversation
       const isRelevant = 
-        (latestMessage.senderId === selectedConversation.otherParticipantId && latestMessage.receiverId === parseInt(user?.id || '0')) ||
-        (latestMessage.receiverId === selectedConversation.otherParticipantId && latestMessage.senderId === parseInt(user?.id || '0'));
+        (latestMessage.senderId === otherUserId && latestMessage.receiverId === currentUserId) ||
+        (latestMessage.receiverId === otherUserId && latestMessage.senderId === currentUserId);
+      
+      console.log('🔍 Message relevance check:', { 
+        isRelevant, 
+        messageSender: latestMessage.senderId, 
+        messageReceiver: latestMessage.receiverId,
+        currentUser: currentUserId,
+        otherUser: otherUserId 
+      });
       
       if (isRelevant) {
         setChatMessages(prev => {
-          if (prev.find(m => m.id === latestMessage.id)) return prev;
+          // Prevent duplicates
+          if (prev.find(m => m.id === latestMessage.id)) {
+            console.log('⚠️ Duplicate message, skipping');
+            return prev;
+          }
+          console.log('✅ Adding new message to chat');
           return [...prev, latestMessage];
         });
       }
     }
+    
+    // Reload conversations to update last message
     loadConversations();
-  }, [stompMessages, selectedConversation, user?.id]);
+  }, [stompMessages]);
 
   useEffect(() => {
     loadConversations();
@@ -165,8 +186,15 @@ export default function MessagesPage() {
     return conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
   }, [conversations]);
   
+  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatMessages.length > 0 && messagesEndRef.current) {
+      // Chỉ scroll trong container, không scroll cả trang
+      const messagesContainer = messagesEndRef.current.parentElement;
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+    }
   }, [chatMessages]);
 
   // --- Render UI ---
@@ -372,7 +400,7 @@ export default function MessagesPage() {
                   </div>
 
                   {/* Messages Area */}
-                  <div className="flex-1 overflow-y-auto p-6 bg-gray-50 space-y-6">
+                  <div className="flex-1 overflow-y-auto p-6 bg-gray-50 space-y-6 max-h-[500px] min-h-[400px]">
                     {isLoadingMessages ? (
                       <div className="flex justify-center items-center h-full">
                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

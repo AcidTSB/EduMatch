@@ -76,6 +76,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.analytics': 'Analytics',
     'nav.users': 'Users',
     'nav.becomeEmployer': 'Are you an employer?',
+    'nav.becomeProvider': 'Become a Provider',
     
     // Auth
     'auth.signIn': 'Sign In',
@@ -1962,6 +1963,7 @@ const translations: Record<Language, Record<string, string>> = {
     'nav.analytics': 'Thống kê',
     'nav.users': 'Người dùng',
     'nav.becomeEmployer': 'Bạn là nhà tuyển dụng?',
+    'nav.becomeProvider': 'Đăng ký Nhà tuyển dụng',
     
     // Auth
     'auth.signIn': 'Đăng nhập',

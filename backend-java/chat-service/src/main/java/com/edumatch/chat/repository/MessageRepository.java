@@ -14,4 +14,9 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
      * (Sắp xếp theo thời gian gửi giảm dần (DESC) để lấy tin nhắn mới nhất trước)
      */
     Page<Message> findByConversationIdOrderBySentAtDesc(Long conversationId, Pageable pageable);
+    
+    /**
+     * Lấy tin nhắn cuối cùng của một cuộc hội thoại
+     */
+    Message findTopByConversationIdOrderBySentAtDesc(Long conversationId);
 }
