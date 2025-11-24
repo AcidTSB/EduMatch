@@ -92,7 +92,7 @@ export default function ScholarshipDetailPage() {
         try {
           viewCountedRef.current = true;
           // Gọi API tăng view
-          await scholarshipServiceApi.increaseViewCount(params.id as string);
+          await scholarshipServiceApi.incrementViewCount(params.id as string);
           
           // Cập nhật UI ngay lập tức (Optimistic update)
           setScholarship(prev => prev ? ({

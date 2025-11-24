@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Calendar, MapPin, Clock, GraduationCap, DollarSign, Building2 } from 'lucide-react';
+import { Calendar, MapPin, Clock, GraduationCap, DollarSign, Building2, Eye } from 'lucide-react';
 import { Scholarship } from '@/types';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -101,14 +101,7 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
               {t('scholarshipCard.urgent')}
             </Badge>
           )}
-        </div>
-
-        {/* View Count */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Eye className="h-3 w-3" />
-          <span>{scholarship.viewCount || 0} views</span>
-        </div>
-      </CardContent>
+        </CardHeader>
 
         {/* Content */}
         <CardContent className="flex-1 flex flex-col space-y-4">
@@ -165,6 +158,12 @@ export function ScholarshipCard({ scholarship, showMatchScore = false, className
                 {t('scholarshipCard.urgent')}
               </Badge>
             )}
+          </div>
+
+          {/* View Count */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
+            <Eye className="h-3 w-3" />
+            <span>{scholarship.viewCount || 0} views</span>
           </div>
         </CardContent>
 
