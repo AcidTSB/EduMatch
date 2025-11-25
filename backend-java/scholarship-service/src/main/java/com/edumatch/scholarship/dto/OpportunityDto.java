@@ -40,6 +40,13 @@ public class OpportunityDto {
     private String website;
     // --- ------------------------ ---
 
+    // --- TRƯỜNG MỚI CHO ĐỊA ĐIỂM & TRƯỜNG HỌC ---
+    private String location;
+    private String university;
+    private String department;
+    private Integer durationMonths;
+    // --- ---------------------------------------- ---
+
     private List<String> tags; // 
     private List<String> requiredSkills; // 
 
@@ -68,6 +75,12 @@ public class OpportunityDto {
                 .isPublic(opp.getIsPublic())
                 .contactEmail(opp.getContactEmail())
                 .website(opp.getWebsite())
+
+                // ÁNH XẠ ĐỊA ĐIỂM & TRƯỜNG HỌC
+                .location(opp.getLocation())
+                .university(opp.getUniversity())
+                .department(opp.getDepartment())
+                .durationMonths(opp.getDurationMonths())
 
                 .minGpa(opp.getMinGpa())
 

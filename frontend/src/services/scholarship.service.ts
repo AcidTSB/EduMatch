@@ -127,6 +127,53 @@ export interface CreateOpportunityRequest {
   requiredSkills?: string[]; // Array of skill names
 }
 
+/**
+ * Transform backend DTO to frontend Scholarship type
+ * Backend field names → Frontend field names
+ */
+const _transformOpportunity = (item: any): Scholarship => {
+  return {
+    id: item.id,
+    providerId: item.creatorUserId || item.providerId, // creatorUserId → providerId
+    providerName: item.provider?.fullName || item.providerName || '',
+    title: item.title,
+    description: item.fullDescription || item.description, // fullDescription → description
+    amount: item.scholarshipAmount || item.amount, // scholarshipAmount → amount
+    type: item.level || item.type, // level → type
+    status: item.moderationStatus || item.status, // moderationStatus → status
+    applicationDeadline: item.applicationDeadline,
+    location: item.location || '',
+    university: item.university || '',
+    department: item.department || '',
+    duration: item.durationMonths || item.duration || 0, // durationMonths → duration
+    isRemote: item.studyMode === 'ONLINE' || item.studyMode === 'HYBRID' || item.isRemote, // studyMode → isRemote
+    minGpa: item.minGpa || 0,
+    requirements: {
+      minGpa: item.minGpa,
+      englishProficiency: item.englishProficiency,
+      documents: item.requiredDocuments || [],
+    },
+    requiredSkills: item.requiredSkills || [],
+    preferredSkills: item.preferredSkills || [],
+    viewCount: item.viewsCnt || item.viewCount || 0, // viewsCnt → viewCount
+    createdAt: item.createdAt ? new Date(item.createdAt) : new Date(),
+    
+    // Optional fields
+    tags: item.tags || [],
+    website: item.website,
+    contactEmail: item.contactEmail,
+    isPublic: item.isPublic,
+    matchScore: item.matchScore,
+    startDate: item.startDate,
+    endDate: item.endDate,
+    level: item.level,
+    studyMode: item.studyMode,
+    moderationStatus: item.moderationStatus,
+    scholarshipAmount: item.scholarshipAmount,
+    currency: item.currency,
+  };
+};
+
 // Scholarship Service API
 export const scholarshipServiceApi = {
   /**
@@ -149,7 +196,33 @@ export const scholarshipServiceApi = {
     }
     
     const queryString = searchParams.toString();
-    return apiCall<PaginatedResponse<Scholarship>>(`/api/scholarships${queryString ? `?${queryString}` : ''}`);
+    const response = await apiCall<any>(`/api/scholarships${queryString ? `?${queryString}` : ''}`);
+    
+    // Backend may return different response structures
+    // Handle both paginated (content/data) and array responses
+    if (Array.isArray(response)) {
+      return {
+        data: response.map(_transformOpportunity),
+        total: response.length,
+        page: 0,
+        limit: response.length,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPrevPage: false,
+      } as PaginatedResponse<Scholarship>;
+    }
+    
+    // Handle Spring Boot PageImpl structure
+    const content = response.content || response.data || [];
+    return {
+      data: content.map(_transformOpportunity),
+      total: response.totalElements || response.total || content.length,
+      page: response.number !== undefined ? response.number : (response.page || 0),
+      limit: response.size || response.limit || content.length,
+      totalPages: response.totalPages || Math.ceil((response.totalElements || response.total || content.length) / (response.size || response.limit || content.length || 1)),
+      hasNextPage: !response.last && response.last !== undefined ? !response.last : (response.hasNextPage || false),
+      hasPrevPage: !response.first && response.first !== undefined ? !response.first : (response.hasPrevPage || false),
+    } as PaginatedResponse<Scholarship>;
   },
 
   /**
@@ -157,7 +230,15 @@ export const scholarshipServiceApi = {
    * GET /api/scholarships/{id}
    */
   getScholarshipById: async (id: string | number) => {
-    return apiCall<{ opportunity: Scholarship; matchScore?: number }>(`/api/scholarships/${id}`);
+    const response = await apiCall<any>(`/api/scholarships/${id}`);
+    
+    // Backend may return { opportunity: ... } or just the opportunity object
+    const opportunityData = response.opportunity || response;
+    
+    return {
+      opportunity: _transformOpportunity(opportunityData),
+      matchScore: response.matchScore,
+    };
   },
 
   /**

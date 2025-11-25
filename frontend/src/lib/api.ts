@@ -15,7 +15,9 @@ import {
 } from '@/types';
 
 // API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api/v1';
+// Use relative path for production (works with nginx proxy)
+// Or use environment variable if explicitly set for development
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 // Request configuration
 const defaultOptions: RequestInit = {

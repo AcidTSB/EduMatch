@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Enable standalone output for Docker
+  output: 'standalone',
+  
   // Transpile framer-motion để fix lỗi "Unexpected token" khi build
   transpilePackages: ['framer-motion'],
   

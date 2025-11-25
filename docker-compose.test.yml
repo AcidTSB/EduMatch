@@ -1,0 +1,257 @@
+version: '3.8'
+
+services:
+  # ============================================================
+  # MySQL Database (for auth, scholarship, chat services)
+  # ============================================================
+  mysql:
+    image: mysql:8.0
+    container_name: edumatch-mysql-test
+    environment:
+      MYSQL_ROOT_PASSWORD: test_root_password
+      MYSQL_DATABASE: edumatch_test
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+      - ./backend-java/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+    networks:
+      - edumatch-test-network
+
+  # ============================================================
+  # PostgreSQL Database (for matching service)
+  # ============================================================
+  postgres:
+    image: postgres:15
+    container_name: edumatch-postgres-test
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test_postgres_password
+      POSTGRES_DB: matching_db_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_test_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - edumatch-test-network
+
+  # ============================================================
+  # RabbitMQ Message Broker
+  # ============================================================
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: edumatch-rabbitmq-test
+    environment:
+      RABBITMQ_DEFAULT_USER: test_user
+      RABBITMQ_DEFAULT_PASS: test_password
+    ports:
+      - "5673:5672"   # AMQP port
+      - "15673:15672" # Management UI
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - edumatch-test-network
+
+  # ============================================================
+  # Auth Service
+  # ============================================================
+  auth-service:
+    build:
+      context: ./backend-java/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service-test
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: test_root_password
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: test_user
+      SPRING_RABBITMQ_PASSWORD: test_password
+      JWT_SECRET: test_jwt_secret_key_for_testing_purposes_only
+      SERVER_PORT: 8081
+    ports:
+      - "8081:8081"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - edumatch-test-network
+
+  # ============================================================
+  # Scholarship Service
+  # ============================================================
+  scholarship-service:
+    build:
+      context: ./backend-java/scholarship-service
+      dockerfile: Dockerfile
+    container_name: scholarship-service-test
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/scholarship_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: test_root_password
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: test_user
+      SPRING_RABBITMQ_PASSWORD: test_password
+      JWT_SECRET: test_jwt_secret_key_for_testing_purposes_only
+      SERVER_PORT: 8082
+    ports:
+      - "8082:8082"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - edumatch-test-network
+
+  # ============================================================
+  # Chat Service
+  # ============================================================
+  chat-service:
+    build:
+      context: ./backend-java/chat-service
+      dockerfile: Dockerfile
+    container_name: chat-service-test
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: test
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/chat_db?createDatabaseIfNotExist=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: test_root_password
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: test_user
+      SPRING_RABBITMQ_PASSWORD: test_password
+      JWT_SECRET: test_jwt_secret_key_for_testing_purposes_only
+      SERVER_PORT: 8084
+    ports:
+      - "8084:8084"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - edumatch-test-network
+
+  # ============================================================
+  # Matching Service (Python FastAPI)
+  # ============================================================
+  matching-service:
+    build:
+      context: ./matching-service
+      dockerfile: Dockerfile
+    container_name: matching-service-test
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:test_postgres_password@postgres:5432/matching_db_test
+      RABBITMQ_URL: amqp://test_user:test_password@rabbitmq:5672/
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: amqp://test_user:test_password@rabbitmq:5672/
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      JWT_SECRET: test_jwt_secret_key_for_testing_purposes_only
+      ENVIRONMENT: test
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - edumatch-test-network
+
+  # ============================================================
+  # Redis (for matching service caching)
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    container_name: edumatch-redis-test
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - edumatch-test-network
+
+  # ============================================================
+  # Frontend (Next.js)
+  # ============================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: development
+    container_name: frontend-test
+    depends_on:
+      - auth-service
+      - scholarship-service
+      - chat-service
+      - matching-service
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8081
+      NEXT_PUBLIC_AUTH_SERVICE_URL: http://auth-service:8081
+      NEXT_PUBLIC_SCHOLARSHIP_SERVICE_URL: http://scholarship-service:8082
+      NEXT_PUBLIC_CHAT_SERVICE_URL: http://chat-service:8084
+      NEXT_PUBLIC_MATCHING_SERVICE_URL: http://matching-service:8000
+      NEXT_PUBLIC_WS_URL: ws://localhost:8084
+      NODE_ENV: test
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - edumatch-test-network
+
+networks:
+  edumatch-test-network:
+    driver: bridge
+
+volumes:
+  mysql_test_data:
+  postgres_test_data:

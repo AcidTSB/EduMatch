@@ -1,0 +1,284 @@
+name: Build and Deploy EduMatch System
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Select service to deploy manually'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - auth-service
+          - scholarship-service
+          - chat-service
+          - matching-service
+          - frontend
+          - nginx
+
+env:
+  AZURE_RESOURCE_GROUP: EduMatch-RG
+  ACR_LOGIN_SERVER: edumatchacr.azurecr.io
+
+jobs:
+  # ============================================================
+  # 1. AUTH SERVICE (JAVA)
+  # ============================================================
+  deploy-auth:
+    if: github.event.inputs.service == 'all' || github.event.inputs.service == 'auth-service' || (github.event_name == 'push' && contains(github.event.head_commit.modified, 'backend-java/auth-service/'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: |
+          cd backend-java/auth-service
+          chmod +x mvnw || true
+          ./mvnw clean package -DskipTests
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build & Push Docker Image
+        run: |
+          cd backend-java/auth-service
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/auth-service:${{ github.sha }} .
+          docker push ${{ env.ACR_LOGIN_SERVER }}/auth-service:${{ github.sha }}
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          containerAppName: auth-service
+          resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
+          imageToDeploy: ${{ env.ACR_LOGIN_SERVER }}/auth-service:${{ github.sha }}
+          # Java cần giới hạn RAM để không bị OOM Killed
+          environmentVariables: JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0
+
+  # ============================================================
+  # 2. SCHOLARSHIP SERVICE (JAVA)
+  # ============================================================
+  deploy-scholarship:
+    if: github.event.inputs.service == 'all' || github.event.inputs.service == 'scholarship-service' || (github.event_name == 'push' && contains(github.event.head_commit.modified, 'backend-java/scholarship-service/'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: |
+          cd backend-java/scholarship-service
+          chmod +x mvnw || true
+          ./mvnw clean package -DskipTests
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build & Push Docker Image
+        run: |
+          cd backend-java/scholarship-service
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/scholarship-service:${{ github.sha }} .
+          docker push ${{ env.ACR_LOGIN_SERVER }}/scholarship-service:${{ github.sha }}
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          containerAppName: scholarship-service
+          resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
+          imageToDeploy: ${{ env.ACR_LOGIN_SERVER }}/scholarship-service:${{ github.sha }}
+          environmentVariables: JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0
+
+  # ============================================================
+  # 3. CHAT SERVICE (JAVA)
+  # ============================================================
+  deploy-chat:
+    if: github.event.inputs.service == 'all' || github.event.inputs.service == 'chat-service' || (github.event_name == 'push' && contains(github.event.head_commit.modified, 'backend-java/chat-service/'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: |
+          cd backend-java/chat-service
+          chmod +x mvnw || true
+          ./mvnw clean package -DskipTests
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build & Push Docker Image
+        run: |
+          cd backend-java/chat-service
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/chat-service:${{ github.sha }} .
+          docker push ${{ env.ACR_LOGIN_SERVER }}/chat-service:${{ github.sha }}
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          containerAppName: chat-service
+          resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
+          imageToDeploy: ${{ env.ACR_LOGIN_SERVER }}/chat-service:${{ github.sha }}
+          environmentVariables: JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0
+
+  # ============================================================
+  # 4. MATCHING SERVICE (PYTHON) - CẤU HÌNH ĐẶC BIỆT
+  # ============================================================
+  deploy-matching:
+    if: github.event.inputs.service == 'all' || github.event.inputs.service == 'matching-service' || (github.event_name == 'push' && contains(github.event.head_commit.modified, 'matching-service/'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Không cần cài Python/Pip ở đây vì Docker build sẽ lo hết
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build & Push Docker Image
+        run: |
+          cd matching-service
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/matching-service:${{ github.sha }} .
+          docker push ${{ env.ACR_LOGIN_SERVER }}/matching-service:${{ github.sha }}
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          containerAppName: matching-service
+          resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
+          imageToDeploy: ${{ env.ACR_LOGIN_SERVER }}/matching-service:${{ github.sha }}
+          # QUAN TRỌNG: Map secret từ Key Vault vào biến môi trường chuẩn của Python
+          environmentVariables: |
+            DATABASE_URL=secretref:matching-db-url
+            RABBITMQ_HOST=secretref:rabbitmq-host
+            JWT_SECRET=secretref:jwt-secret
+            CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+            CELERY_RESULT_BACKEND=rpc://
+            DEBUG=false
+
+  # ============================================================
+  # 5. FRONTEND (NEXT.JS)
+  # ============================================================
+  deploy-frontend:
+    if: github.event.inputs.service == 'all' || github.event.inputs.service == 'frontend' || (github.event_name == 'push' && contains(github.event.head_commit.modified, 'frontend/'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build & Push Docker Image
+        run: |
+          cd frontend
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }} .
+          docker push ${{ env.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          containerAppName: frontend-app
+          resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
+          imageToDeploy: ${{ env.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
+
+  # ============================================================
+  # 6. NGINX GATEWAY
+  # ============================================================
+  deploy-nginx:
+    if: github.event.inputs.service == 'all' || github.event.inputs.service == 'nginx' || (github.event_name == 'push' && contains(github.event.head_commit.modified, 'nginx-gateway/'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker Login
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build & Push Docker Image
+        run: |
+          cd nginx-gateway
+          docker build -t ${{ env.ACR_LOGIN_SERVER }}/nginx-gateway:${{ github.sha }} .
+          docker push ${{ env.ACR_LOGIN_SERVER }}/nginx-gateway:${{ github.sha }}
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Container Apps
+        uses: azure/container-apps-deploy-action@v1
+        with:
+          containerAppName: nginx-gateway
+          resourceGroup: ${{ env.AZURE_RESOURCE_GROUP }}
+          imageToDeploy: ${{ env.ACR_LOGIN_SERVER }}/nginx-gateway:${{ github.sha }}

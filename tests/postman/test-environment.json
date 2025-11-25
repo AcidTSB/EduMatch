@@ -1,0 +1,47 @@
+{
+  "id": "test-environment",
+  "name": "Test Environment",
+  "values": [
+    {
+      "key": "authServiceUrl",
+      "value": "http://localhost:8081",
+      "enabled": true
+    },
+    {
+      "key": "scholarshipServiceUrl",
+      "value": "http://localhost:8082",
+      "enabled": true
+    },
+    {
+      "key": "chatServiceUrl",
+      "value": "http://localhost:8084",
+      "enabled": true
+    },
+    {
+      "key": "matchingServiceUrl",
+      "value": "http://localhost:8000",
+      "enabled": true
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "scholarshipId",
+      "value": "",
+      "enabled": true
+    },
+    {
+      "key": "applicationId",
+      "value": "",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}
