@@ -62,8 +62,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         ]);
         const appsCount = (pendingApps.totalElements || 0) + (reviewApps.totalElements || 0);
 
-        // TODO: Fetch notifications count when API is ready
-        const notificationsCount = 0;
+        // Fetch notifications count
+        let notificationsCount = 0;
+        try {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080'}/api/notifications/unread-count`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            notificationsCount = data.count || 0;
+          }
+        } catch (error) {
+          console.error('Failed to fetch unread notifications count:', error);
+        }
 
         setBadgeCounts({
           scholarships: scholarsCount,

@@ -100,7 +100,32 @@ public class ApplicationService {
             log.info("Đã lưu {} tài liệu cho đơn ID: {}", savedDocs.size(), savedApp.getId());
         }
 
-        // 5. Trả về DTO hoàn chỉnh (bao gồm đơn và tài liệu)
+        // 5. Gửi notification cho Admin về đơn ứng tuyển mới
+        try {
+            Map<String, Object> adminNotificationEvent = new HashMap<>();
+            adminNotificationEvent.put("recipientId", -1L); // -1 = Admin notifications
+            adminNotificationEvent.put("title", "📝 Đơn ứng tuyển mới");
+            adminNotificationEvent.put("body", String.format("Ứng viên %s đã nộp đơn cho học bổng \"%s\"", 
+                savedApp.getApplicantUserName(), opportunity.getTitle()));
+            adminNotificationEvent.put("type", "NEW_APPLICATION_ADMIN");
+            adminNotificationEvent.put("referenceId", savedApp.getId().toString());
+            adminNotificationEvent.put("applicationId", savedApp.getId());
+            adminNotificationEvent.put("opportunityId", savedApp.getOpportunityId() != null ? savedApp.getOpportunityId().toString() : null);
+            adminNotificationEvent.put("opportunityTitle", opportunity.getTitle());
+            adminNotificationEvent.put("applicantUserId", savedApp.getApplicantUserId());
+            adminNotificationEvent.put("applicantUserName", savedApp.getApplicantUserName());
+
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "notification.application.status", adminNotificationEvent);
+            log.info("✅ [NEW_APPLICATION_ADMIN] Đã gửi notification cho Admin về đơn ứng tuyển mới");
+            log.info("   - Application ID: {}", savedApp.getId());
+            log.info("   - Applicant: {}", savedApp.getApplicantUserName());
+            log.info("   - Scholarship: {}", opportunity.getTitle());
+            log.info("   - Routing key: notification.application.status");
+        } catch (Exception e) {
+            log.error("❌ [NEW_APPLICATION_ADMIN] Không thể gửi notification cho Admin: {}", e.getMessage(), e);
+        }
+
+        // 6. Trả về DTO hoàn chỉnh (bao gồm đơn và tài liệu)
         return ApplicationDto.fromEntity(savedApp, savedDocs);
     }
     /**

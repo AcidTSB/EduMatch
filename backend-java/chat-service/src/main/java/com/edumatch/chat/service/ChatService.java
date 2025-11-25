@@ -298,6 +298,7 @@ public class ChatService {
     /**
      * (Logic cho API: GET /api/notifications)
      * Lấy danh sách thông báo đã lưu trong DB của user
+     * Admin sẽ lấy cả notifications cá nhân và admin notifications (userId = -1)
      */
     @Transactional(readOnly = true)
     public Page<Notification> getMyNotifications(Pageable pageable, Authentication authentication) {
@@ -308,13 +309,25 @@ public class ChatService {
         );
         Long currentUserId = user.getId();
 
-        // 2. Lấy dữ liệu (đã được sắp xếp và phân trang)
-        return notificationRepository.findByUserIdOrderByCreatedAtDesc(currentUserId, pageable);
+        // 2. Kiểm tra xem user có phải admin không
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+
+        // 3. Lấy dữ liệu
+        if (isAdmin) {
+            // Admin lấy cả notifications của mình và admin notifications (userId = -1)
+            java.util.List<Long> userIds = java.util.Arrays.asList(currentUserId, -1L);
+            return notificationRepository.findByUserIdInOrderByCreatedAtDesc(userIds, pageable);
+        } else {
+            // User thường chỉ lấy notifications của mình
+            return notificationRepository.findByUserIdOrderByCreatedAtDesc(currentUserId, pageable);
+        }
     }
 
     /**
      * (Logic cho API: PATCH /api/notifications/{id}/read)
      * Đánh dấu thông báo là đã đọc
+     * Admin có thể đánh dấu đọc cả admin notifications (userId = -1)
      */
     @Transactional
     public void markNotificationAsRead(Long notificationId, Authentication authentication) {
@@ -325,20 +338,53 @@ public class ChatService {
         );
         Long currentUserId = user.getId();
 
-        // 2. Tìm thông báo
+        // 2. Kiểm tra xem user có phải admin không
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+
+        // 3. Tìm thông báo
         Notification notification = notificationRepository.findById(notificationId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy thông báo với ID: " + notificationId));
 
-        // 3. Kiểm tra quyền sở hữu (Bắt buộc)
-        if (!notification.getUserId().equals(currentUserId)) {
+        // 4. Kiểm tra quyền sở hữu (Bắt buộc)
+        // Admin có thể đánh dấu đọc cả admin notifications (userId = -1) và notifications của mình
+        if (!notification.getUserId().equals(currentUserId) && !(isAdmin && notification.getUserId().equals(-1L))) {
             log.warn("User {} cố gắng đánh dấu thông báo {} của người khác là đã đọc.",
                     currentUserId, notificationId);
             throw new AccessDeniedException("Bạn không có quyền chỉnh sửa thông báo này.");
         }
 
-        // 4. Đánh dấu đã đọc và lưu
+        // 5. Đánh dấu đã đọc và lưu
         notification.setRead(true);
         notificationRepository.save(notification);
-        log.info("Notification {} của User {} đã được đánh dấu là đã đọc.", notificationId, currentUserId);
+        log.info("✅ Đã đánh dấu thông báo ID: {} là đã đọc bởi User {}", notificationId, currentUserId);
+    }
+
+    /**
+     * Đếm số thông báo chưa đọc cho user hiện tại
+     * Admin sẽ đếm cả notifications cá nhân và admin notifications (userId = -1)
+     */
+    @Transactional(readOnly = true)
+    public long countUnreadNotifications(Authentication authentication) {
+        // 1. Lấy UserID (Long)
+        UserDetailDto user = getUserDetailsFromAuthService(
+                authentication.getName(),
+                (String) authentication.getCredentials()
+        );
+        Long currentUserId = user.getId();
+
+        // 2. Kiểm tra xem user có phải admin không
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
+
+        // 3. Đếm thông báo chưa đọc
+        if (isAdmin) {
+            // Admin đếm cả notifications của mình và admin notifications (userId = -1)
+            java.util.List<Long> userIds = java.util.Arrays.asList(currentUserId, -1L);
+            return notificationRepository.countByUserIdInAndIsReadFalse(userIds);
+        } else {
+            // User thường chỉ đếm notifications của mình
+            return notificationRepository.countByUserIdAndIsReadFalse(currentUserId);
+        }
     }
 }

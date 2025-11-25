@@ -46,4 +46,19 @@ public class NotificationController {
         // Đánh dấu đã đọc (Logic nằm trong ChatService)
         chatService.markNotificationAsRead(notificationId, authentication);
     }
+
+    /**
+     * API: GET /api/notifications/unread-count
+     * Mục tiêu: Lấy số lượng thông báo chưa đọc cho user hiện tại.
+     * Admin sẽ đếm cả notifications cá nhân và admin notifications.
+     */
+    @GetMapping("/unread-count")
+    public ResponseEntity<java.util.Map<String, Long>> getUnreadNotificationCount(
+            Authentication authentication) {
+
+        long count = chatService.countUnreadNotifications(authentication);
+        java.util.Map<String, Long> response = new java.util.HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
 }

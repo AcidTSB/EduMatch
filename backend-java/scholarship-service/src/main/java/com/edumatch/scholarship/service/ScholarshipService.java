@@ -185,6 +185,28 @@ public class ScholarshipService {
             log.warn("Failed to publish scholarship.created event for ID {}: {}", savedOpp.getId(), e.getMessage());
         }
 
+        // Gửi notification cho Admin về học bổng mới cần duyệt
+        try {
+            java.util.Map<String, Object> adminNotificationEvent = new java.util.HashMap<>();
+            adminNotificationEvent.put("recipientId", -1L); // -1 = Admin notifications
+            adminNotificationEvent.put("title", "🎓 Học bổng mới cần duyệt");
+            adminNotificationEvent.put("body", String.format("Nhà tuyển dụng đã tạo học bổng mới \"%s\" cần được duyệt", savedOpp.getTitle()));
+            adminNotificationEvent.put("type", "NEW_SCHOLARSHIP_ADMIN");
+            adminNotificationEvent.put("referenceId", savedOpp.getId().toString());
+            adminNotificationEvent.put("opportunityId", savedOpp.getId().toString());
+            adminNotificationEvent.put("opportunityTitle", savedOpp.getTitle());
+            adminNotificationEvent.put("creatorUserId", savedOpp.getCreatorUserId());
+
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, "notification.application.status", adminNotificationEvent);
+            log.info("✅ [NEW_SCHOLARSHIP_ADMIN] Đã gửi notification cho Admin về học bổng mới");
+            log.info("   - Opportunity ID: {}", savedOpp.getId());
+            log.info("   - Title: {}", savedOpp.getTitle());
+            log.info("   - Creator ID: {}", savedOpp.getCreatorUserId());
+            log.info("   - Routing key: notification.application.status");
+        } catch (Exception e) {
+            log.error("❌ [NEW_SCHOLARSHIP_ADMIN] Không thể gửi notification cho Admin: {}", e.getMessage(), e);
+        }
+
         return dtoToSend;
     }
 

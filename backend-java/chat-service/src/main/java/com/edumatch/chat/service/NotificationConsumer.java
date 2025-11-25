@@ -62,6 +62,30 @@ public class NotificationConsumer {
             referenceId = event.getOpportunityId();
             log.debug("📬 [NotificationConsumer] Scholarship ID: {}", referenceId);
             
+        } else if ("NEW_APPLICATION_ADMIN".equals(type)) {
+            log.info("📬 [NotificationConsumer] Processing NEW_APPLICATION_ADMIN event");
+            // Admin notification về đơn ứng tuyển mới
+            title = Optional.ofNullable(event.getTitle()).orElse("📝 Đơn ứng tuyển mới");
+            body = Optional.ofNullable(event.getBody()).orElse("Có một đơn ứng tuyển mới cần xem xét.");
+            if (event.getApplicationId() != null) {
+                referenceId = event.getApplicationId().toString();
+            } else if (event.getReferenceId() != null) {
+                referenceId = event.getReferenceId();
+            }
+            log.info("📬 [NotificationConsumer] NEW_APPLICATION_ADMIN - Application ID: {}, Recipient: {}", referenceId, recipientId);
+            
+        } else if ("NEW_SCHOLARSHIP_ADMIN".equals(type)) {
+            log.info("📬 [NotificationConsumer] Processing NEW_SCHOLARSHIP_ADMIN event");
+            // Admin notification về học bổng mới cần duyệt
+            title = Optional.ofNullable(event.getTitle()).orElse("🎓 Học bổng mới cần duyệt");
+            body = Optional.ofNullable(event.getBody()).orElse("Có một học bổng mới đang chờ duyệt.");
+            if (event.getOpportunityId() != null) {
+                referenceId = event.getOpportunityId().toString();
+            } else if (event.getReferenceId() != null) {
+                referenceId = event.getReferenceId();
+            }
+            log.info("📬 [NotificationConsumer] NEW_SCHOLARSHIP_ADMIN - Opportunity ID: {}, Recipient: {}", referenceId, recipientId);
+            
         } else if (event.getApplicationId() != null) {
             log.info("📬 [NotificationConsumer] Processing APPLICATION status event");
             // Application status changed
