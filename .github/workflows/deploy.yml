@@ -234,7 +234,7 @@ jobs:
       - name: Build & Push Docker Image
         run: |
           cd frontend
-          docker build -t ${{ env.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }} .
+          docker build --no-cache -t ${{ env.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }} .
           docker push ${{ env.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
 
       - name: Azure Login
