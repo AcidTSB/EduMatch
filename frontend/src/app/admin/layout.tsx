@@ -41,6 +41,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { logout, user } = useAuth();
   const { t, language, setLanguage } = useLanguage();
 
+  // Sync sidebar state with localStorage and dispatch event for Footer
+  useEffect(() => {
+    localStorage.setItem('adminSidebarOpen', String(sidebarOpen));
+    window.dispatchEvent(new CustomEvent('adminSidebarToggle', { detail: { open: sidebarOpen } }));
+  }, [sidebarOpen]);
+
   // Fetch badge counts from API
   useEffect(() => {
     const fetchCounts = async () => {

@@ -1,16 +1,65 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Mail, Phone, MapPin, Github, Twitter, Linkedin } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export function Footer() {
   const { t } = useLanguage();
   const currentYear = new Date().getFullYear();
+  const pathname = usePathname();
+  const isAdminPage = pathname?.startsWith('/admin');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Listen for sidebar state changes from admin layout
+  useEffect(() => {
+    if (!isAdminPage) return;
+
+    const handleStorageChange = () => {
+      const stored = localStorage.getItem('adminSidebarOpen');
+      if (stored !== null) {
+        setSidebarOpen(stored === 'true');
+      }
+    };
+
+    // Check initial state
+    const stored = localStorage.getItem('adminSidebarOpen');
+    if (stored !== null) {
+      setSidebarOpen(stored === 'true');
+    }
+
+    // Listen for changes
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also check periodically (for same-tab updates)
+    const interval = setInterval(handleStorageChange, 100);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, [isAdminPage]);
+
+  // Also listen to custom events from admin layout
+  useEffect(() => {
+    if (!isAdminPage) return;
+
+    const handleSidebarToggle = (e: CustomEvent) => {
+      setSidebarOpen(e.detail.open);
+    };
+
+    window.addEventListener('adminSidebarToggle', handleSidebarToggle as EventListener);
+    return () => {
+      window.removeEventListener('adminSidebarToggle', handleSidebarToggle as EventListener);
+    };
+  }, [isAdminPage]);
 
   return (
-    <footer className="bg-gradient-to-br from-gray-50 to-gray-100 border-t border-gray-200">
+    <footer className={`bg-gradient-to-br from-gray-50 to-gray-100 border-t border-gray-200 transition-all duration-300 ${
+      isAdminPage && sidebarOpen ? 'lg:ml-64' : ''
+    }`}>
       {/* Main Footer Content - Full Width */}
       <div className="w-full px-8 lg:px-16 xl:px-24 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-16">
