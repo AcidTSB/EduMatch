@@ -1,10 +1,7 @@
 name: Integration Tests
 
 on:
-  # pull_request:
-  #   branches: [main, dev]
-  # push:
-  #   branches: [main, dev]
+  # Disabled auto-trigger - manual only
   workflow_dispatch:
 
 env:
