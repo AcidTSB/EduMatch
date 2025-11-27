@@ -11,6 +11,7 @@ import { ToastProvider } from '@/providers/ToastProvider'
 import { Toaster } from '@/components/ui/toaster'
 import { Toaster as HotToaster } from 'react-hot-toast'
 import {QueryProvider} from '@/providers/QueryProvider'
+import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
+        <ServiceWorkerRegistration />
         <LanguageProvider>
           <AppProvider>
             <QueryProvider>

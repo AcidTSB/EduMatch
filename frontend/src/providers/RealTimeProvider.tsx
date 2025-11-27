@@ -7,6 +7,7 @@ import { useMessageStore, useNotificationStore } from '@/stores/realtimeStore';
 import type { Message, Notification as NotificationModel } from '@/types/realtime';
 import { toast } from 'react-hot-toast';
 import { markNotificationAsRead as markNotificationAsReadAPI } from '@/services/chat.service';
+import { useFCM } from '@/hooks/useFCM';
 
 interface RealTimeContextType {
   // Socket
@@ -45,6 +46,9 @@ interface RealTimeProviderProps {
 
 export function RealTimeProvider({ children, enabled = true }: RealTimeProviderProps) {
   const { user, isAuthenticated } = useAuth();
+  
+  // Initialize FCM token registration
+  useFCM();
   
   // Initialize Socket.IO
   const socket = useSocket(
