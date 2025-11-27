@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic';
+
 // Mock API endpoint to check if user has applied for a scholarship
 
 const mockApplications = new Map();
