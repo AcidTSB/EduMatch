@@ -15,4 +15,13 @@ public interface OpportunityRepository extends JpaRepository<Opportunity, Long>,
      List<Opportunity> findByCreatorUserId(Long creatorUserId);
      List<Opportunity> findByOrganizationId(Long organizationId);
      Page<Opportunity> findByModerationStatus(String status, Pageable pageable);
+     
+     // Kiểm tra xem đã có học bổng với cùng title và organizationId chưa
+     boolean existsByOrganizationIdAndTitleIgnoreCase(Long organizationId, String title);
+     
+     // Kiểm tra xem đã có học bổng khác (không phải id này) với cùng title và organizationId chưa
+     boolean existsByOrganizationIdAndTitleIgnoreCaseAndIdNot(Long organizationId, String title, Long id);
+     
+     // Tìm tất cả học bổng có cùng title (case-insensitive) để kiểm tra duplicate chi tiết
+     List<Opportunity> findByTitleIgnoreCase(String title);
 }

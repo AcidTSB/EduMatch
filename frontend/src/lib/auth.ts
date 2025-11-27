@@ -14,6 +14,7 @@ interface AuthContextType {
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   clearError: () => void;
   error: string | null;
 }
@@ -50,52 +51,135 @@ export function AuthProvider({ children }: AuthProviderProps) {
   });
   const [error, setError] = useState<string | null>(null);
 
+  // Define refreshUser first so it can be used in initialization
+  const refreshUser = async () => {
+    try {
+      const token = getCookie('auth_token') || getFromLocalStorage('auth_token');
+      if (!token) {
+        return;
+      }
+
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080';
+      const response = await fetch(`${API_BASE_URL}/api/user/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user');
+      }
+
+      const userData = await response.json();
+      
+      // Transform backend user to AuthUser format
+      const roles = userData.roles || [];
+      let primaryRole = 'USER';
+      
+      if (roles.some((r: string) => r.replace('ROLE_', '').toUpperCase() === 'ADMIN')) {
+        primaryRole = 'ADMIN';
+      } else if (roles.some((r: string) => r.replace('ROLE_', '').toUpperCase() === 'EMPLOYER')) {
+        primaryRole = 'EMPLOYER';
+      } else if (roles.length > 0) {
+        primaryRole = roles[0]?.replace('ROLE_', '') || 'USER';
+      }
+      
+      const authUser: AuthUser = {
+        id: String(userData.id),
+        email: userData.email,
+        name: `${userData.firstName || ''} ${userData.lastName || ''}`.trim() || userData.username,
+        role: primaryRole.toUpperCase() as UserRole,
+        emailVerified: userData.enabled,
+        status: 'ACTIVE',
+        subscriptionType: userData.subscriptionType || 'FREE',
+        createdAt: userData.createdAt ? new Date(userData.createdAt) : new Date(),
+        updatedAt: userData.updatedAt ? new Date(userData.updatedAt) : new Date(),
+        profile: {
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          bio: userData.bio,
+          gpa: userData.gpa,
+          major: userData.major,
+          university: userData.university,
+          yearOfStudy: userData.yearOfStudy,
+          skills: userData.skills,
+          researchInterests: userData.researchInterests,
+          avatarUrl: userData.avatarUrl,
+          phone: userData.phone,
+          dateOfBirth: userData.dateOfBirth,
+          sex: userData.sex,
+        }
+      };
+
+      // Update localStorage and cookies
+      const userStr = JSON.stringify(authUser);
+      setToLocalStorage('auth_user', userStr);
+      setCookie('auth_user', userStr, 7);
+
+      // Update state
+      setAuthState(createAuthenticatedState(authUser));
+    } catch (err) {
+      // Silent fail - keep existing user data
+    }
+  };
+
   // Initialize auth state from localStorage
   useEffect(() => {
-    // PRIORITY 1: Try to get from cookies first (more reliable after redirect)
-    let token = getCookie('auth_token');
-    let userData = getCookie('auth_user');
-    
-    // PRIORITY 2: Fallback to localStorage if cookies are empty
-    if (!token || !userData) {
-      token = getFromLocalStorage('auth_token');
-      userData = getFromLocalStorage('auth_user');
-    }
-
-    if (token && userData) {
-      try {
-        const user = JSON.parse(userData);
-        
-        // Re-set cookies AND localStorage for redundancy
-        setCookie('auth_token', token, 7);
-        setCookie('auth_user', userData, 7);
-        setToLocalStorage('auth_token', token);
-        setToLocalStorage('auth_user', userData);
-        
-        setAuthState({
-          user,
-          profile: user?.profile || null,
-          isLoading: false,
-          isAuthenticated: true,
-          role: user?.role || null,
-        });
-      } catch (error) {
-        // Invalid user data, clear storage and cookies
-        removeFromLocalStorage('auth_token');
-        removeFromLocalStorage('auth_user');
-        deleteCookie('auth_token');
-        deleteCookie('auth_user');
-        setAuthState({
-          user: null,
-          profile: null,
-          isLoading: false,
-          isAuthenticated: false,
-          role: null,
-        });
+    const initializeAuth = async () => {
+      // PRIORITY 1: Try to get from cookies first (more reliable after redirect)
+      let token = getCookie('auth_token');
+      let userData = getCookie('auth_user');
+      
+      // PRIORITY 2: Fallback to localStorage if cookies are empty
+      if (!token || !userData) {
+        token = getFromLocalStorage('auth_token');
+        userData = getFromLocalStorage('auth_user');
       }
-    } else {
-      setAuthState(resetAuthState());
-    }
+
+      if (token && userData) {
+        try {
+          const user = JSON.parse(userData);
+          
+          // Re-set cookies AND localStorage for redundancy
+          setCookie('auth_token', token, 7);
+          setCookie('auth_user', userData, 7);
+          setToLocalStorage('auth_token', token);
+          setToLocalStorage('auth_user', userData);
+          
+          setAuthState({
+            user,
+            profile: user?.profile || null,
+            isLoading: false,
+            isAuthenticated: true,
+            role: user?.role || null,
+          });
+          
+          // Refresh user data from API to ensure it's up-to-date
+          // This ensures profile completion check uses latest data
+          await refreshUser();
+        } catch (error) {
+          // Invalid user data, clear storage and cookies
+          removeFromLocalStorage('auth_token');
+          removeFromLocalStorage('auth_user');
+          deleteCookie('auth_token');
+          deleteCookie('auth_user');
+          setAuthState({
+            user: null,
+            profile: null,
+            isLoading: false,
+            isAuthenticated: false,
+            role: null,
+          });
+        }
+      } else {
+        setAuthState(resetAuthState());
+      }
+    };
+    
+    initializeAuth();
   }, []);
 
   // Auto refresh token periodically
@@ -290,6 +374,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     register,
     logout,
     refreshToken,
+    refreshUser,
     clearError,
     error,
   };

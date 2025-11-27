@@ -112,7 +112,7 @@ export default function ScholarshipsPage() {
         const response = await scholarshipServiceApi.getScholarships(apiFilters);
         
         // Map response to frontend format
-        const mapped = mapPaginatedOpportunities(response);
+        const mapped = await mapPaginatedOpportunities(response);
         setScholarships(mapped.scholarships);
         setTotalPages(mapped.totalPages);
         setTotalElements(mapped.totalElements);

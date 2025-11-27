@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ModalForm, { FormField } from '@/components/admin/ModalForm';
 import StatCard from '@/components/admin/StatCard';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { adminService } from '@/services/admin.service';
+import { useEffect } from 'react';
 
 interface NotificationTemplate {
   id: string;
@@ -30,12 +32,83 @@ export default function AdminNotificationsPage() {
   const { t } = useLanguage();
   const [showSendModal, setShowSendModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<NotificationTemplate | null>(null);
-  const [stats] = useState({
-    totalSent: 1284,
-    delivered: 1203,
-    pending: 45,
-    failed: 36
+  const [stats, setStats] = useState({
+    totalSent: 0,
+    delivered: 0,
+    pending: 0,
+    failed: 0,
+    changePercentage: 0
   });
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [history, setHistory] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [templates, setTemplates] = useState<NotificationTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+
+  // Fetch stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setIsLoadingStats(true);
+        const data = await adminService.getNotificationStats();
+        setStats({
+          totalSent: data.totalSent || 0,
+          delivered: data.delivered || 0,
+          pending: data.pending || 0,
+          failed: data.failed || 0,
+          changePercentage: data.changePercentage || 0
+        });
+      } catch (error: any) {
+        console.error('Failed to fetch notification stats:', error);
+        toast.error('Không thể tải thống kê', {
+          description: error.message || 'Vui lòng thử lại sau'
+        });
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  // Fetch history
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        setIsLoadingHistory(true);
+        const response = await adminService.getNotificationHistory({ page: 0, size: 10 });
+        setHistory(response.content || []);
+      } catch (error: any) {
+        console.error('Failed to fetch notification history:', error);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
+    fetchHistory();
+  }, []);
+
+  // Fetch templates
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        setIsLoadingTemplates(true);
+        const data = await adminService.getNotificationTemplates();
+        setTemplates(data.map((t: any) => ({
+          id: t.id.toString(),
+          name: t.name,
+          description: t.description,
+          type: t.type as 'SYSTEM' | 'ANNOUNCEMENT' | 'ALERT' | 'UPDATE'
+        })));
+      } catch (error: any) {
+        console.error('Failed to fetch templates:', error);
+      } finally {
+        setIsLoadingTemplates(false);
+      }
+    };
+
+    fetchTemplates();
+  }, []);
 
   const sendFields: FormField[] = [
     {
@@ -123,18 +196,45 @@ export default function AdminNotificationsPage() {
     }
   ];
 
-  const handleSendNotification = (data: Record<string, any>) => {
-    console.log('Sending notification:', data);
-    // TODO: API call to send notification
-    // - If targetAudience === 'SPECIFIC', send to specificEmail
-    // - Otherwise, send to all matching users
-    // - If sendEmail === 'yes', trigger email notifications
-    // - Broadcast via WebSocket for real-time delivery
-    setShowSendModal(false);
-    setSelectedTemplate(null);
-    toast.success(t('adminNotifications.toast.success'), {
-      description: t('adminNotifications.toast.description'),
-    });
+  const handleSendNotification = async (data: Record<string, any>) => {
+    try {
+      await adminService.sendNotification({
+        targetAudience: data.targetAudience,
+        specificEmail: data.specificEmail,
+        type: data.type,
+        priority: data.priority,
+        title: data.title,
+        message: data.message,
+        actionUrl: data.actionUrl,
+        actionLabel: data.actionLabel,
+        sendEmail: data.sendEmail === 'yes'
+      });
+      
+      setShowSendModal(false);
+      setSelectedTemplate(null);
+      
+      // Refresh stats and history
+      const statsData = await adminService.getNotificationStats();
+      setStats({
+        totalSent: statsData.totalSent || 0,
+        delivered: statsData.delivered || 0,
+        pending: statsData.pending || 0,
+        failed: statsData.failed || 0,
+        changePercentage: statsData.changePercentage || 0
+      });
+      
+      const historyResponse = await adminService.getNotificationHistory({ page: 0, size: 10 });
+      setHistory(historyResponse.content || []);
+      
+      toast.success(t('adminNotifications.toast.success'), {
+        description: t('adminNotifications.toast.description'),
+      });
+    } catch (error: any) {
+      console.error('Failed to send notification:', error);
+      toast.error('Không thể gửi thông báo', {
+        description: error.message || 'Vui lòng thử lại sau'
+      });
+    }
   };
 
   const useTemplate = (template: NotificationTemplate) => {
@@ -160,25 +260,25 @@ export default function AdminNotificationsPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard
           title={t('adminNotifications.stats.totalSent')}
-          value={stats.totalSent}
+          value={isLoadingStats ? '...' : stats.totalSent}
           icon={<Send className="w-6 h-6 text-blue-600" />}
           trend="up"
-          change={8.5}
+          change={stats.changePercentage}
           changeLabel={t('adminNotifications.stats.vsLastMonth')}
         />
         <StatCard
           title={t('adminNotifications.stats.delivered')}
-          value={stats.delivered}
+          value={isLoadingStats ? '...' : stats.delivered}
           icon={<Bell className="w-6 h-6 text-green-600" />}
         />
         <StatCard
           title={t('adminNotifications.stats.pending')}
-          value={stats.pending}
+          value={isLoadingStats ? '...' : stats.pending}
           icon={<AlertCircle className="w-6 h-6 text-yellow-600" />}
         />
         <StatCard
           title={t('adminNotifications.stats.failed')}
-          value={stats.failed}
+          value={isLoadingStats ? '...' : stats.failed}
           icon={<AlertCircle className="w-6 h-6 text-red-600" />}
         />
       </div>
@@ -232,32 +332,41 @@ export default function AdminNotificationsPage() {
               <CardTitle>{t('adminNotifications.recent.title')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {[
-                  { title: 'System Maintenance', time: '2 hours ago', audience: 'All Users', status: 'Delivered' },
-                  { title: 'New Scholarship Posted', time: '5 hours ago', audience: 'Applicants', status: 'Delivered' },
-                  { title: 'Profile Verification Reminder', time: '1 day ago', audience: 'Providers', status: 'Delivered' }
-                ].map((notif, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Bell className="w-5 h-5 text-gray-400" />
-                      <div>
-                        <div className="font-medium">{notif.title}</div>
-                        <div className="text-sm text-gray-500">{notif.time} • {notif.audience}</div>
+              {isLoadingHistory ? (
+                <div className="text-center py-8 text-gray-500">Đang tải...</div>
+              ) : history.length > 0 ? (
+                <div className="space-y-3">
+                  {history.map((notif: any) => (
+                    <div key={notif.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Bell className="w-5 h-5 text-gray-400" />
+                        <div>
+                          <div className="font-medium">{notif.title}</div>
+                          <div className="text-sm text-gray-500">
+                            {new Date(notif.createdAt).toLocaleString('vi-VN')} • {notif.targetAudience}
+                          </div>
+                        </div>
                       </div>
+                      <Badge className="bg-green-100 text-green-700">
+                        {notif.deliveredCount}/{notif.totalRecipients} đã gửi
+                      </Badge>
                     </div>
-                    <Badge className="bg-green-100 text-green-700">{notif.status}</Badge>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">Chưa có thông báo nào</div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         {/* Templates Tab */}
         <TabsContent value="templates" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {templates.map(template => (
+          {isLoadingTemplates ? (
+            <div className="text-center py-8 text-gray-500">Đang tải...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {templates.map(template => (
               <Card key={template.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -278,8 +387,9 @@ export default function AdminNotificationsPage() {
                   </Button>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         {/* History Tab */}
@@ -289,35 +399,38 @@ export default function AdminNotificationsPage() {
               <CardTitle>{t('adminNotifications.history.title')}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {[
-                  { id: 'notif-1', title: 'System Maintenance Scheduled', sent: '2024-01-15 14:30', recipients: 1284, delivered: 1203, failed: 36 },
-                  { id: 'notif-2', title: 'New Feature: Advanced Filters', sent: '2024-01-14 10:00', recipients: 856, delivered: 850, failed: 6 },
-                  { id: 'notif-3', title: 'Security Update Required', sent: '2024-01-13 09:15', recipients: 1284, delivered: 1270, failed: 14 },
-                  { id: 'notif-4', title: 'Monthly Newsletter', sent: '2024-01-10 08:00', recipients: 1284, delivered: 1256, failed: 28 }
-                ].map((notif) => (
-                  <div key={notif.id} className="p-4 border rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="font-medium">{notif.title}</div>
-                      <Badge className="bg-gray-100 text-gray-700">{notif.sent}</Badge>
+              {isLoadingHistory ? (
+                <div className="text-center py-8 text-gray-500">Đang tải...</div>
+              ) : history.length > 0 ? (
+                <div className="space-y-3">
+                  {history.map((notif: any) => (
+                    <div key={notif.id} className="p-4 border rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-medium">{notif.title}</div>
+                        <Badge className="bg-gray-100 text-gray-700">
+                          {new Date(notif.createdAt).toLocaleString('vi-VN')}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-sm">
+                        <div>
+                          <span className="text-gray-500">{t('adminNotifications.history.recipients')}: </span>
+                          <span className="font-medium">{notif.totalRecipients}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">{t('adminNotifications.history.delivered')}: </span>
+                          <span className="font-medium text-green-600">{notif.deliveredCount}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">{t('adminNotifications.history.failed')}: </span>
+                          <span className="font-medium text-red-600">{notif.failedCount}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm">
-                      <div>
-                        <span className="text-gray-500">{t('adminNotifications.history.recipients')}: </span>
-                        <span className="font-medium">{notif.recipients}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">{t('adminNotifications.history.delivered')}: </span>
-                        <span className="font-medium text-green-600">{notif.delivered}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-500">{t('adminNotifications.history.failed')}: </span>
-                        <span className="font-medium text-red-600">{notif.failed}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">Chưa có lịch sử thông báo</div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

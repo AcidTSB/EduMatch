@@ -14,6 +14,7 @@ import {
 interface NotificationState {
   notifications: Notification[];
   unreadCount: number;
+  loadNotifications: (notifications: any[]) => Promise<void>;
   addNotification: (notification: Notification) => void;
   markAsRead: (notificationIds: string[]) => void;
   markAllAsRead: () => void;
@@ -54,7 +55,45 @@ export const useNotificationStore = create<NotificationState>()(
     notifications: [],
     unreadCount: 0,
     
+    loadNotifications: async (notifications: any[]) => {
+      console.log('[NotificationStore] Loading notifications:', notifications.length);
+      // Map notifications to expected format
+      const mappedNotifications = notifications.map((notif: any) => {
+        // Backend returns both 'read' (from @JsonProperty) and 'isRead' (from field name)
+        // Prefer 'read' first, then 'isRead', default to false
+        const isRead = notif.read !== undefined ? notif.read : (notif.isRead !== undefined ? notif.isRead : false);
+        
+        return {
+          id: notif.id?.toString() || notif.notificationId?.toString() || `notif-${Date.now()}-${Math.random()}`,
+          type: notif.type || notif.notificationType || 'INFO',
+          title: notif.title || notif.subject || 'Notification',
+          body: notif.body || notif.message || notif.content || '',
+          message: notif.body || notif.message || notif.content || '',
+          read: isRead,
+          isRead: isRead, // Keep both for compatibility
+          createdAt: notif.createdAt || notif.sentAt || notif.timestamp || new Date(),
+          opportunityTitle: notif.opportunityTitle || notif.scholarshipName,
+        };
+      });
+      
+      // Sort by createdAt descending (newest first)
+      const sorted = mappedNotifications.sort((a: any, b: any) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA;
+      });
+      
+      const unreadCount = sorted.filter(n => !n.read).length;
+      set({ notifications: sorted, unreadCount });
+    },
+    
     addNotification: (notification) => set((state) => {
+      // Check if notification already exists
+      const exists = state.notifications.some(n => n.id === notification.id);
+      if (exists) {
+        return state;
+      }
+      
       const newNotifications = [notification, ...state.notifications];
       const unreadCount = newNotifications.filter(n => !n.read).length;
       return {

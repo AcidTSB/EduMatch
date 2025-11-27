@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Bell } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRealTime } from '@/providers/RealTimeProvider';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -11,6 +11,7 @@ import { parseNotification, getNotificationIcon } from '@/lib/notification-templ
 export function NotificationDropdown() {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<any>(null);
   const { 
     notifications, 
     notificationUnreadCount: unreadCount, 
@@ -24,6 +25,16 @@ export function NotificationDropdown() {
 
   const handleMarkAllAsRead = () => {
     markAllAsRead();
+  };
+
+  const handleNotificationClick = (notification: any) => {
+    // Mark as read
+    if (!notification.read) {
+      handleMarkAsRead(notification.id);
+    }
+    // Close dropdown and show detail modal
+    setIsOpen(false);
+    setSelectedNotification(notification);
   };
 
   return (
@@ -67,7 +78,7 @@ export function NotificationDropdown() {
                     className={`p-4 border-b hover:bg-gray-50 cursor-pointer transition-colors ${
                       !notification.read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
                     }`}
-                    onClick={() => !notification.read && handleMarkAsRead(notification.id)}
+                    onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex items-start gap-3">
                       <span className="text-lg flex-shrink-0">
@@ -76,14 +87,14 @@ export function NotificationDropdown() {
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
                           <p className="font-medium text-sm">
-                            {t(templateKey + '.title', params || {})}
+                            {notification.title || t(templateKey + '.title', params || {})}
                           </p>
                           {!notification.read && (
                             <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2"></div>
                           )}
                         </div>
                         <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                          {t(templateKey, params || {})}
+                          {notification.body || notification.message || t(templateKey, params || {})}
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
                           {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
@@ -108,6 +119,96 @@ export function NotificationDropdown() {
               </Button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Notification Detail Modal */}
+      {selectedNotification && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black bg-opacity-50 p-4" onClick={() => setSelectedNotification(null)}>
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">
+                  {getNotificationIcon(selectedNotification.type)}
+                </span>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {selectedNotification.title || 'Thông báo'}
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {formatDistanceToNow(new Date(selectedNotification.createdAt), { addSuffix: true })}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedNotification(null)}
+                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500 mb-2">Nội dung thông báo</h3>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-gray-900 whitespace-pre-wrap">
+                      {selectedNotification.body || selectedNotification.message || 'Không có nội dung'}
+                    </p>
+                  </div>
+                </div>
+
+                {selectedNotification.referenceId && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">Thông tin liên quan</h3>
+                    <p className="text-sm text-gray-700">
+                      ID tham chiếu: {selectedNotification.referenceId}
+                    </p>
+                  </div>
+                )}
+
+                {(selectedNotification as any).opportunityTitle && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">Học bổng</h3>
+                    <p className="text-sm text-gray-700">
+                      {(selectedNotification as any).opportunityTitle}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 px-6 py-4 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedNotification(null)}
+              >
+                Đóng
+              </Button>
+              {selectedNotification.referenceId && (
+                <Button
+                  onClick={() => {
+                    // Navigate to related page based on type
+                    if (selectedNotification.type?.includes('APPLICATION')) {
+                      window.location.href = `/applications`;
+                    } else if (selectedNotification.type?.includes('SCHOLARSHIP')) {
+                      window.location.href = `/scholarships/${selectedNotification.referenceId}`;
+                    }
+                    setSelectedNotification(null);
+                  }}
+                >
+                  Xem chi tiết
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

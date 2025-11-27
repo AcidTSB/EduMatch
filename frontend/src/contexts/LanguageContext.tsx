@@ -519,6 +519,8 @@ const translations: Record<Language, Record<string, string>> = {
     'dashboard.status.underReview': 'Under Review',
     'dashboard.status.submitted': 'Submitted',
     'dashboard.status.unknown': 'Unknown',
+    'dashboard.carousel.previous': 'Previous',
+    'dashboard.carousel.next': 'Next',
     
     // Scholarship List
     'scholarshipList.title': 'Browse Scholarships',
@@ -649,6 +651,7 @@ const translations: Record<Language, Record<string, string>> = {
     'admin.stats.activeScholarships': 'Active Scholarships',
     'admin.stats.pendingApplications': 'Pending Applications',
     'admin.stats.totalFunding': 'Total Funding',
+    'admin.stats.pendingScholarships': 'Pending Scholarships',
     'admin.stats.vsLastMonth': 'vs last month',
     'admin.stats.viewAll': 'View All',
     'admin.recentApplications.title': 'Recent Applications',
@@ -2453,6 +2456,8 @@ const translations: Record<Language, Record<string, string>> = {
     'dashboard.status.underReview': 'Đang xem xét',
     'dashboard.status.submitted': 'Đã gửi',
     'dashboard.status.unknown': 'Không xác định',
+    'dashboard.carousel.previous': 'Trước',
+    'dashboard.carousel.next': 'Sau',
     
     // Scholarship List
     'scholarshipList.title': 'Danh sách học bổng',
@@ -2581,6 +2586,7 @@ const translations: Record<Language, Record<string, string>> = {
     'admin.stats.activeScholarships': 'Học bổng đang hoạt động',
     'admin.stats.pendingApplications': 'Đơn đang chờ xử lý',
     'admin.stats.totalFunding': 'Tổng kinh phí',
+    'admin.stats.pendingScholarships': 'Học bổng chờ phê duyệt',
     'admin.stats.vsLastMonth': 'so với tháng trước',
     'admin.stats.viewAll': 'Xem tất cả',
     'admin.recentApplications.title': 'Đơn đăng ký gần đây',

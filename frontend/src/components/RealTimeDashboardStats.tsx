@@ -7,62 +7,93 @@ import { FileText, Clock, CheckCircle, Heart, TrendingUp, Users, Award, AlertTri
 import { useRealTime } from '@/providers/RealTimeProvider';
 import { useDashboardStore } from '@/stores/realtimeStore';
 import { useApplicationsData, useSavedScholarshipsData, useScholarshipsData } from '@/contexts/AppContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface DashboardStatsProps {
   userRole?: 'applicant' | 'provider' | 'admin';
+  applications?: any[];
+  savedScholarships?: any[];
 }
 
-export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStatsProps) {
+export function RealTimeDashboardStats({ userRole = 'applicant', applications: propsApplications, savedScholarships: propsSavedScholarships }: DashboardStatsProps) {
   const { socket } = useRealTime();
   const { stats } = useDashboardStore();
+  const { t } = useLanguage();
   
-  // Get real data from AppContext
-  const { applications } = useApplicationsData();
-  const { savedScholarships } = useSavedScholarshipsData();
+  // Get real data - prefer props over AppContext
+  const appContextData = useApplicationsData();
+  const appContextSaved = useSavedScholarshipsData();
   const { scholarships } = useScholarshipsData();
+  
+  // Use props if provided, otherwise fall back to AppContext
+  const applications = propsApplications || appContextData.applications || [];
+  const savedScholarships = propsSavedScholarships || appContextSaved.savedScholarships || [];
+  
+  console.log('[RealTimeDashboardStats] Data received:', {
+    hasProps: !!propsApplications,
+    applicationsCount: applications.length,
+    savedScholarshipsCount: savedScholarships.length,
+    scholarshipsCount: scholarships.length,
+    applications: applications.map(a => ({ id: a.id, status: a.status }))
+  });
 
-  const getApplicantStats = () => [
-    {
-      id: 'applications',
-      title: 'Total Applications',
-      value: applications.length,
-      change: stats?.applicationsChange || '+2',
-      icon: FileText,
-      color: 'bg-gradient-to-br from-blue-100 to-blue-200',
-      iconColor: 'text-blue-700',
-      changeColor: 'text-green-600'
-    },
-    {
-      id: 'review',
-      title: 'In Review',
-      value: applications.filter(a => a.status === ApplicationStatus.PENDING).length,
-      change: stats?.reviewChange || '+1',
-      icon: Clock,
-      color: 'bg-gradient-to-br from-yellow-100 to-amber-200',
-      iconColor: 'text-yellow-700',
-      changeColor: 'text-green-600'
-    },
-    {
-      id: 'accepted',
-      title: 'Accepted',
-      value: applications.filter(a => a.status === 'ACCEPTED').length,
-      change: stats?.acceptedChange || '0',
-      icon: CheckCircle,
-      color: 'bg-gradient-to-br from-green-100 to-emerald-200',
-      iconColor: 'text-green-700',
-      changeColor: 'text-green-600'
-    },
-    {
-      id: 'saved',
-      title: 'Saved',
-      value: savedScholarships.length,
-      change: stats?.savedChange || '+3',
-      icon: Heart,
-      color: 'bg-gradient-to-br from-purple-100 to-purple-200',
-      iconColor: 'text-purple-700',
-      changeColor: 'text-green-600'
-    }
-  ];
+  const getApplicantStats = () => {
+    const totalApps = applications.length;
+    const inReview = applications.filter(a => a.status === ApplicationStatus.PENDING || a.status === 'SUBMITTED' || a.status === 'UNDER_REVIEW' || a.status === 'VIEWED').length;
+    const accepted = applications.filter(a => a.status === 'ACCEPTED').length;
+    const saved = savedScholarships.length;
+    
+    console.log('[RealTimeDashboardStats] Computed stats:', {
+      totalApps,
+      inReview,
+      accepted,
+      saved,
+      allStatuses: applications.map(a => a.status)
+    });
+    
+    return [
+      {
+        id: 'applications',
+        title: 'Total Applications',
+        value: totalApps,
+        change: stats?.applicationsChange || '+2',
+        icon: FileText,
+        color: 'bg-gradient-to-br from-blue-100 to-blue-200',
+        iconColor: 'text-blue-700',
+        changeColor: 'text-green-600'
+      },
+      {
+        id: 'review',
+        title: 'In Review',
+        value: inReview,
+        change: stats?.reviewChange || '+1',
+        icon: Clock,
+        color: 'bg-gradient-to-br from-yellow-100 to-amber-200',
+        iconColor: 'text-yellow-700',
+        changeColor: 'text-green-600'
+      },
+      {
+        id: 'accepted',
+        title: 'Accepted',
+        value: accepted,
+        change: stats?.acceptedChange || '0',
+        icon: CheckCircle,
+        color: 'bg-gradient-to-br from-green-100 to-emerald-200',
+        iconColor: 'text-green-700',
+        changeColor: 'text-green-600'
+      },
+      {
+        id: 'saved',
+        title: 'Saved',
+        value: saved,
+        change: stats?.savedChange || '+3',
+        icon: Heart,
+        color: 'bg-gradient-to-br from-purple-100 to-purple-200',
+        iconColor: 'text-purple-700',
+        changeColor: 'text-green-600'
+      }
+    ];
+  };
 
   const getProviderStats = () => [
     {
@@ -175,7 +206,9 @@ export function RealTimeDashboardStats({ userRole = 'applicant' }: DashboardStat
                 <Icon className="h-6 w-6" />
               </div>
               <div className="flex-1">
-                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">{stat.value.toLocaleString()}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-blue-900 bg-clip-text text-transparent">
+                  {stat.value.toLocaleString()}
+                </p>
                 <p className="text-xs text-muted-foreground">{stat.title}</p>
               </div>
             </CardContent>

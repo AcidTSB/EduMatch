@@ -14,9 +14,11 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { clearProfileCompletionSkipped } from '@/lib/profile-utils';
+import { useAuth } from '@/lib/auth';
 
 export default function ProfilePage() {
   const { t } = useLanguage();
+  const { refreshUser } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -249,13 +251,16 @@ export default function ProfilePage() {
         researchInterests: updatedData.researchInterests || prev.researchInterests,
       }));
       
+      // Clear profile completion skip flag when user completes profile
+      clearProfileCompletionSkipped();
+      
+      // Refresh user object in auth context to update profile completion check
+      await refreshUser();
+      
       toast.success('Cập nhật hồ sơ thành công!', {
         id: toastId,
         description: 'Thông tin của bạn đã được lưu'
       });
-      
-      // Clear profile completion skip flag when user completes profile
-      clearProfileCompletionSkipped();
       
       setIsEditing(false);
     } catch (error) {

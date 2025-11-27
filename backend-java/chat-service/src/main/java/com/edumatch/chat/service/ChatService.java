@@ -308,20 +308,41 @@ public class ChatService {
                 (String) authentication.getCredentials()
         );
         Long currentUserId = user.getId();
+        
+        log.info("📬 [ChatService] getMyNotifications - User ID: {}, Page: {}, Size: {}", 
+                currentUserId, pageable.getPageNumber(), pageable.getPageSize());
 
         // 2. Kiểm tra xem user có phải admin không
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         // 3. Lấy dữ liệu
+        Page<Notification> result;
         if (isAdmin) {
             // Admin lấy cả notifications của mình và admin notifications (userId = -1)
             java.util.List<Long> userIds = java.util.Arrays.asList(currentUserId, -1L);
-            return notificationRepository.findByUserIdInOrderByCreatedAtDesc(userIds, pageable);
+            result = notificationRepository.findByUserIdInOrderByCreatedAtDesc(userIds, pageable);
+            log.info("📬 [ChatService] Admin query - Found {} notifications for user IDs: {}", 
+                    result.getTotalElements(), userIds);
         } else {
             // User thường chỉ lấy notifications của mình
-            return notificationRepository.findByUserIdOrderByCreatedAtDesc(currentUserId, pageable);
+            result = notificationRepository.findByUserIdOrderByCreatedAtDesc(currentUserId, pageable);
+            log.info("📬 [ChatService] User query - Found {} notifications for user ID: {}", 
+                    result.getTotalElements(), currentUserId);
         }
+        
+        // Log first few notifications for debugging
+        if (result.getContent().size() > 0) {
+            log.info("📬 [ChatService] Sample notifications: {}", 
+                    result.getContent().stream()
+                        .limit(3)
+                        .map(n -> String.format("ID:%d, Title:%s, Type:%s", n.getId(), n.getTitle(), n.getType()))
+                        .collect(java.util.stream.Collectors.joining(", ")));
+        } else {
+            log.warn("📬 [ChatService] No notifications found in database for user ID: {}", currentUserId);
+        }
+        
+        return result;
     }
 
     /**

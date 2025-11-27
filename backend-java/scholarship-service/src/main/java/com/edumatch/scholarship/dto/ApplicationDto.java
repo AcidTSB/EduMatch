@@ -31,9 +31,33 @@ public class ApplicationDto {
     private String linkedinUrl;
     private String githubUrl;
     // --- ------------------------------ ---
+    
+    // Applicant profile information (from user service)
+    private ApplicantProfileDto applicant;
+    
+    @Data
+    @Builder
+    public static class ApplicantProfileDto {
+        private Long id;
+        private String username;
+        private String email;
+        private String firstName;
+        private String lastName;
+        private Double gpa;
+        private String major;
+        private String university;
+        private Integer yearOfStudy;
+        private String skills; // Comma-separated
+        private String researchInterests; // Comma-separated
+    }
 
     // Hàm helper để chuyển từ Entity -> DTO
     public static ApplicationDto fromEntity(Application app, List<ApplicationDocument> docs) {
+        return fromEntity(app, docs, null);
+    }
+    
+    // Hàm helper với applicant profile
+    public static ApplicationDto fromEntity(Application app, List<ApplicationDocument> docs, com.edumatch.scholarship.dto.client.UserDetailDto applicantProfile) {
 
         List<ApplicationDocumentDto> docDtos = docs.stream()
                 .map(doc -> {
@@ -44,7 +68,7 @@ public class ApplicationDto {
                 })
                 .collect(Collectors.toList());
 
-        return ApplicationDto.builder()
+        ApplicationDto.ApplicationDtoBuilder builder = ApplicationDto.builder()
                 .id(app.getId())
                 .applicantUserId(app.getApplicantUserId())
                 .opportunityId(app.getOpportunityId())
@@ -60,12 +84,31 @@ public class ApplicationDto {
                 .additionalInfo(app.getAdditionalInfo())
                 .portfolioUrl(app.getPortfolioUrl())
                 .linkedinUrl(app.getLinkedinUrl())
-                .githubUrl(app.getGithubUrl())
-                .build();
+                .githubUrl(app.getGithubUrl());
+        
+        // Add applicant profile if available
+        if (applicantProfile != null) {
+            ApplicantProfileDto profileDto = ApplicantProfileDto.builder()
+                    .id(applicantProfile.getId())
+                    .username(applicantProfile.getUsername())
+                    .email(applicantProfile.getEmail())
+                    .firstName(applicantProfile.getFirstName())
+                    .lastName(applicantProfile.getLastName())
+                    .gpa(applicantProfile.getGpa())
+                    .major(applicantProfile.getMajor())
+                    .university(applicantProfile.getUniversity())
+                    .yearOfStudy(applicantProfile.getYearOfStudy())
+                    .skills(applicantProfile.getSkills())
+                    .researchInterests(applicantProfile.getResearchInterests())
+                    .build();
+            builder.applicant(profileDto);
+        }
+        
+        return builder.build();
     }
 
     // Hàm helper thứ 2 (khi không có document)
     public static ApplicationDto fromEntity(Application app) {
-        return fromEntity(app, List.of()); // Gọi lại hàm trên với list rỗng
+        return fromEntity(app, List.of(), null);
     }
 }

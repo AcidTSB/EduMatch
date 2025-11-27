@@ -3,6 +3,7 @@
  */
 
 import { Scholarship } from '@/types';
+import { getOrganizationName, getOrganizationNames } from './organization-helper';
 
 /**
  * Calculate duration in months from start and end dates
@@ -24,8 +25,11 @@ function calculateDuration(startDate?: string, endDate?: string): number {
 /**
  * Map backend OpportunityDto to frontend Scholarship type
  * Backend uses description field which contains fullDescription from entity
+ * 
+ * Note: This function is synchronous and will use cached organization names.
+ * For batch processing, use mapPaginatedOpportunities which handles organization fetching.
  */
-export function mapOpportunityDtoToScholarship(opportunity: any): Scholarship {
+export function mapOpportunityDtoToScholarship(opportunity: any, organizationName?: string | null): Scholarship {
   const startDate = opportunity.startDate || undefined;
   const endDate = opportunity.endDate || undefined;
   const duration = calculateDuration(startDate, endDate);
@@ -34,10 +38,12 @@ export function mapOpportunityDtoToScholarship(opportunity: any): Scholarship {
   // So we use description as primary, with fallback
   const description = opportunity.description || opportunity.fullDescription || opportunity.title || '';
   
-  // Provider name: try organizationName if available (may come from joined query)
-  // Otherwise fallback to a generic name based on organizationId
-  const providerName = opportunity.organizationName || 
-                      (opportunity.organizationId ? `Organization ${opportunity.organizationId}` : 'Unknown Provider');
+  // Provider name: use provided organizationName, or try from opportunity, or fetch from cache
+  // If organizationName is provided (from batch fetch), use it
+  // Otherwise, try opportunity.organizationName, then fallback to cached name or generic
+  const providerName = organizationName || 
+                       opportunity.organizationName || 
+                       (opportunity.organizationId ? `Organization ${opportunity.organizationId}` : 'Unknown Provider');
   
   return {
     id: opportunity.id?.toString() || '',
@@ -73,7 +79,11 @@ export function mapOpportunityDtoToScholarship(opportunity: any): Scholarship {
     requiredSkills: opportunity.requiredSkills || [],
     preferredSkills: opportunity.preferredSkills || [],
     viewCount: opportunity.viewsCnt || 0,
-    createdAt: opportunity.createdAt ? new Date(opportunity.createdAt) : new Date(),
+    createdAt: opportunity.createdAt ? new Date(opportunity.createdAt) : (() => {
+      console.warn(`[ScholarshipMapper] Scholarship "${opportunity.title}" (ID: ${opportunity.id}) missing createdAt, using fallback`);
+      return new Date();
+    })(),
+    updatedAt: opportunity.updatedAt ? new Date(opportunity.updatedAt) : undefined,
     tags: opportunity.tags || [],
     website: opportunity.website || undefined,
     contactEmail: opportunity.contactEmail || undefined,
@@ -85,18 +95,41 @@ export function mapOpportunityDtoToScholarship(opportunity: any): Scholarship {
 
 /**
  * Map paginated response from backend
+ * Fetches organization names for all opportunities in the response
  */
-export function mapPaginatedOpportunities(response: any): {
+export async function mapPaginatedOpportunities(response: any): Promise<{
   scholarships: Scholarship[];
   totalElements: number;
   totalPages: number;
   currentPage: number;
   size: number;
-} {
+}> {
   const content = response.content || response.data || [];
-  const scholarships = Array.isArray(content) 
-    ? content.map(mapOpportunityDtoToScholarship)
-    : [];
+  
+  if (!Array.isArray(content) || content.length === 0) {
+    return {
+      scholarships: [],
+      totalElements: response.totalElements || 0,
+      totalPages: response.totalPages || 1,
+      currentPage: response.number !== undefined ? response.number + 1 : response.page || 1,
+      size: response.size || response.limit || 20
+    };
+  }
+  
+  // Extract all organization IDs
+  const organizationIds = content
+    .map((opp: any) => opp.organizationId)
+    .filter((id: any) => id != null);
+  
+  // Batch fetch organization names
+  const organizationNames = await getOrganizationNames(organizationIds);
+  
+  // Map opportunities with organization names
+  const scholarships = content.map((opportunity: any) => {
+    const orgId = opportunity.organizationId;
+    const orgName = orgId ? organizationNames.get(typeof orgId === 'string' ? parseInt(orgId, 10) : orgId) : null;
+    return mapOpportunityDtoToScholarship(opportunity, orgName || undefined);
+  });
 
   return {
     scholarships,
@@ -109,13 +142,23 @@ export function mapPaginatedOpportunities(response: any): {
 
 /**
  * Map OpportunityDetailDto to Scholarship with matchScore
+ * Fetches organization name if not provided
  */
-export function mapOpportunityDetailToScholarship(detail: any): {
+export async function mapOpportunityDetailToScholarship(detail: any): Promise<{
   scholarship: Scholarship;
   matchScore?: number;
-} {
+}> {
   const opportunity = detail.opportunity || detail;
-  const scholarship = mapOpportunityDtoToScholarship(opportunity);
+  
+  // Fetch organization name if not provided
+  let organizationName: string | null = null;
+  if (opportunity.organizationId && !opportunity.organizationName) {
+    organizationName = await getOrganizationName(opportunity.organizationId);
+  } else {
+    organizationName = opportunity.organizationName || null;
+  }
+  
+  const scholarship = mapOpportunityDtoToScholarship(opportunity, organizationName || undefined);
   
   return {
     scholarship,

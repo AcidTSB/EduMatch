@@ -1,34 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // URL của Java Backend
-const JAVA_API_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080';
+// For server-side (Next.js API routes), use Docker container name
+// For client-side, use NEXT_PUBLIC_API_GATEWAY (localhost:8080)
+const JAVA_API_URL = process.env.API_GATEWAY 
+  || 'http://api-gateway-test:80'; // Container name for server-side Docker networking
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization');
+    const authHeader = request.headers.get('authorization');
 
-    if (!token) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if (!authHeader) {
+      return NextResponse.json({ message: 'Unauthorized - No token provided' }, { status: 401 });
     }
 
-    // Gọi sang Java
-    const res = await fetch(`${JAVA_API_URL}/api/bookmarks/my`, {
+    const token = authHeader.startsWith('Bearer ') ? authHeader : `Bearer ${authHeader}`;
+    const backendUrl = `${JAVA_API_URL}/api/bookmarks/my`;
+
+    const res = await fetch(backendUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': token, // Chuyển tiếp Token
+        'Authorization': token,
       },
     });
 
     if (!res.ok) {
-        throw new Error(`Java Backend error: ${res.status}`);
+      const errorText = await res.text();
+      return NextResponse.json(
+        { 
+          message: `Backend error: ${res.status}`,
+          details: errorText 
+        }, 
+        { status: res.status }
+      );
     }
 
     const data = await res.json();
     return NextResponse.json(data);
 
-  } catch (error) {
-    console.error('Proxy Error [Bookmarks My]:', error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+  } catch (error: any) {
+    console.error('[Bookmarks My] Error:', error);
+    return NextResponse.json(
+      { 
+        message: 'Internal Server Error',
+        error: error.message || 'Unknown error'
+      }, 
+      { status: 500 }
+    );
   }
 }

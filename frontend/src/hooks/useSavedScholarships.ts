@@ -18,7 +18,7 @@ export function useSavedScholarships() {
         setSavedIds(ids);
       }
     } catch (error) {
-      console.error('Failed to fetch bookmarks:', error);
+      // Silent fail - will retry on next mount
     }
   }, []);
 
@@ -46,11 +46,25 @@ export function useSavedScholarships() {
 
     try {
       // Gọi API thật
-      await scholarshipServiceApi.toggleBookmark(Number(scholarshipId));
-    } catch (error) {
-      // Nếu lỗi thì hoàn tác (Revert)
-      console.error('Toggle bookmark failed:', error);
-      toast.error('Failed to update bookmark');
+      const response = await scholarshipServiceApi.toggleBookmark(Number(scholarshipId));
+      
+      // Refresh lại danh sách từ server để đảm bảo sync
+      await fetchSavedStatus();
+      
+      // Hiển thị thông báo thành công
+      if (response.bookmarked !== undefined) {
+        if (response.bookmarked) {
+          toast.success('Đã lưu học bổng vào danh sách yêu thích');
+        } else {
+          toast.success('Đã xóa khỏi danh sách yêu thích');
+        }
+      } else {
+        // Nếu response không có bookmarked field, vẫn coi là thành công
+        toast.success(isCurrentlySaved ? 'Đã xóa khỏi danh sách yêu thích' : 'Đã lưu học bổng vào danh sách yêu thích');
+      }
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Không thể cập nhật bookmark. Vui lòng thử lại.';
+      toast.error(errorMessage);
       setSavedIds(prev => {
         const newSet = new Set(prev);
         if (isCurrentlySaved) newSet.add(scholarshipId);

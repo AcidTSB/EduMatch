@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -48,6 +49,10 @@ public class OpportunityDto {
 
     private String moderationStatus; // 
     private Integer viewsCnt; // 
+    
+    // Timestamp fields
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     // Hàm helper để chuyển từ Entity (Database) -> DTO (API)
     public static OpportunityDto fromEntity(Opportunity opp) {
@@ -81,6 +86,8 @@ public class OpportunityDto {
 
                 .moderationStatus(opp.getModerationStatus())
                 .viewsCnt(opp.getViewsCnt())
+                .createdAt(opp.getCreatedAt())
+                .updatedAt(opp.getUpdatedAt())
                 .build();
     }
 }

@@ -29,6 +29,7 @@ import { scholarshipServiceApi } from '@/services/scholarship.service';
 import { mapOpportunityDtoToScholarship, mapOpportunityDetailToScholarship } from '@/lib/scholarship-mapper';
 import { Application, Scholarship } from '@/types';
 import { toast } from 'react-hot-toast';
+import { Carousel } from '@/components/Carousel';
 
 export default function ApplicationsPage() {
   const { t } = useLanguage();
@@ -85,10 +86,18 @@ export default function ApplicationsPage() {
             
             // Check if response has opportunity field (OpportunityDetailDto) or is direct OpportunityDto
             if (response.opportunity) {
-              const mapped = mapOpportunityDetailToScholarship(response);
+              const mapped = await mapOpportunityDetailToScholarship(response);
               return mapped.scholarship;
             } else {
-              return mapOpportunityDtoToScholarship(response);
+              // Fetch organization name if needed
+              let organizationName: string | null = null;
+              if (response.organizationId && !response.organizationName) {
+                const { getOrganizationName } = await import('@/lib/organization-helper');
+                organizationName = await getOrganizationName(response.organizationId);
+              } else {
+                organizationName = response.organizationName || null;
+              }
+              return mapOpportunityDtoToScholarship(response, organizationName || undefined);
             }
           } catch (err) {
             console.error(`Error fetching scholarship ${id}:`, err);
@@ -167,32 +176,51 @@ export default function ApplicationsPage() {
     }
   };
 
-  const filteredApplications = applications.filter(app => {
-    // Allow applications to show even if scholarship not loaded yet
-    const scholarship = scholarships.find(s => 
-      s.id === app.scholarshipId || 
-      s.id?.toString() === app.scholarshipId?.toString() ||
-      app.scholarshipId?.toString() === s.id?.toString()
-    );
-    
-    // If scholarship not found yet, still show application (just filter by status)
-    if (!scholarship) {
+  const filteredApplications = applications
+    .filter(app => {
+      // Allow applications to show even if scholarship not loaded yet
+      const scholarship = scholarships.find(s => 
+        s.id === app.scholarshipId || 
+        s.id?.toString() === app.scholarshipId?.toString() ||
+        app.scholarshipId?.toString() === s.id?.toString()
+      );
+      
+      // If scholarship not found yet, still show application (just filter by status)
+      if (!scholarship) {
+        const matchesStatus = statusFilter === 'all' || 
+          app.status?.toUpperCase() === statusFilter?.toUpperCase() ||
+          (statusFilter === 'SUBMITTED' && app.status?.toUpperCase() === 'PENDING');
+        return matchesStatus;
+      }
+
+      const matchesSearch = !searchTerm || 
+        scholarship.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        scholarship.providerName?.toLowerCase().includes(searchTerm.toLowerCase());
+      
       const matchesStatus = statusFilter === 'all' || 
         app.status?.toUpperCase() === statusFilter?.toUpperCase() ||
         (statusFilter === 'SUBMITTED' && app.status?.toUpperCase() === 'PENDING');
-      return matchesStatus;
-    }
-
-    const matchesSearch = !searchTerm || 
-      scholarship.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      scholarship.providerName?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || 
-      app.status?.toUpperCase() === statusFilter?.toUpperCase() ||
-      (statusFilter === 'SUBMITTED' && app.status?.toUpperCase() === 'PENDING');
-    
-    return matchesSearch && matchesStatus;
-  });
+      
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      // Sort by creation date (newest first)
+      // Priority: submittedAt > createdAt > updatedAt
+      const dateA = a.submittedAt 
+        ? new Date(a.submittedAt).getTime()
+        : (a.createdAt 
+          ? new Date(a.createdAt).getTime()
+          : (a.updatedAt ? new Date(a.updatedAt).getTime() : 0));
+      
+      const dateB = b.submittedAt 
+        ? new Date(b.submittedAt).getTime()
+        : (b.createdAt 
+          ? new Date(b.createdAt).getTime()
+          : (b.updatedAt ? new Date(b.updatedAt).getTime() : 0));
+      
+      // Descending order (newest first)
+      return dateB - dateA;
+    });
 
   const stats = {
     total: applications.length,
@@ -401,81 +429,101 @@ ${application.githubUrl ? `- GitHub: ${application.githubUrl}` : ''}
               </CardContent>
             </Card>
           ) : (
-            filteredApplications.map((application) => {
-              const scholarship = scholarships.find(s => 
-                s.id === application.scholarshipId || 
-                s.id?.toString() === application.scholarshipId?.toString()
-              );
+            <Carousel
+              items={filteredApplications}
+              itemsPerPage={4}
+              renderItem={(application: Application, index: number) => {
+                const scholarship = scholarships.find(s => 
+                  s.id === application.scholarshipId || 
+                  s.id?.toString() === application.scholarshipId?.toString()
+                );
 
-              return (
-                <Card key={application.id}>
-                  <CardContent className="p-6">
-                    <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
-                            {scholarship?.title || `Scholarship ID: ${application.scholarshipId}`}
-                          </h3>
-                          <Badge variant={getStatusVariant(application.status)}>
-                            <div className="flex items-center space-x-1">
-                              {getStatusIcon(application.status)}
-                              <span>{getStatusLabel(application.status)}</span>
+                return (
+                  <Card key={application.id} className="mb-4">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
+                              {scholarship?.title || `Scholarship ID: ${application.scholarshipId}`}
+                            </h3>
+                            <Badge variant={getStatusVariant(application.status)}>
+                              <div className="flex items-center space-x-1">
+                                {getStatusIcon(application.status)}
+                                <span>{getStatusLabel(application.status)}</span>
+                              </div>
+                            </Badge>
+                          </div>
+                          
+                          {scholarship ? (
+                            <div className="flex items-center text-sm text-gray-600 mb-3">
+                              <Building2 className="h-4 w-4 mr-1" />
+                              {scholarship.providerName || 'Unknown Provider'}
                             </div>
-                          </Badge>
-                        </div>
-                        
-                        {scholarship ? (
-                          <div className="flex items-center text-sm text-gray-600 mb-3">
-                            <Building2 className="h-4 w-4 mr-1" />
-                            {scholarship.providerName || 'Unknown Provider'}
-                          </div>
-                        ) : (
-                          <div className="flex items-center text-sm text-gray-500 mb-3">
-                            <Clock className="h-4 w-4 mr-1" />
-                            Loading scholarship details...
-                          </div>
-                        )}
-                        
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-1" />
-                            {t('applicantApplications.labels.applied')}: {application.createdAt ? formatDate(application.createdAt) : 'N/A'}
-                          </div>
-                          <div className="flex items-center">
-                            <Clock className="h-4 w-4 mr-1" />
-                            {t('applicantApplications.labels.updated')}: {application.updatedAt ? formatDate(application.updatedAt) : 'N/A'}
-                          </div>
-                          <div className="flex items-center">
-                            <FileText className="h-4 w-4 mr-1" />
-                            {application.additionalDocs?.length || 0} {t('applicantApplications.labels.documents')}
+                          ) : (
+                            <div className="flex items-center text-sm text-gray-500 mb-3">
+                              <Clock className="h-4 w-4 mr-1" />
+                              Loading scholarship details...
+                            </div>
+                          )}
+                          
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                            <div className="flex items-center">
+                              <Calendar className="h-4 w-4 mr-1" />
+                              {t('applicantApplications.labels.applied')}: {application.createdAt ? formatDate(application.createdAt) : 'N/A'}
+                            </div>
+                            <div className="flex items-center">
+                              <Clock className="h-4 w-4 mr-1" />
+                              {t('applicantApplications.labels.updated')}: {application.updatedAt ? formatDate(application.updatedAt) : 'N/A'}
+                            </div>
+                            <div className="flex items-center">
+                              <FileText className="h-4 w-4 mr-1" />
+                              {application.additionalDocs?.length || 0} {t('applicantApplications.labels.documents')}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center space-x-3">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewDetails(application)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          {t('applicantApplications.actions.viewDetails')}
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleDownload(application)}
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          {t('applicantApplications.actions.download')}
-                        </Button>
+                        <div className="flex items-center space-x-3">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewDetails(application)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            {t('applicantApplications.actions.viewDetails')}
+                          </Button>
+                          
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDownload(application)}
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            {t('applicantApplications.actions.download')}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })
+                    </CardContent>
+                  </Card>
+                );
+              }}
+              emptyMessage={
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>
+                    {searchTerm || statusFilter !== 'all'
+                      ? t('applicantApplications.empty.withFilters')
+                      : t('applicantApplications.empty.noApps')
+                    }
+                  </p>
+                  {!searchTerm && statusFilter === 'all' && (
+                    <Button onClick={() => window.location.href = '/user/scholarships'} className="mt-4">
+                      {t('applicantApplications.empty.browse')}
+                    </Button>
+                  )}
+                </div>
+              }
+            />
           )}
         </div>
       </div>

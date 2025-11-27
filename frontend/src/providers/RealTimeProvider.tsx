@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth';
 import { useMessageStore, useNotificationStore } from '@/stores/realtimeStore';
 import type { Message, Notification as NotificationModel } from '@/types/realtime';
 import { toast } from 'react-hot-toast';
+import { markNotificationAsRead as markNotificationAsReadAPI } from '@/services/chat.service';
 
 interface RealTimeContextType {
   // Socket
@@ -66,10 +67,42 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
   const { 
     notifications, 
     unreadCount, 
+    loadNotifications: storeLoadNotifications,
     addNotification, 
     markAsRead: storeMarkNotificationsAsRead,
     markAllAsRead: storeMarkAllAsRead 
   } = useNotificationStore();
+  
+  // Load notifications from API on mount
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    
+    const fetchInitialNotifications = async () => {
+      try {
+        console.log('[RealTimeProvider] Fetching initial notifications...');
+        const { getNotifications } = await import('@/services/chat.service');
+        const notificationsData = await getNotifications(0, 50);
+        
+        let notificationsArray: any[] = [];
+        if (notificationsData && notificationsData.content) {
+          notificationsArray = notificationsData.content;
+        } else if (Array.isArray(notificationsData)) {
+          notificationsArray = notificationsData;
+        }
+        
+        if (notificationsArray.length > 0) {
+          console.log('[RealTimeProvider] Loading', notificationsArray.length, 'notifications into store');
+          await storeLoadNotifications(notificationsArray);
+        } else {
+          console.log('[RealTimeProvider] No notifications found');
+        }
+      } catch (error) {
+        console.error('[RealTimeProvider] Error fetching initial notifications:', error);
+      }
+    };
+    
+    fetchInitialNotifications();
+  }, [isAuthenticated, user, storeLoadNotifications]);
 
   // Role-based chat rules
   const canChatWith = (otherUserRole: string): boolean => {
@@ -242,19 +275,52 @@ export function RealTimeProvider({ children, enabled = true }: RealTimeProviderP
     socket.leaveRoom(roomId);
   };
 
-  const markNotificationsAsRead = (notificationIds: string[]) => {
-    if (!socket.isConnected) return;
+  const markNotificationsAsRead = async (notificationIds: string[]) => {
+    if (!isAuthenticated || !user) return;
     
-    (socket as any).emit('mark_notifications_read', notificationIds);
-    storeMarkNotificationsAsRead(notificationIds);
+    try {
+      // Call HTTP API to save read status to database
+      await Promise.all(
+        notificationIds.map(id => markNotificationAsReadAPI(Number(id)))
+      );
+      
+      // Update local store
+      storeMarkNotificationsAsRead(notificationIds);
+      
+      // Emit WebSocket event for real-time sync (optional)
+      if (socket.isConnected) {
+        (socket as any).emit('mark_notifications_read', notificationIds);
+      }
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+      // Still update local store for optimistic UI
+      storeMarkNotificationsAsRead(notificationIds);
+    }
   };
 
-  const markAllNotificationsAsRead = () => {
-    if (!socket.isConnected) return;
+  const markAllNotificationsAsRead = async () => {
+    if (!isAuthenticated || !user) return;
     
-    const allIds = notifications.map(n => n.id);
-    (socket as any).emit('mark_notifications_read', allIds);
-    storeMarkAllAsRead();
+    try {
+      const allIds = notifications.map(n => n.id);
+      
+      // Call HTTP API to save read status to database
+      await Promise.all(
+        allIds.map(id => markNotificationAsReadAPI(Number(id)))
+      );
+      
+      // Update local store
+      storeMarkAllAsRead();
+      
+      // Emit WebSocket event for real-time sync (optional)
+      if (socket.isConnected) {
+        (socket as any).emit('mark_notifications_read', allIds);
+      }
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      // Still update local store for optimistic UI
+      storeMarkAllAsRead();
+    }
   };
 
   const contextValue: RealTimeContextType = {

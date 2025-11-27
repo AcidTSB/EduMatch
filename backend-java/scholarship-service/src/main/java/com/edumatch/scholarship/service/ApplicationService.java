@@ -149,21 +149,66 @@ public class ApplicationService {
     }
 
     /**
+     * Helper method to fetch applicant profile by userId or username
+     */
+    private com.edumatch.scholarship.dto.client.UserDetailDto fetchApplicantProfile(Long applicantUserId, String applicantUserName, String token) {
+        // Try to fetch by username first (preferred)
+        if (applicantUserName != null && !applicantUserName.isEmpty()) {
+            try {
+                log.debug("Fetching profile by username: {}", applicantUserName);
+                return scholarshipService.getUserDetailsFromAuthService(applicantUserName, token);
+            } catch (Exception e) {
+                log.warn("Could not fetch profile by username {} for userId {}: {}", 
+                        applicantUserName, applicantUserId, e.getMessage());
+                // Fall through to try by userId
+            }
+        }
+        
+        // Fallback: try to fetch by userId if username is not available
+        try {
+            log.debug("Fetching profile by userId: {}", applicantUserId);
+            return scholarshipService.getUserDetailsFromAuthServiceById(applicantUserId, token);
+        } catch (Exception e) {
+            log.warn("Could not fetch profile by userId {}: {}", applicantUserId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * Lấy danh sách ứng viên đã nộp vào một cơ hội
      */
     public List<ApplicationDto> getApplicationsForOpportunity(Long opportunityId, UserDetails userDetails) {
         // 1. Kiểm tra quyền sở hữu
         checkProviderOwnership(opportunityId, userDetails);
 
-        // 2. Lấy các đơn ứng tuyển
+        // 2. Lấy token để gọi user service
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String token = (String) authentication.getCredentials();
+
+        // 3. Lấy các đơn ứng tuyển
         List<Application> applications = applicationRepository.findByOpportunityId(opportunityId);
 
-        // 3. Chuyển đổi sang DTO (bao gồm cả tài liệu của từng đơn)
+        // 4. Chuyển đổi sang DTO (bao gồm cả tài liệu và profile của từng đơn)
         return applications.stream()
                 .map(app -> {
-                    // Lấy tài liệu của đơn này [cite: 344]
+                    // Lấy tài liệu của đơn này
                     List<ApplicationDocument> docs = applicationDocumentRepository.findByApplicationId(app.getId());
-                    return ApplicationDto.fromEntity(app, docs);
+                    
+                    // Fetch applicant profile from user service
+                    // Will try by username first, then fallback to userId
+                    String username = app.getApplicantUserName();
+                    com.edumatch.scholarship.dto.client.UserDetailDto applicantProfile = 
+                            fetchApplicantProfile(app.getApplicantUserId(), username, token);
+                    
+                    if (applicantProfile != null) {
+                        log.info("✅ Successfully fetched profile for applicant userId {} (username: {})", 
+                                app.getApplicantUserId(), applicantProfile.getUsername());
+                    } else {
+                        log.warn("⚠️ Could not fetch profile for applicant userId {} (username: {})", 
+                                app.getApplicantUserId(), username != null ? username : "null");
+                    }
+                    
+                    return ApplicationDto.fromEntity(app, docs, applicantProfile);
                 })
                 .collect(Collectors.toList());
     }
@@ -250,9 +295,14 @@ public class ApplicationService {
         log.info("📤 [Application Status] Scholarship: '{}', Status: {}", opportunityTitle, newStatus);
         log.info("📤 [Application Status] Event published to routing key: notification.application.status");
 
-        // 6. Trả về DTO
+        // 6. Trả về DTO với applicant profile
         List<ApplicationDocument> docs = applicationDocumentRepository.findByApplicationId(savedApp.getId());
-        return ApplicationDto.fromEntity(savedApp, docs);
+        // Fetch applicant profile
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String token = (String) auth.getCredentials();
+        com.edumatch.scholarship.dto.client.UserDetailDto applicantProfile = 
+                fetchApplicantProfile(savedApp.getApplicantUserId(), savedApp.getApplicantUserName(), token);
+        return ApplicationDto.fromEntity(savedApp, docs, applicantProfile);
     }
     /**
      * Lấy danh sách các đơn ứng tuyển của user đang đăng nhập
@@ -267,11 +317,12 @@ public class ApplicationService {
         // 2. Lấy đơn (dùng hàm repo đã có)
         List<Application> applications = applicationRepository.findByApplicantUserId(applicantId);
 
-        // 3. Chuyển đổi sang DTO (gồm cả tài liệu)
+        // 3. Chuyển đổi sang DTO (gồm cả tài liệu và profile)
         return applications.stream()
                 .map(app -> {
                     List<ApplicationDocument> docs = applicationDocumentRepository.findByApplicationId(app.getId());
-                    return ApplicationDto.fromEntity(app, docs);
+                    // Include user's own profile
+                    return ApplicationDto.fromEntity(app, docs, user);
                 })
                 .collect(Collectors.toList());
     }
@@ -303,6 +354,45 @@ public class ApplicationService {
             
             return dto;
         });
+    }
+
+    /**
+     * Lấy recent applications (cho Admin dashboard)
+     */
+    @Transactional(readOnly = true)
+    public List<ApplicationDto> getRecentApplications(int limit) {
+        org.springframework.data.domain.Pageable pageable = 
+                org.springframework.data.domain.PageRequest.of(0, limit, 
+                        org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "submittedAt"));
+        
+        org.springframework.data.domain.Page<Application> page = applicationRepository.findAll(pageable);
+        List<Application> applications = page.getContent();
+        
+        // Get token for fetching profiles
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String token = authentication != null ? (String) authentication.getCredentials() : null;
+        
+        return applications.stream()
+                .map(app -> {
+                    List<ApplicationDocument> docs = applicationDocumentRepository.findByApplicationId(app.getId());
+                    
+                    // Fetch applicant profile if token available
+                    com.edumatch.scholarship.dto.client.UserDetailDto applicantProfile = null;
+                    if (token != null) {
+                        applicantProfile = fetchApplicantProfile(app.getApplicantUserId(), app.getApplicantUserName(), token);
+                    }
+                    
+                    ApplicationDto dto = ApplicationDto.fromEntity(app, docs, applicantProfile);
+                    
+                    // Lấy opportunity title nếu có
+                    if (app.getOpportunityId() != null) {
+                        opportunityRepository.findById(app.getOpportunityId())
+                            .ifPresent(opp -> dto.setOpportunityTitle(opp.getTitle()));
+                    }
+                    
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 
     /**

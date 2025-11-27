@@ -10,14 +10,26 @@ import { formatDate } from '@/lib/utils';
 import Link from 'next/link';
 import { useApplicationsData, useScholarshipsData } from '@/contexts/AppContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { Carousel } from '@/components/Carousel';
 
-export function RealTimeApplicationStatus() {
+export function RealTimeApplicationStatus({ applications: propsApplications, scholarships: propsScholarships }: { applications?: any[], scholarships?: any[] } = {}) {
   const { t } = useLanguage();
   const { applicationStatuses } = useApplicationStore();
   
-  // Get real data from AppContext
-  const { applications } = useApplicationsData();
-  const { scholarships } = useScholarshipsData();
+  // Get real data - prefer props over AppContext
+  const appContextData = useApplicationsData();
+  const appContextScholarships = useScholarshipsData();
+  
+  // Use props if provided, otherwise fall back to AppContext
+  const applications = propsApplications || appContextData.applications || [];
+  const scholarships = propsScholarships || appContextScholarships.scholarships || [];
+  
+  console.log('[RealTimeApplicationStatus] Data received:', {
+    hasProps: !!propsApplications,
+    applicationsCount: applications.length,
+    scholarshipsCount: scholarships.length,
+    applications: applications.map(a => ({ id: a.id, status: a.status, scholarshipId: a.scholarshipId }))
+  });
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -64,8 +76,59 @@ export function RealTimeApplicationStatus() {
     }
   };
 
-  // Use real applications data - prefer opportunityTitle from ApplicationDto
-  const displayApplications = applications.slice(0, 5).map(app => {
+  // Use real applications data - sort by date (newest first) and prefer opportunityTitle from ApplicationDto
+  console.log('[RealTimeApplicationStatus] Processing applications:', applications.length);
+  
+  const sortedApplications = [...applications].sort((a, b) => {
+    // Parse dates properly
+    const getDateA = () => {
+      if (a.submittedAt) {
+        const date = a.submittedAt instanceof Date ? a.submittedAt : new Date(a.submittedAt);
+        return isNaN(date.getTime()) ? 0 : date.getTime();
+      }
+      if (a.createdAt) {
+        const date = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+        return isNaN(date.getTime()) ? 0 : date.getTime();
+      }
+      return 0;
+    };
+    const getDateB = () => {
+      if (b.submittedAt) {
+        const date = b.submittedAt instanceof Date ? b.submittedAt : new Date(b.submittedAt);
+        return isNaN(date.getTime()) ? 0 : date.getTime();
+      }
+      if (b.createdAt) {
+        const date = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+        return isNaN(date.getTime()) ? 0 : date.getTime();
+      }
+      return 0;
+    };
+    const dateA = getDateA();
+    const dateB = getDateB();
+    // Descending order: newest first (larger timestamp comes first)
+    return dateB - dateA;
+  });
+  
+  console.log('[RealTimeApplicationStatus] Sorted applications:', sortedApplications.length, sortedApplications.map(a => ({ 
+    id: a.id, 
+    title: a.opportunityTitle,
+    submittedAt: a.submittedAt,
+    createdAt: a.createdAt
+  })));
+  
+  // Log first 3 to verify newest are first
+  if (sortedApplications.length > 0) {
+    console.log('[RealTimeApplicationStatus] First 3 applications (should be newest):', 
+      sortedApplications.slice(0, 3).map(a => ({
+        id: a.id,
+        title: a.opportunityTitle,
+        submittedAt: a.submittedAt,
+        createdAt: a.createdAt
+      }))
+    );
+  }
+  
+  const displayApplications = sortedApplications.slice(0, 3).map(app => {
     // Use opportunityTitle from Application object (from backend ApplicationDto)
     // Fallback to finding in scholarships array if not available
     const scholarshipTitle = app.opportunityTitle || 
@@ -89,6 +152,8 @@ export function RealTimeApplicationStatus() {
       updatedAt: app.updatedAt ? formatDate(app.updatedAt) : null
     };
   });
+  
+  console.log('[RealTimeApplicationStatus] Display applications:', displayApplications.length, displayApplications);
 
   return (
     <Card>
@@ -105,36 +170,51 @@ export function RealTimeApplicationStatus() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {displayApplications.map((application: any) => (
-            <div key={application.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="flex-1">
-                <h4 className="font-semibold text-gray-900">
-                  {application.scholarshipTitle || `Scholarship ${application.scholarshipId}`}
-                </h4>
-                <div className="flex items-center text-sm text-gray-600 mt-1">
-                  <Building2 className="h-4 w-4 mr-1" />
-                  {application.provider || 'Unknown Provider'}
+        <Carousel
+          items={sortedApplications}
+          itemsPerPage={3}
+          renderItem={(application: any, index: number) => {
+            const scholarshipTitle = application.opportunityTitle || 
+                                    scholarships.find(s => s.id === application.scholarshipId)?.title || 
+                                    'Unknown Scholarship';
+            const scholarship = scholarships.find(s => s.id === application.scholarshipId);
+            const provider = scholarship?.providerName || 'Unknown Provider';
+            const appliedDate = application.submittedAt 
+              ? (application.submittedAt instanceof Date 
+                 ? application.submittedAt 
+                 : new Date(application.submittedAt))
+              : (application.createdAt || null);
+            
+            return (
+              <div 
+                key={application.id} 
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900">
+                    {scholarshipTitle}
+                  </h4>
+                  <div className="flex items-center text-sm text-gray-600 mt-1">
+                    <Building2 className="h-4 w-4 mr-1" />
+                    {provider}
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600 mt-1">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    {t('dashboard.recentApplications.applied')}: {appliedDate 
+                      ? formatDate(appliedDate)
+                      : (application.updatedAt ? formatDate(application.updatedAt) : 'N/A')}
+                  </div>
                 </div>
-                <div className="flex items-center text-sm text-gray-600 mt-1">
-                  <Calendar className="h-4 w-4 mr-1" />
-                  {t('dashboard.recentApplications.applied')}: {application.appliedDate 
-                    ? (application.appliedDate instanceof Date 
-                       ? formatDate(application.appliedDate) 
-                       : formatDate(new Date(application.appliedDate)))
-                    : (application.updatedAt ? formatDate(application.updatedAt) : 'N/A')}
+                <div className="flex items-center space-x-3">
+                  <Badge variant={getStatusVariant(application.status)} className="flex items-center space-x-1">
+                    {getStatusIcon(application.status)}
+                    <span>{getStatusLabel(application.status)}</span>
+                  </Badge>
                 </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <Badge variant={getStatusVariant(application.status)} className="flex items-center space-x-1">
-                  {getStatusIcon(application.status)}
-                  <span>{getStatusLabel(application.status)}</span>
-                </Badge>
-              </div>
-            </div>
-          ))}
-          
-          {displayApplications.length === 0 && (
+            );
+          }}
+          emptyMessage={
             <div className="text-center py-8 text-gray-500">
               <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>{t('dashboard.recentApplications.noApplications')}</p>
@@ -142,8 +222,8 @@ export function RealTimeApplicationStatus() {
                 <Link href="/user/scholarships">{t('dashboard.recentApplications.browse')}</Link>
               </Button>
             </div>
-          )}
-        </div>
+          }
+        />
       </CardContent>
     </Card>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   TrendingUp, 
   Users, 
@@ -27,17 +27,40 @@ import { USERS } from '@/lib/mock-data';
 import { USER_PROFILES } from '@/lib/mock-data';
 import { ApplicationStatus, ScholarshipStatus } from '@/types';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { scholarshipServiceApi } from '@/services/scholarship.service';
 
 export default function ProviderAnalyticsPage() {
   const { t } = useLanguage();
   const [timeRange, setTimeRange] = useState('last-6-months');
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Get real data from AppContext
+  // Get fallback data from AppContext (for error fallback)
   const { applications } = useApplicationsData();
   const { scholarships } = useScholarshipsData();
 
-  // Calculate real analytics data
-  const analyticsData = useMemo(() => {
+  // Fetch analytics data from API
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await scholarshipServiceApi.getEmployerAnalytics();
+        setAnalyticsData(data);
+      } catch (err: any) {
+        console.error('Error fetching analytics:', err);
+        setError(err.message || 'Failed to load analytics data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAnalytics();
+  }, []);
+
+  // Fallback calculation if API data not available
+  const fallbackAnalyticsData = useMemo(() => {
     const acceptedApplications = applications.filter(app => app.status === ApplicationStatus.ACCEPTED).length;
     const rejectedApplications = applications.filter(app => app.status === ApplicationStatus.REJECTED).length;
     const pendingApplications = applications.filter(app => 
@@ -123,8 +146,25 @@ export default function ProviderAnalyticsPage() {
       ]
     };
   }, [applications, scholarships]);
-  
-  const { overview, monthlyStats, scholarshipPerformance, topUniversities, topMajors } = analyticsData;
+
+  // Use API data if available, otherwise use fallback
+  const data = analyticsData || fallbackAnalyticsData;
+  const { 
+    overview = { 
+      totalScholarships: 0, 
+      totalApplications: 0, 
+      acceptedApplications: 0, 
+      rejectedApplications: 0, 
+      pendingApplications: 0, 
+      activeScholarships: 0, 
+      acceptanceRate: 0, 
+      averageApplicationsPerScholarship: 0 
+    },
+    monthlyStats = [],
+    scholarshipPerformance = [],
+    topUniversities = [],
+    topMajors = []
+  } = data || {};
 
   // Export functions
   const generateReportCSV = () => {
@@ -205,28 +245,185 @@ export default function ProviderAnalyticsPage() {
     </Card>
   );
 
-  const SimpleChart = ({ data, type = 'bar' }: { data: any[]; type?: 'bar' | 'line' }) => (
-    <div className="h-64 flex items-end justify-center space-x-2">
-      {data.slice(-6).map((item, index) => (
-        <div key={index} className="flex flex-col items-center space-y-2">
-          <div 
-            className="bg-brand-blue-500 rounded-t"
-            style={{ 
-              height: `${(item.applications / Math.max(...data.map(d => d.applications))) * 200}px`,
-              width: '32px'
-            }}
-          />
-          <span className="text-xs text-gray-600">{item.month}</span>
+  const SimpleChart = ({ data, type = 'line' }: { data: any[]; type?: 'bar' | 'line' }) => {
+    const safeData = data || [];
+    if (safeData.length === 0) {
+      return (
+        <div className="h-64 flex items-center justify-center text-gray-400">
+          <p>Chưa có dữ liệu</p>
         </div>
-      ))}
-    </div>
-  );
+      );
+    }
 
-  const SimpleDonutChart = ({ data, title }: { data: any[]; title: string }) => (
-    <div className="space-y-4">
-      <h4 className="font-semibold text-center">{title}</h4>
-      <div className="space-y-2">
-        {data.slice(0, 5).map((item, index) => (
+    const chartData = safeData.slice(-6);
+    const maxValue = Math.max(...chartData.map(d => d.applications || 0), 1);
+    const chartHeight = 200;
+    const chartWidth = 500;
+    const padding = 40;
+
+    if (type === 'line') {
+      // Calculate points for line chart
+      const points = chartData.map((item, index) => {
+        const x = padding + (index * (chartWidth - padding * 2) / (chartData.length - 1 || 1));
+        const y = chartHeight - padding - ((item.applications || 0) / maxValue) * (chartHeight - padding * 2);
+        return { x, y, value: item.applications || 0, month: item.month };
+      });
+
+      // Create path for line
+      const pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+      // Create area path (closed path for gradient fill)
+      const areaPath = `${pathData} L ${points[points.length - 1].x} ${chartHeight - padding} L ${points[0].x} ${chartHeight - padding} Z`;
+
+      return (
+        <div className="h-64 w-full relative">
+          <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-full" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity="1" />
+                <stop offset="100%" stopColor="#60a5fa" stopOpacity="0.6" />
+              </linearGradient>
+              <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.05" />
+              </linearGradient>
+            </defs>
+
+            {/* Grid lines */}
+            {[0, 0.25, 0.5, 0.75, 1].map((ratio) => (
+              <line
+                key={ratio}
+                x1={padding}
+                y1={padding + ratio * (chartHeight - padding * 2)}
+                x2={chartWidth - padding}
+                y2={padding + ratio * (chartHeight - padding * 2)}
+                stroke="#e5e7eb"
+                strokeWidth="1"
+                strokeDasharray="4 4"
+              />
+            ))}
+
+            {/* Area fill under line */}
+            <path
+              d={areaPath}
+              fill="url(#areaGradient)"
+            />
+
+            {/* Main line with animation */}
+            <path
+              d={pathData}
+              fill="none"
+              stroke="url(#lineGradient)"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                strokeDasharray: '1000',
+                strokeDashoffset: '1000',
+                animation: 'drawLine 2s ease-out forwards',
+              }}
+            />
+            <style dangerouslySetInnerHTML={{
+              __html: `
+                @keyframes drawLine {
+                  to {
+                    stroke-dashoffset: 0;
+                  }
+                }
+              `
+            }} />
+
+            {/* Data points with hover effect */}
+            {points.map((point, index) => (
+              <g key={index} className="group">
+                <circle
+                  cx={point.x}
+                  cy={point.y}
+                  r="6"
+                  fill="#3b82f6"
+                  stroke="white"
+                  strokeWidth="3"
+                  className="transition-all duration-300 group-hover:r-8 group-hover:fill-blue-700 cursor-pointer"
+                />
+                {/* Tooltip */}
+                <g className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <rect
+                    x={point.x - 25}
+                    y={point.y - 35}
+                    width="50"
+                    height="20"
+                    rx="4"
+                    fill="#1f2937"
+                    className="drop-shadow-lg"
+                  />
+                  <text
+                    x={point.x}
+                    y={point.y - 20}
+                    textAnchor="middle"
+                    className="text-xs fill-white font-semibold"
+                  >
+                    {point.value}
+                  </text>
+                </g>
+              </g>
+            ))}
+
+            {/* Month labels */}
+            {points.map((point, index) => (
+              <text
+                key={index}
+                x={point.x}
+                y={chartHeight - 10}
+                textAnchor="middle"
+                className="text-xs fill-gray-600 font-medium"
+              >
+                {point.month}
+              </text>
+            ))}
+          </svg>
+        </div>
+      );
+    }
+
+    // Enhanced Bar Chart
+    return (
+      <div className="h-64 w-full">
+        <div className="h-full flex items-end justify-center space-x-2 px-4">
+          {chartData.map((item, index) => {
+            const height = ((item.applications || 0) / maxValue) * 100;
+            return (
+              <div key={index} className="flex flex-col items-center space-y-2 flex-1 group relative">
+                <div className="relative w-full flex items-end justify-center h-full">
+                  <div
+                    className="w-full bg-gradient-to-t from-blue-600 via-blue-500 to-blue-400 rounded-t-lg shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer group-hover:from-blue-700 group-hover:via-blue-600 group-hover:to-blue-500 relative overflow-hidden"
+                    style={{ 
+                      height: `${height}%`,
+                      minHeight: item.applications > 0 ? '4px' : '0'
+                    }}
+                  >
+                    {/* Shine effect */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    {/* Tooltip */}
+                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      {item.applications} đơn
+                    </div>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-600 font-medium">{item.month}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const SimpleDonutChart = ({ data, title }: { data: any[]; title: string }) => {
+    const safeData = data || [];
+    return (
+      <div className="space-y-4">
+        <h4 className="font-semibold text-center">{title}</h4>
+        <div className="space-y-2">
+          {safeData.slice(0, 5).map((item, index) => (
           <div key={index} className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div 
@@ -240,10 +437,22 @@ export default function ProviderAnalyticsPage() {
               <span className="text-xs text-gray-500 ml-1">({item.percentage}%)</span>
             </div>
           </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang tải dữ liệu phân tích...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -9,8 +9,6 @@ import com.edumatch.scholarship.repository.BookmarkRepository;
 import com.edumatch.scholarship.repository.OpportunityRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -30,64 +28,82 @@ public class BookmarkService {
      * Chức năng: Thêm hoặc xóa (Toggle) một bookmark
      * Trả về true nếu là "Đã thêm", false nếu là "Đã xóa"
      */
-    public boolean toggleBookmark(Long opportunityId, UserDetails userDetails) {
-        // 1. Lấy thông tin user
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String token = (String) authentication.getCredentials();
-        UserDetailDto user = scholarshipService.getUserDetailsFromAuthService(userDetails.getUsername(), token);
-        Long applicantId = user.getId();
-
-        // 2. Kiểm tra xem đã bookmark chưa
-        var existingBookmark = bookmarkRepository
-                .findByApplicantUserIdAndOpportunityId(applicantId, opportunityId);
-
-        if (existingBookmark.isPresent()) {
-            // 3. Nếu đã có -> Xóa
-            bookmarkRepository.delete(existingBookmark.get());
-            log.info("User {} đã XÓA bookmark cho cơ hội {}", applicantId, opportunityId);
-            return false; // Đã xóa
-        } else {
-            // 4. Nếu chưa có -> Tạo mới
-            // (Kiểm tra xem opp có tồn tại không)
-            if (!opportunityRepository.existsById(opportunityId)) {
-                throw new ResourceNotFoundException("Không tìm thấy cơ hội với ID: " + opportunityId);
+    public boolean toggleBookmark(Long opportunityId, UserDetails userDetails, String token) {
+        try {
+            if (token == null || token.isEmpty()) {
+                throw new RuntimeException("JWT token is required");
             }
+            
+            UserDetailDto user = scholarshipService.getUserDetailsFromAuthService(userDetails.getUsername(), token);
+            if (user == null || user.getId() == null) {
+                throw new RuntimeException("Failed to get user details from auth service");
+            }
+            Long applicantId = user.getId();
 
-            Bookmark newBookmark = new Bookmark();
-            newBookmark.setApplicantUserId(applicantId);
-            newBookmark.setOpportunityId(opportunityId);
-            bookmarkRepository.save(newBookmark);
+            var existingBookmark = bookmarkRepository
+                    .findByApplicantUserIdAndOpportunityId(applicantId, opportunityId);
 
-            log.info("User {} đã THÊM bookmark cho cơ hội {}", applicantId, opportunityId);
-            return true; // Đã thêm
+            if (existingBookmark.isPresent()) {
+                bookmarkRepository.delete(existingBookmark.get());
+                return false;
+            } else {
+                if (!opportunityRepository.existsById(opportunityId)) {
+                    throw new ResourceNotFoundException("Không tìm thấy cơ hội với ID: " + opportunityId);
+                }
+
+                Bookmark newBookmark = new Bookmark();
+                newBookmark.setApplicantUserId(applicantId);
+                newBookmark.setOpportunityId(opportunityId);
+                bookmarkRepository.save(newBookmark);
+                return true;
+            }
+        } catch (Exception e) {
+            log.error("Error in toggleBookmark for user {} and opportunity {}: {}", 
+                    userDetails.getUsername(), opportunityId, e.getMessage(), e);
+            throw new RuntimeException("Failed to toggle bookmark: " + e.getMessage(), e);
         }
     }
 
     /**
      * Chức năng: Lấy tất cả bookmark của tôi
      */
-    public List<BookmarkDto> getMyBookmarks(UserDetails userDetails) {
-        // 1. Lấy thông tin user
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String token = (String) authentication.getCredentials();
-        UserDetailDto user = scholarshipService.getUserDetailsFromAuthService(userDetails.getUsername(), token);
-        Long applicantId = user.getId();
+    public List<BookmarkDto> getMyBookmarks(UserDetails userDetails, String token) {
+        try {
+            if (token == null || token.isEmpty()) {
+                throw new RuntimeException("JWT token is required");
+            }
+            
+            UserDetailDto user = scholarshipService.getUserDetailsFromAuthService(userDetails.getUsername(), token);
+            if (user == null || user.getId() == null) {
+                throw new RuntimeException("Failed to get user details from auth service");
+            }
+            Long applicantId = user.getId();
 
-        // 2. Lấy danh sách bookmark
-        List<Bookmark> bookmarks = bookmarkRepository.findByApplicantUserId(applicantId);
+            List<Bookmark> bookmarks = bookmarkRepository.findByApplicantUserId(applicantId);
 
-        // 3. Chuyển đổi sang DTO (cần lấy thông tin Opportunity)
-        return bookmarks.stream()
-                .map(bookmark -> {
-                    // Lấy thông tin chi tiết của Opportunity
-                    Opportunity opp = opportunityRepository.findById(bookmark.getOpportunityId())
-                            .orElse(null); // (Nên xử lý nếu opp bị xóa)
+            return bookmarks.stream()
+                    .map(bookmark -> {
+                        try {
+                            Opportunity opp = opportunityRepository.findById(bookmark.getOpportunityId())
+                                    .orElse(null);
 
-                    if (opp == null) return null;
+                            if (opp == null) {
+                                log.warn("Opportunity {} not found for bookmark {}", bookmark.getOpportunityId(), bookmark.getId());
+                                return null;
+                            }
 
-                    return BookmarkDto.fromEntity(bookmark, opp);
-                })
-                .filter(dto -> dto != null) // Lọc ra những bookmark trỏ đến opp đã bị xóa
-                .collect(Collectors.toList());
+                            return BookmarkDto.fromEntity(bookmark, opp);
+                        } catch (Exception e) {
+                            log.error("Error converting bookmark {} to DTO: {}", bookmark.getId(), e.getMessage());
+                            return null;
+                        }
+                    })
+                    .filter(dto -> dto != null)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error in getMyBookmarks for user {}: {}", 
+                    userDetails.getUsername(), e.getMessage(), e);
+            throw new RuntimeException("Failed to get bookmarks: " + e.getMessage(), e);
+        }
     }
 }

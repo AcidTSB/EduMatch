@@ -8,11 +8,14 @@ export function useApplications() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchApplications = useCallback(async (userId?: string) => {
+    console.log('[useApplications] Starting fetchApplications...', { userId });
     setLoading(true);
     setError(null);
     try {
       const { scholarshipServiceApi } = await import('@/services/scholarship.service');
+      console.log('[useApplications] Calling getMyApplications...');
       const response = await scholarshipServiceApi.getMyApplications();
+      console.log('[useApplications] Raw response:', response);
       
       // Helper to parse date from backend (LocalDateTime can be string or Date)
       const parseDate = (dateValue: any): Date => {
@@ -57,10 +60,11 @@ export function useApplications() {
         };
       }) : [];
       
+      console.log('[useApplications] Mapped applications:', mappedApplications.length, mappedApplications);
       setApplications(mappedApplications);
     } catch (err) {
       setError('Failed to fetch applications');
-      console.error('Error fetching applications:', err);
+      console.error('[useApplications] Error fetching applications:', err);
     } finally {
       setLoading(false);
     }
@@ -174,7 +178,7 @@ export function useScholarships() {
           setScholarships(response.scholarships);
         } else if ('data' in response || 'content' in response) {
           // Raw paginated response from backend
-          const mapped = mapPaginatedOpportunities(response);
+          const mapped = await mapPaginatedOpportunities(response);
           setScholarships(mapped.scholarships);
         } else if (Array.isArray(response)) {
           // Direct array response
@@ -206,7 +210,7 @@ export function useScholarships() {
       const response = await scholarshipServiceApi.getScholarshipById(id);
       
       // Response may be { opportunity, matchScore } or just opportunity
-      const mapped = mapOpportunityDetailToScholarship(response);
+      const mapped = await mapOpportunityDetailToScholarship(response);
       return mapped.scholarship;
     } catch (err) {
       setError('Failed to fetch scholarship');

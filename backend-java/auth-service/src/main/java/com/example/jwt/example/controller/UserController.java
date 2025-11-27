@@ -186,7 +186,17 @@ public class UserController {
         UserDetailDto dto = UserDetailDto.builder()
                 .id(user.getId())
                 .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
                 .organizationId(user.getOrganizationId()) // Trả về organizationId
+                // Profile fields for matching
+                .gpa(user.getGpa())
+                .major(user.getMajor())
+                .university(user.getUniversity())
+                .yearOfStudy(user.getYearOfStudy())
+                .skills(user.getSkills())
+                .researchInterests(user.getResearchInterests())
                 .build();
 
         return ResponseEntity.ok(dto);
@@ -206,7 +216,17 @@ public class UserController {
         UserDetailDto dto = UserDetailDto.builder()
                 .id(user.getId())
                 .username(user.getUsername())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
                 .organizationId(user.getOrganizationId())
+                // Profile fields for matching
+                .gpa(user.getGpa())
+                .major(user.getMajor())
+                .university(user.getUniversity())
+                .yearOfStudy(user.getYearOfStudy())
+                .skills(user.getSkills())
+                .researchInterests(user.getResearchInterests())
                 .build();
 
         return ResponseEntity.ok(dto);

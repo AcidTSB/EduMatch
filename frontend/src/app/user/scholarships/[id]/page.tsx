@@ -65,7 +65,7 @@ export default function ScholarshipDetailPage() {
 
       try {
         const response = await scholarshipServiceApi.getScholarshipById(scholarshipId);
-        const mapped = mapOpportunityDetailToScholarship(response);
+        const mapped = await mapOpportunityDetailToScholarship(response);
         setScholarship(mapped.scholarship);
         setMatchScore(mapped.matchScore);
 
@@ -101,7 +101,7 @@ export default function ScholarshipDetailPage() {
             viewCount: (prev.viewCount || 0) + 1
           }) : null);
         } catch (error) {
-          console.error('Failed to track view:', error);
+          // Silent fail for view tracking
         }
       }
     };
@@ -114,17 +114,9 @@ export default function ScholarshipDetailPage() {
     if (!scholarship || !scholarship.id) return;
 
     const scholarshipIdStr = scholarship.id.toString();
-    const isCurrentlySaved = isScholarshipSaved(scholarshipIdStr);
-
-    // Toggle trạng thái
-    await toggleSaved(scholarshipIdStr);
     
-    // Hiển thị thông báo
-    if (isCurrentlySaved) {
-         toast.success('Removed from saved list');
-    } else {
-         toast.success('Scholarship saved successfully');
-    }
+    // Toggle trạng thái (hook sẽ tự hiển thị toast)
+    await toggleSaved(scholarshipIdStr);
   };
 
   // --- CHỨC NĂNG SHARE ---
@@ -146,8 +138,7 @@ export default function ScholarshipDetailPage() {
             toast.success('Link copied to clipboard!');
         }
     } catch (error) {
-        // Bỏ qua lỗi nếu người dùng hủy chia sẻ
-        console.log('Share cancelled or failed', error);
+        // Silent fail if user cancels share
     }
   };
 

@@ -2,6 +2,7 @@ package com.edumatch.scholarship.controller;
 
 import com.edumatch.scholarship.dto.CreateOpportunityRequest;
 import com.edumatch.scholarship.dto.OpportunityDto;
+import com.edumatch.scholarship.dto.EmployerAnalyticsDto;
 import com.edumatch.scholarship.service.ScholarshipService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -137,5 +138,18 @@ public class OpportunityController {
     public ResponseEntity<Map<String, Object>> getStats() {
         Map<String, Object> stats = scholarshipService.getStats();
         return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * API để Employer lấy analytics data cho học bổng của họ
+     * Endpoint: GET /api/opportunities/analytics
+     */
+    @GetMapping("/analytics")
+    @PreAuthorize("hasRole('ROLE_EMPLOYER')") // Chỉ EMPLOYER
+    public ResponseEntity<EmployerAnalyticsDto> getEmployerAnalytics(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        EmployerAnalyticsDto analytics = scholarshipService.getEmployerAnalytics(userDetails);
+        return ResponseEntity.ok(analytics);
     }
 }

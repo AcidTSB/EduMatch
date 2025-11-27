@@ -216,6 +216,7 @@ public class AdminController {
             HttpEntity<String> entity = new HttpEntity<>(headers);
             
             String url = scholarshipServiceUrl + "/api/opportunities/stats";
+            System.out.println("[AdminController] Calling scholarship-service stats: " + url);
             ResponseEntity<Map> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
@@ -223,11 +224,44 @@ public class AdminController {
                     Map.class
             );
             
+            System.out.println("[AdminController] Scholarship-service response status: " + response.getStatusCode());
+            
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> scholarshipStats = response.getBody();
-                stats.putAll(scholarshipStats);
+                System.out.println("[AdminController] Scholarship stats received: " + scholarshipStats);
+                
+                // Đảm bảo các giá trị được parse đúng (có thể là Integer hoặc Long)
+                if (scholarshipStats.containsKey("activeScholarships")) {
+                    Object activeScholarshipsObj = scholarshipStats.get("activeScholarships");
+                    if (activeScholarshipsObj instanceof Number) {
+                        stats.put("activeScholarships", ((Number) activeScholarshipsObj).longValue());
+                    } else {
+                        stats.put("activeScholarships", activeScholarshipsObj);
+                    }
+                }
+                
+                if (scholarshipStats.containsKey("pendingApplications")) {
+                    Object pendingApplicationsObj = scholarshipStats.get("pendingApplications");
+                    if (pendingApplicationsObj instanceof Number) {
+                        stats.put("pendingApplications", ((Number) pendingApplicationsObj).longValue());
+                    } else {
+                        stats.put("pendingApplications", pendingApplicationsObj);
+                    }
+                }
+                
+                // Copy tất cả các giá trị khác
+                for (Map.Entry<String, Object> entry : scholarshipStats.entrySet()) {
+                    if (!stats.containsKey(entry.getKey())) {
+                        if (entry.getValue() instanceof Number) {
+                            stats.put(entry.getKey(), ((Number) entry.getValue()).longValue());
+                        } else {
+                            stats.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                }
             } else {
                 // Nếu gọi không thành công, set giá trị mặc định
+                System.err.println("[AdminController] Scholarship-service call failed or returned null");
                 stats.put("totalScholarships", 0);
                 stats.put("activeScholarships", 0);
                 stats.put("pendingScholarships", 0);
@@ -238,7 +272,19 @@ public class AdminController {
             }
         } catch (RestClientException e) {
             // Nếu có lỗi khi gọi scholarship-service, log và set giá trị mặc định
-            System.err.println("Error calling scholarship-service: " + e.getMessage());
+            System.err.println("[AdminController] Error calling scholarship-service: " + e.getMessage());
+            e.printStackTrace();
+            stats.put("totalScholarships", 0);
+            stats.put("activeScholarships", 0);
+            stats.put("pendingScholarships", 0);
+            stats.put("totalApplications", 0);
+            stats.put("pendingApplications", 0);
+            stats.put("acceptedApplications", 0);
+            stats.put("rejectedApplications", 0);
+        } catch (Exception e) {
+            // Catch any other exceptions
+            System.err.println("[AdminController] Unexpected error calling scholarship-service: " + e.getMessage());
+            e.printStackTrace();
             stats.put("totalScholarships", 0);
             stats.put("activeScholarships", 0);
             stats.put("pendingScholarships", 0);
@@ -249,6 +295,51 @@ public class AdminController {
         }
         
         return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * Lấy danh sách users mới nhất (recent users)
+     * GET /api/admin/users/recent
+     */
+    @GetMapping("/users/recent")
+    public ResponseEntity<Map<String, Object>> getRecentUsers(
+            @RequestParam(defaultValue = "5") int limit
+    ) {
+        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<User> page = userService.getAllUsers(null, null, null, 0, limit);
+        
+        // Sort by createdAt DESC manually since getAllUsers doesn't support custom sorting
+        List<User> sortedUsers = page.getContent().stream()
+                .sorted((u1, u2) -> {
+                    if (u1.getCreatedAt() == null && u2.getCreatedAt() == null) return 0;
+                    if (u1.getCreatedAt() == null) return 1;
+                    if (u2.getCreatedAt() == null) return -1;
+                    return u2.getCreatedAt().compareTo(u1.getCreatedAt());
+                })
+                .limit(limit)
+                .collect(java.util.stream.Collectors.toList());
+        
+        List<Map<String, Object>> users = sortedUsers.stream()
+                .map(user -> {
+                    Map<String, Object> userMap = new HashMap<>();
+                    userMap.put("id", user.getId());
+                    userMap.put("username", user.getUsername());
+                    userMap.put("email", user.getEmail());
+                    userMap.put("firstName", user.getFirstName());
+                    userMap.put("lastName", user.getLastName());
+                    userMap.put("createdAt", user.getCreatedAt());
+                    userMap.put("roles", user.getRoles().stream()
+                            .map(role -> role.getName())
+                            .collect(java.util.stream.Collectors.toList()));
+                    return userMap;
+                })
+                .collect(java.util.stream.Collectors.toList());
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("users", users);
+        response.put("total", users.size());
+        
+        return ResponseEntity.ok(response);
     }
 
     /**

@@ -71,6 +71,7 @@ public class SecurityConfig {
 
                 // ---- EMPLOYER ONLY ----
                 .requestMatchers(HttpMethod.GET,    "/api/opportunities/my").hasAuthority("ROLE_EMPLOYER")
+                .requestMatchers(HttpMethod.GET,    "/api/opportunities/analytics").hasAuthority("ROLE_EMPLOYER")
                 .requestMatchers(HttpMethod.GET,    "/api/applications/opportunity/**").hasAuthority("ROLE_EMPLOYER")
                 .requestMatchers(HttpMethod.POST,   "/api/opportunities").hasAuthority("ROLE_EMPLOYER")
                 .requestMatchers(HttpMethod.PUT,    "/api/opportunities/{id:[0-9]+}").hasAuthority("ROLE_EMPLOYER")

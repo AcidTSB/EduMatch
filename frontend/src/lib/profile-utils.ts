@@ -35,9 +35,17 @@ export function isProfileComplete(user: AuthUser | null): boolean {
       return false;
     }
 
-    // For GPA, check if it's a valid number
-    if (field === 'gpa' && (isNaN(Number(value)) || Number(value) <= 0)) {
+    // For string fields, check if trimmed value is not empty
+    if (typeof value === 'string' && value.trim() === '') {
       return false;
+    }
+
+    // For GPA, check if it's a valid number
+    if (field === 'gpa') {
+      const gpaNum = Number(value);
+      if (isNaN(gpaNum) || gpaNum <= 0 || gpaNum > 4.0) {
+        return false;
+      }
     }
   }
 

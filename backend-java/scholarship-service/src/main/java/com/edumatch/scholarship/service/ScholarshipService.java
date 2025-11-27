@@ -5,6 +5,7 @@ import com.edumatch.scholarship.dto.CreateOpportunityRequest;
 import com.edumatch.scholarship.dto.OpportunityDto;
 import com.edumatch.scholarship.dto.client.UserDetailDto;
 import com.edumatch.scholarship.exception.ResourceNotFoundException;
+import com.edumatch.scholarship.exception.DuplicateResourceException;
 import com.edumatch.scholarship.model.Opportunity;
 import com.edumatch.scholarship.model.Skill;
 import com.edumatch.scholarship.model.Tag;
@@ -33,10 +34,13 @@ import com.edumatch.scholarship.repository.BookmarkRepository;
 import com.edumatch.scholarship.model.Application;
 import com.edumatch.scholarship.dto.client.ScoreRequest; 
 import com.edumatch.scholarship.dto.client.ScoreResponse; 
-import com.edumatch.scholarship.dto.OpportunityDetailDto; 
+import com.edumatch.scholarship.dto.OpportunityDetailDto;
+import com.edumatch.scholarship.dto.EmployerAnalyticsDto;
 import org.springframework.data.domain.Page; 
 import org.springframework.data.domain.Pageable; 
 import java.util.Map;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import com.edumatch.scholarship.repository.specification.OpportunitySpecification;
 import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.Predicate;
@@ -113,6 +117,46 @@ public class ScholarshipService {
     }
 
     /**
+     * Hàm helper để lấy user details từ auth-service bằng userId
+     */
+    public UserDetailDto getUserDetailsFromAuthServiceById(Long userId, String token) {
+        String url = authServiceUrl + "/api/internal/user/id/" + userId;
+        
+        log.info("Calling Auth-Service to get user details by ID: {}", userId);
+        log.debug("Auth-Service URL: {}", url);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token);
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            ResponseEntity<UserDetailDto> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    UserDetailDto.class
+            );
+            UserDetailDto user = response.getBody();
+
+            if (user == null || user.getId() == null) {
+                throw new ResourceNotFoundException("Không thể lấy thông tin (ID) user từ Auth-Service.");
+            }
+            
+            log.info("Successfully received user details from Auth-Service by ID, userId={}", user.getId());
+            return user;
+
+        } catch (HttpClientErrorException.NotFound ex) {
+            throw new ResourceNotFoundException("Không tìm thấy User với ID: " + userId + " bên Auth-Service.");
+        } catch (HttpClientErrorException.Unauthorized ex) {
+            log.error("Token bị từ chối bởi Auth-Service: {}", ex.getMessage());
+            throw new IllegalStateException("Token không hợp lệ khi gọi Auth-Service.");
+        } catch (Exception ex) {
+            log.error("Lỗi khi gọi Auth-Service: {}", ex.getMessage());
+            throw new IllegalStateException("Không thể kết nối tới Auth-Service.");
+        }
+    }
+
+    /**
      * Hàm helper RIÊNG TƯ (private) cho các nghiệp vụ của Provider.
      * Đảm bảo user lấy về PHẢI CÓ organizationId.
      */
@@ -138,6 +182,61 @@ public class ScholarshipService {
 
         UserDetailDto user = getProviderDetails(username, token);
 
+        // Kiểm tra xem đã có học bổng trùng lặp chưa
+        // Kiểm tra theo title và organizationId (cùng tổ chức không thể có 2 học bổng cùng title)
+        // Sử dụng trim() để loại bỏ khoảng trắng thừa và so sánh case-insensitive
+        String normalizedTitle = request.getTitle() != null ? request.getTitle().trim() : "";
+        if (normalizedTitle.isEmpty()) {
+            throw new IllegalArgumentException("Tiêu đề học bổng không được để trống.");
+        }
+        
+        log.debug("Kiểm tra duplicate cho học bổng: title='{}', organizationId={}", 
+                  normalizedTitle, user.getOrganizationId());
+        
+        // Kiểm tra duplicate trong cùng organization (case-insensitive)
+        boolean existsInOrg = opportunityRepository.existsByOrganizationIdAndTitleIgnoreCase(
+                user.getOrganizationId(), normalizedTitle);
+        
+        if (existsInOrg) {
+            log.warn("Phát hiện duplicate: đã tồn tại học bổng với title='{}' trong organizationId={}", 
+                     normalizedTitle, user.getOrganizationId());
+            throw new DuplicateResourceException(
+                    "Đã tồn tại học bổng với tiêu đề \"" + normalizedTitle + 
+                    "\" trong tổ chức của bạn. Vui lòng sử dụng tiêu đề khác.");
+        }
+        
+        // Kiểm tra thêm: nếu có học bổng khác với cùng title, description, amount và deadline
+        // thì cũng coi là trùng lặp (ngay cả khi khác organization)
+        // Lưu ý: findByTitleIgnoreCase sẽ tìm tất cả học bổng có title giống (case-insensitive)
+        List<Opportunity> existingWithSameTitle = opportunityRepository.findByTitleIgnoreCase(normalizedTitle);
+        log.debug("Tìm thấy {} học bổng có cùng title (case-insensitive)", existingWithSameTitle.size());
+        
+        for (Opportunity existing : existingWithSameTitle) {
+            // Bỏ qua nếu là cùng organization (đã kiểm tra ở trên)
+            if (existing.getOrganizationId().equals(user.getOrganizationId())) {
+                log.debug("Bỏ qua học bổng ID={} vì cùng organization", existing.getId());
+                continue;
+            }
+            
+            // So sánh các trường quan trọng để xác định duplicate
+            boolean descriptionMatch = compareStrings(existing.getFullDescription(), request.getFullDescription());
+            boolean amountMatch = compareBigDecimals(existing.getScholarshipAmount(), request.getScholarshipAmount());
+            boolean deadlineMatch = compareDates(existing.getApplicationDeadline(), request.getApplicationDeadline());
+            
+            log.debug("So sánh với học bổng ID={}: descriptionMatch={}, amountMatch={}, deadlineMatch={}", 
+                     existing.getId(), descriptionMatch, amountMatch, deadlineMatch);
+            
+            // Nếu tất cả các trường quan trọng đều giống nhau -> duplicate
+            if (descriptionMatch && amountMatch && deadlineMatch) {
+                log.warn("Phát hiện duplicate chi tiết: học bổng ID={} có tất cả trường giống hệt", existing.getId());
+                throw new DuplicateResourceException(
+                        "Đã tồn tại học bổng y hệt với tiêu đề \"" + normalizedTitle + 
+                        "\", mô tả, số tiền và hạn nộp đơn giống hệt. Vui lòng tạo học bổng khác.");
+            }
+        }
+        
+        log.info("Không phát hiện duplicate, tiếp tục tạo học bổng mới");
+
         log.info("Xử lý Tags và Skills...");
         Set<Tag> tags = request.getTags() != null && !request.getTags().isEmpty()
                 ? request.getTags().stream()
@@ -153,7 +252,7 @@ public class ScholarshipService {
                 : new HashSet<>();
 
         Opportunity opportunity = Opportunity.builder()
-                .title(request.getTitle())
+                .title(normalizedTitle)
                 .fullDescription(request.getFullDescription())
                 .creatorUserId(user.getId())
                 .organizationId(user.getOrganizationId())
@@ -537,26 +636,90 @@ public class ScholarshipService {
         
         // Thống kê scholarships (opportunities)
         long totalScholarships = opportunityRepository.count();
-        long activeScholarships = opportunityRepository.findAll().stream()
-                .filter(opp -> "APPROVED".equals(opp.getModerationStatus()))
+        log.info("[ScholarshipService] Total scholarships in database: {}", totalScholarships);
+        
+        // Active scholarships = APPROVED hoặc null (null có thể là bản ghi cũ hoặc chưa qua moderation)
+        List<Opportunity> allOpportunities = opportunityRepository.findAll();
+        
+        // Log để debug
+        Map<String, Long> statusCount = allOpportunities.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                    opp -> opp.getModerationStatus() == null ? "NULL" : opp.getModerationStatus(),
+                    java.util.stream.Collectors.counting()
+                ));
+        log.info("[ScholarshipService] Scholarships by moderation status: {}", statusCount);
+        
+        long activeScholarships = allOpportunities.stream()
+                .filter(opp -> {
+                    String status = opp.getModerationStatus();
+                    // Active = APPROVED hoặc null (null được coi là đang hoạt động)
+                    boolean isActive = status == null || "APPROVED".equals(status.trim());
+                    return isActive;
+                })
                 .count();
-        long pendingScholarships = opportunityRepository.findAll().stream()
-                .filter(opp -> "PENDING".equals(opp.getModerationStatus()))
+        
+        long pendingScholarships = allOpportunities.stream()
+                .filter(opp -> {
+                    String status = opp.getModerationStatus();
+                    // Pending = chỉ những scholarships có status PENDING
+                    return status != null && "PENDING".equals(status.trim());
+                })
                 .count();
+        
+        log.info("[ScholarshipService] Active scholarships: {}, Pending scholarships: {}", activeScholarships, pendingScholarships);
         
         // Thống kê applications
         long totalApplications = applicationRepository.count();
-        long pendingApplications = applicationRepository.findAll().stream()
-                .filter(app -> "PENDING".equals(app.getStatus()) || 
-                              "SUBMITTED".equals(app.getStatus()) || 
-                              "UNDER_REVIEW".equals(app.getStatus()))
+        log.info("[ScholarshipService] Total applications in database: {}", totalApplications);
+        
+        List<Application> allApplications = applicationRepository.findAll();
+        
+        // Log để debug
+        Map<String, Long> appStatusCount = allApplications.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                    app -> app.getStatus() == null ? "NULL" : app.getStatus().toUpperCase(),
+                    java.util.stream.Collectors.counting()
+                ));
+        log.info("[ScholarshipService] Applications by status: {}", appStatusCount);
+        
+        // Pending applications = các đơn đang chờ duyệt (PENDING, SUBMITTED, UNDER_REVIEW)
+        long pendingApplications = allApplications.stream()
+                .filter(app -> {
+                    String status = app.getStatus();
+                    if (status == null) return false;
+                    String upperStatus = status.trim().toUpperCase();
+                    // Đếm các đơn đang chờ duyệt
+                    return "PENDING".equals(upperStatus) || 
+                           "SUBMITTED".equals(upperStatus) || 
+                           "UNDER_REVIEW".equals(upperStatus);
+                })
                 .count();
-        long acceptedApplications = applicationRepository.findAll().stream()
-                .filter(app -> "ACCEPTED".equals(app.getStatus()))
+        
+        long acceptedApplications = allApplications.stream()
+                .filter(app -> {
+                    String status = app.getStatus();
+                    return status != null && "ACCEPTED".equals(status.trim().toUpperCase());
+                })
                 .count();
-        long rejectedApplications = applicationRepository.findAll().stream()
-                .filter(app -> "REJECTED".equals(app.getStatus()))
+        
+        long rejectedApplications = allApplications.stream()
+                .filter(app -> {
+                    String status = app.getStatus();
+                    return status != null && "REJECTED".equals(status.trim().toUpperCase());
+                })
                 .count();
+        
+        log.info("[ScholarshipService] Pending applications: {}, Accepted: {}, Rejected: {}", 
+                pendingApplications, acceptedApplications, rejectedApplications);
+        
+        // Tính tổng kinh phí từ các scholarships đã được duyệt
+        double totalFunding = allOpportunities.stream()
+                .filter(opp -> {
+                    String status = opp.getModerationStatus();
+                    return (status == null || "APPROVED".equals(status.trim())) && opp.getScholarshipAmount() != null;
+                })
+                .mapToDouble(opp -> opp.getScholarshipAmount().doubleValue())
+                .sum();
         
         stats.put("totalScholarships", totalScholarships);
         stats.put("activeScholarships", activeScholarships);
@@ -565,8 +728,184 @@ public class ScholarshipService {
         stats.put("pendingApplications", pendingApplications);
         stats.put("acceptedApplications", acceptedApplications);
         stats.put("rejectedApplications", rejectedApplications);
+        stats.put("totalFunding", totalFunding);
+        
+        log.info("[ScholarshipService] Final stats: {}", stats);
         
         return stats;
+    }
+
+    /**
+     * Lấy analytics data cho employer (provider)
+     */
+    @Transactional(readOnly = true)
+    public EmployerAnalyticsDto getEmployerAnalytics(UserDetails userDetails) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String token = (String) authentication.getCredentials();
+        String username = userDetails.getUsername();
+
+        UserDetailDto user = getProviderDetails(username, token);
+        
+        // Lấy tất cả opportunities của employer
+        List<Opportunity> myOpportunities = opportunityRepository.findByCreatorUserId(user.getId());
+        
+        // Lấy tất cả opportunity IDs
+        List<Long> opportunityIds = myOpportunities.stream()
+                .map(Opportunity::getId)
+                .collect(Collectors.toList());
+        
+        // Lấy tất cả applications cho các opportunities này
+        List<Application> allApplications = new ArrayList<>();
+        for (Long oppId : opportunityIds) {
+            allApplications.addAll(applicationRepository.findByOpportunityId(oppId));
+        }
+        
+        // Tính toán overview stats
+        long totalApplications = allApplications.size();
+        long acceptedApplications = allApplications.stream()
+                .filter(app -> "ACCEPTED".equals(app.getStatus()))
+                .count();
+        long rejectedApplications = allApplications.stream()
+                .filter(app -> "REJECTED".equals(app.getStatus()))
+                .count();
+        long pendingApplications = allApplications.stream()
+                .filter(app -> "PENDING".equals(app.getStatus()) || 
+                              "SUBMITTED".equals(app.getStatus()) || 
+                              "UNDER_REVIEW".equals(app.getStatus()))
+                .count();
+        
+        long activeScholarships = myOpportunities.stream()
+                .filter(opp -> "APPROVED".equals(opp.getModerationStatus()))
+                .count();
+        
+        double acceptanceRate = totalApplications > 0 
+                ? (double) acceptedApplications / totalApplications * 100 
+                : 0.0;
+        
+        double averageApplicationsPerScholarship = myOpportunities.size() > 0
+                ? (double) totalApplications / myOpportunities.size()
+                : 0.0;
+        
+        EmployerAnalyticsDto.OverviewStats overview = EmployerAnalyticsDto.OverviewStats.builder()
+                .totalScholarships((long) myOpportunities.size())
+                .totalApplications(totalApplications)
+                .acceptedApplications(acceptedApplications)
+                .rejectedApplications(rejectedApplications)
+                .pendingApplications(pendingApplications)
+                .activeScholarships(activeScholarships)
+                .acceptanceRate(Math.round(acceptanceRate * 10.0) / 10.0)
+                .averageApplicationsPerScholarship(Math.round(averageApplicationsPerScholarship * 10.0) / 10.0)
+                .build();
+        
+        // Tính toán scholarship performance
+        List<EmployerAnalyticsDto.ScholarshipPerformance> scholarshipPerformance = myOpportunities.stream()
+                .map(opp -> {
+                    List<Application> oppApplications = applicationRepository.findByOpportunityId(opp.getId());
+                    long oppAccepted = oppApplications.stream()
+                            .filter(app -> "ACCEPTED".equals(app.getStatus()))
+                            .count();
+                    long oppRejected = oppApplications.stream()
+                            .filter(app -> "REJECTED".equals(app.getStatus()))
+                            .count();
+                    long oppPending = oppApplications.stream()
+                            .filter(app -> "PENDING".equals(app.getStatus()) || 
+                                          "SUBMITTED".equals(app.getStatus()) || 
+                                          "UNDER_REVIEW".equals(app.getStatus()))
+                            .count();
+                    
+                    double oppAcceptanceRate = oppApplications.size() > 0
+                            ? (double) oppAccepted / oppApplications.size() * 100
+                            : 0.0;
+                    
+                    return EmployerAnalyticsDto.ScholarshipPerformance.builder()
+                            .id(opp.getId())
+                            .title(opp.getTitle())
+                            .applications((long) oppApplications.size())
+                            .accepted(oppAccepted)
+                            .rejected(oppRejected)
+                            .pending(oppPending)
+                            .acceptanceRate(Math.round(oppAcceptanceRate * 10.0) / 10.0)
+                            .averageRating(4.0) // TODO: Calculate from ratings if available
+                            .status("APPROVED".equals(opp.getModerationStatus()) ? "ACTIVE" : opp.getModerationStatus())
+                            .build();
+                })
+                .collect(Collectors.toList());
+        
+        // Tính toán monthly stats (6 tháng gần nhất)
+        List<EmployerAnalyticsDto.MonthlyStat> monthlyStats = new ArrayList<>();
+        YearMonth now = YearMonth.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM");
+        
+        for (int i = 5; i >= 0; i--) {
+            YearMonth month = now.minusMonths(i);
+            LocalDate monthStart = month.atDay(1);
+            LocalDate monthEnd = month.atEndOfMonth();
+            
+            long monthApplications = allApplications.stream()
+                    .filter(app -> {
+                        if (app.getSubmittedAt() == null) return false;
+                        LocalDate appDate = app.getSubmittedAt().toLocalDate();
+                        return !appDate.isBefore(monthStart) && !appDate.isAfter(monthEnd);
+                    })
+                    .count();
+            
+            long monthAccepted = allApplications.stream()
+                    .filter(app -> {
+                        if (app.getSubmittedAt() == null) return false;
+                        LocalDate appDate = app.getSubmittedAt().toLocalDate();
+                        return !appDate.isBefore(monthStart) && !appDate.isAfter(monthEnd) &&
+                               "ACCEPTED".equals(app.getStatus());
+                    })
+                    .count();
+            
+            long monthRejected = allApplications.stream()
+                    .filter(app -> {
+                        if (app.getSubmittedAt() == null) return false;
+                        LocalDate appDate = app.getSubmittedAt().toLocalDate();
+                        return !appDate.isBefore(monthStart) && !appDate.isAfter(monthEnd) &&
+                               "REJECTED".equals(app.getStatus());
+                    })
+                    .count();
+            
+            long monthPending = allApplications.stream()
+                    .filter(app -> {
+                        if (app.getSubmittedAt() == null) return false;
+                        LocalDate appDate = app.getSubmittedAt().toLocalDate();
+                        return !appDate.isBefore(monthStart) && !appDate.isAfter(monthEnd) &&
+                               ("PENDING".equals(app.getStatus()) || 
+                                "SUBMITTED".equals(app.getStatus()) || 
+                                "UNDER_REVIEW".equals(app.getStatus()));
+                    })
+                    .count();
+            
+            monthlyStats.add(EmployerAnalyticsDto.MonthlyStat.builder()
+                    .month(month.format(formatter))
+                    .applications(monthApplications)
+                    .accepted(monthAccepted)
+                    .rejected(monthRejected)
+                    .pending(monthPending)
+                    .build());
+        }
+        
+        // Status distribution
+        EmployerAnalyticsDto.StatusDistribution statusDistribution = EmployerAnalyticsDto.StatusDistribution.builder()
+                .accepted(acceptedApplications)
+                .pending(pendingApplications)
+                .rejected(rejectedApplications)
+                .build();
+        
+        // Top universities and majors (empty for now, can be enhanced later with user profile data)
+        List<EmployerAnalyticsDto.UniversityStat> topUniversities = new ArrayList<>();
+        List<EmployerAnalyticsDto.MajorStat> topMajors = new ArrayList<>();
+        
+        return EmployerAnalyticsDto.builder()
+                .overview(overview)
+                .scholarshipPerformance(scholarshipPerformance)
+                .monthlyStats(monthlyStats)
+                .statusDistribution(statusDistribution)
+                .topUniversities(topUniversities)
+                .topMajors(topMajors)
+                .build();
     }
 
     /**
@@ -582,5 +921,32 @@ public class ScholarshipService {
         opportunityRepository.save(opportunity);
         
         log.debug("Incremented view count for opportunity {} to {}", opportunityId, opportunity.getViewsCnt());
+    }
+    
+    /**
+     * Helper method để so sánh 2 chuỗi (null-safe)
+     */
+    private boolean compareStrings(String str1, String str2) {
+        if (str1 == null && str2 == null) return true;
+        if (str1 == null || str2 == null) return false;
+        return str1.trim().equals(str2.trim());
+    }
+    
+    /**
+     * Helper method để so sánh 2 BigDecimal (null-safe)
+     */
+    private boolean compareBigDecimals(BigDecimal bd1, BigDecimal bd2) {
+        if (bd1 == null && bd2 == null) return true;
+        if (bd1 == null || bd2 == null) return false;
+        return bd1.compareTo(bd2) == 0;
+    }
+    
+    /**
+     * Helper method để so sánh 2 LocalDate (null-safe)
+     */
+    private boolean compareDates(LocalDate date1, LocalDate date2) {
+        if (date1 == null && date2 == null) return true;
+        if (date1 == null || date2 == null) return false;
+        return date1.equals(date2);
     }
 }

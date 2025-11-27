@@ -203,18 +203,38 @@ export const scholarshipServiceApi = {
    * POST /api/bookmarks/{opportunityId}
    */
   toggleBookmark: async (opportunityId: string | number) => {
-    // Gọi vào: /api/bookmarks/{id} (của Next.js)
     const token = getAuthToken();
-    const response = await fetch(`/api/bookmarks/${opportunityId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
+    
+    if (!token) {
+      throw new Error('Không tìm thấy token xác thực. Vui lòng đăng nhập lại.');
+    }
 
-    if (!response.ok) throw new Error('Failed to toggle bookmark');
-    return await response.json();
+    try {
+      const response = await fetch(`/api/bookmarks/${opportunityId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          const text = await response.text();
+          errorData = JSON.parse(text);
+        } catch (e) {
+          errorData = { message: 'Unknown error', raw: await response.text().catch(() => '') };
+        }
+        const errorMessage = errorData.message || errorData.error || errorData.details || `HTTP ${response.status}: Failed to toggle bookmark`;
+        throw new Error(errorMessage);
+      }
+      
+      return await response.json();
+    } catch (error: any) {
+      console.error('[toggleBookmark] Error:', error);
+      throw error;
+    }
   },
 
   /**
@@ -224,16 +244,37 @@ export const scholarshipServiceApi = {
   getMyBookmarks: async () => {
     // Gọi vào: /api/bookmarks/my (của Next.js)
     const token = getAuthToken();
-    const response = await fetch(`/api/bookmarks/my`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
+    
+    if (!token) {
+      throw new Error('Không tìm thấy token xác thực. Vui lòng đăng nhập lại.');
+    }
 
-    if (!response.ok) throw new Error('Failed to fetch bookmarks');
-    return await response.json();
+    try {
+      const response = await fetch(`/api/bookmarks/my`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        let errorData;
+        try {
+          const text = await response.text();
+          errorData = JSON.parse(text);
+        } catch (e) {
+          errorData = { message: 'Unknown error', raw: await response.text().catch(() => '') };
+        }
+        const errorMessage = errorData.message || errorData.error || errorData.details || `HTTP ${response.status}: Failed to fetch bookmarks`;
+        throw new Error(errorMessage);
+      }
+      
+      return await response.json();
+    } catch (error: any) {
+      console.error('[getMyBookmarks] Error:', error);
+      throw error;
+    }
   },
 
   // ============================================
@@ -249,6 +290,14 @@ export const scholarshipServiceApi = {
       method: 'POST',
       body: JSON.stringify(request),
     });
+  },
+
+  /**
+   * Lấy analytics data cho employer
+   * GET /api/opportunities/analytics
+   */
+  getEmployerAnalytics: async () => {
+    return apiCall<any>('/api/opportunities/analytics');
   },
 
   /**

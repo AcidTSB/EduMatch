@@ -121,36 +121,65 @@ const ApplicationDetailModal = ({
               <User className="h-8 w-8 text-gray-500" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold">{application.applicant?.name || 'Unknown'}</h3>
-              <p className="text-gray-600">{application.applicant?.email || 'No email'}</p>
+              <h3 className="text-lg font-semibold">
+                {application.applicant?.firstName && application.applicant?.lastName
+                  ? `${application.applicant.firstName} ${application.applicant.lastName}`
+                  : application.applicant?.username || application.applicantUserName || 'Unknown'}
+              </h3>
+              <p className="text-gray-600">{application.applicant?.email || application.applicantEmail || 'No email'}</p>
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-gray-500">{t('providerApplications.modal.university')}</p>
-              <p className="font-semibold">{application.applicant?.profile?.university || 'Not specified'}</p>
+              <p className="font-semibold">
+                {application.applicant?.university || application.applicant?.profile?.university || 'Not specified'}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">{t('providerApplications.modal.major')}</p>
-              <p className="font-semibold">{application.applicant?.profile?.major || 'Not specified'}</p>
+              <p className="font-semibold">
+                {application.applicant?.major || application.applicant?.profile?.major || 'Not specified'}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">{t('providerApplications.modal.gpa')}</p>
-              <p className="font-semibold">{application.applicant?.profile?.gpa || 'Not provided'}</p>
+              <p className="font-semibold">
+                {(() => {
+                  const gpa = application.applicant?.gpa ?? application.applicant?.profile?.gpa ?? application.gpa;
+                  if (gpa !== undefined && gpa !== null && !isNaN(Number(gpa)) && Number(gpa) > 0) {
+                    return Number(gpa).toFixed(2);
+                  }
+                  return 'Not provided';
+                })()}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">{t('providerApplications.modal.graduationYear')}</p>
-              <p className="font-semibold">{application.applicant?.profile?.graduationYear || 'Not specified'}</p>
+              <p className="font-semibold">
+                {(() => {
+                  const yearOfStudy = application.applicant?.yearOfStudy ?? application.applicant?.profile?.graduationYear;
+                  if (yearOfStudy !== undefined && yearOfStudy !== null && !isNaN(Number(yearOfStudy)) && Number(yearOfStudy) > 0) {
+                    const year = Number(yearOfStudy);
+                    const suffix = year === 1 ? 'st' : year === 2 ? 'nd' : year === 3 ? 'rd' : 'th';
+                    return `${year}${suffix} Year`;
+                  }
+                  return 'Not specified';
+                })()}
+              </p>
             </div>
           </div>
 
-          {application.applicant?.profile?.skills && (
+          {application.applicant?.skills && application.applicant.skills.length > 0 && (
             <div className="mb-4">
               <p className="text-sm text-gray-500 mb-2">{t('providerApplications.modal.skills')}</p>
               <div className="flex flex-wrap gap-2">
-                {application.applicant.profile.skills.map((skill: string, index: number) => (
-                  <Badge key={index} variant="outline">{skill}</Badge>
+                {(Array.isArray(application.applicant.skills) 
+                  ? application.applicant.skills 
+                  : application.applicant.skills.split(',')
+                ).map((skill: string, index: number) => (
+                  <Badge key={index} variant="outline">{typeof skill === 'string' ? skill.trim() : skill}</Badge>
                 ))}
               </div>
             </div>
@@ -395,37 +424,94 @@ export default function ProviderApplicationsPage() {
   }, []);
 
   // Helper function to map application DTO
-  const mapApplicationDto = (app: any): Application => ({
-    id: app.id?.toString() || '',
-    applicantId: app.applicantUserId?.toString() || '',
-    scholarshipId: app.opportunityId?.toString() || '',
-    status: app.status || 'PENDING',
-    additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
-    createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
-    updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
-    submittedAt: app.submittedAt || app.createdAt,
-    applicantUserName: app.applicantUserName,
-    applicantEmail: app.applicantEmail,
-    phone: app.phone,
-    gpa: app.gpa ? Number(app.gpa) : undefined,
-    coverLetter: app.coverLetter,
-    motivation: app.motivation,
-    additionalInfo: app.additionalInfo,
-    portfolioUrl: app.portfolioUrl,
-    linkedinUrl: app.linkedinUrl,
-    githubUrl: app.githubUrl,
-    applicant: {
-      name: app.applicantUserName || 'Unknown',
-      email: app.applicantEmail || 'No email',
-      profile: {
-        university: app.university || 'Not specified',
-        major: app.major || 'Not specified',
-        gpa: app.gpa || 'Not provided',
-        graduationYear: app.graduationYear || 'Not specified',
-        skills: app.skills || []
-      }
-    }
-  });
+  const mapApplicationDto = (app: any): Application => {
+    // Get applicant profile from backend (app.applicant) or fallback to application fields
+    const applicant = app.applicant || {};
+    
+    return {
+      id: app.id?.toString() || '',
+      applicantId: app.applicantUserId?.toString() || '',
+      scholarshipId: app.opportunityId?.toString() || '',
+      status: app.status || 'PENDING',
+      additionalDocs: app.documents?.map((doc: any) => doc.documentUrl || doc.documentName) || [],
+      createdAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+      updatedAt: app.submittedAt ? new Date(app.submittedAt) : new Date(),
+      submittedAt: app.submittedAt || app.createdAt,
+      applicantUserName: applicant.username || app.applicantUserName,
+      applicantEmail: applicant.email || app.applicantEmail,
+      phone: app.phone,
+      gpa: applicant.gpa ? Number(applicant.gpa) : (app.gpa ? Number(app.gpa) : undefined),
+      coverLetter: app.coverLetter,
+      motivation: app.motivation,
+      additionalInfo: app.additionalInfo,
+      portfolioUrl: app.portfolioUrl,
+      linkedinUrl: app.linkedinUrl,
+      githubUrl: app.githubUrl,
+      applicant: (() => {
+        // Only create applicant object if we have real data from backend
+        const hasRealData = applicant && (
+          applicant.id || 
+          applicant.username || 
+          applicant.university || 
+          applicant.major || 
+          applicant.gpa || 
+          applicant.yearOfStudy
+        );
+        
+        if (!hasRealData && !app.applicantUserName) {
+          // No data at all, return minimal object
+          return {
+            name: 'Unknown',
+            email: 'No email',
+            profile: {
+              university: 'Not specified',
+              major: 'Not specified',
+              gpa: 'Not provided',
+              graduationYear: 'Not specified',
+              skills: []
+            }
+          } as any;
+        }
+        
+        // We have some data, create full object
+        return {
+          name: applicant.firstName && applicant.lastName 
+            ? `${applicant.firstName} ${applicant.lastName}` 
+            : applicant.username || app.applicantUserName || 'Unknown',
+          email: applicant.email || app.applicantEmail || 'No email',
+          username: applicant.username,
+          firstName: applicant.firstName,
+          lastName: applicant.lastName,
+          // Map profile fields directly to applicant object for easy access in modal
+          ...(applicant.university && { university: applicant.university }),
+          ...(applicant.major && { major: applicant.major }),
+          ...(applicant.gpa !== null && applicant.gpa !== undefined && { gpa: Number(applicant.gpa) }),
+          ...(applicant.yearOfStudy !== null && applicant.yearOfStudy !== undefined && { yearOfStudy: applicant.yearOfStudy }),
+          ...(applicant.skills && { 
+            skills: typeof applicant.skills === 'string' 
+              ? applicant.skills.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+              : applicant.skills
+          }),
+          // Also keep profile structure for backward compatibility
+          profile: {
+            university: applicant.university || 'Not specified',
+            major: applicant.major || 'Not specified',
+            gpa: applicant.gpa !== null && applicant.gpa !== undefined 
+              ? applicant.gpa.toString() 
+              : (app.gpa ? app.gpa.toString() : 'Not provided'),
+            graduationYear: applicant.yearOfStudy !== null && applicant.yearOfStudy !== undefined
+              ? `${applicant.yearOfStudy}${applicant.yearOfStudy === 1 ? 'st' : applicant.yearOfStudy === 2 ? 'nd' : applicant.yearOfStudy === 3 ? 'rd' : 'th'} Year`
+              : 'Not specified',
+            skills: applicant.skills 
+              ? (typeof applicant.skills === 'string'
+                  ? applicant.skills.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0)
+                  : applicant.skills)
+              : []
+          }
+        } as any;
+      })()
+    };
+  };
 
   // Refresh applications data
   const refreshApplications = async () => {
@@ -524,7 +610,6 @@ export default function ProviderApplicationsPage() {
         content: message
       });
       
-      console.log('✅ Message sent successfully to applicant:', applicantUserId);
       return true;
     } catch (error) {
       console.error('❌ Failed to send message:', error);

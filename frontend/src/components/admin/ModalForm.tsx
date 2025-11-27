@@ -40,11 +40,21 @@ export default function ModalForm({
   initialValues = {}
 }: ModalFormProps) {
   const { t } = useLanguage();
-  const [formData, setFormData] = React.useState<Record<string, any>>(initialValues);
+  const [formData, setFormData] = React.useState<Record<string, any>>({});
+  const prevIsOpenRef = React.useRef(false);
 
   React.useEffect(() => {
-    setFormData(initialValues);
-  }, [initialValues, isOpen]);
+    // Chỉ reset form data khi modal mở (từ closed -> open)
+    if (isOpen && !prevIsOpenRef.current) {
+      setFormData(initialValues || {});
+    }
+    prevIsOpenRef.current = isOpen;
+    
+    // Reset form khi modal đóng
+    if (!isOpen) {
+      setFormData({});
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -69,7 +79,8 @@ export default function ModalForm({
             placeholder={field.placeholder}
             required={field.required}
             rows={field.rows || 4}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            style={{ pointerEvents: 'auto' }}
           />
         );
 
@@ -79,9 +90,10 @@ export default function ModalForm({
             value={value}
             onChange={(e) => handleChange(field.name, e.target.value)}
             required={field.required}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            style={{ pointerEvents: 'auto' }}
           >
-            <option value="">{t('modalForm.selectPrefix')} {field.label}</option>
+            <option value="">Chọn {field.label}</option>
             {field.options?.map(option => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -92,27 +104,34 @@ export default function ModalForm({
 
       default:
         return (
-          <Input
+          <input
             type={field.type}
             value={value}
             onChange={(e) => handleChange(field.name, e.target.value)}
             placeholder={field.placeholder}
             required={field.required}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
         );
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto" style={{ pointerEvents: 'auto' }}>
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50"
+        className="fixed inset-0 bg-black/50"
         onClick={onClose}
+        style={{ pointerEvents: 'auto' }}
       />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 my-8 animate-in fade-in zoom-in duration-200">
+      <div 
+        className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 my-8 z-[10000] animate-in fade-in zoom-in duration-200"
+        onClick={(e) => e.stopPropagation()}
+        style={{ pointerEvents: 'auto' }}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
@@ -125,15 +144,17 @@ export default function ModalForm({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} style={{ pointerEvents: 'auto' }}>
+          <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto" style={{ pointerEvents: 'auto' }}>
             {fields.map(field => (
-              <div key={field.name} className="space-y-2">
+              <div key={field.name} className="space-y-2" style={{ pointerEvents: 'auto' }}>
                 <label className="block text-sm font-medium text-gray-700">
                   {field.label}
                   {field.required && <span className="text-red-500 ml-1">*</span>}
                 </label>
-                {renderField(field)}
+                <div style={{ pointerEvents: 'auto' }}>
+                  {renderField(field)}
+                </div>
               </div>
             ))}
           </div>

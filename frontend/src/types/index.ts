@@ -144,7 +144,7 @@ export interface Scholarship {
   preferredSkills?: string[];
   viewCount: number;
   createdAt: Date;
- 
+  updatedAt?: Date; // Thời điểm duyệt/cập nhật gần nhất
 
   // Các trường tùy chọn/cũ (vẫn giữ để linh hoạt)
   tags?: string[];
@@ -192,6 +192,15 @@ export interface Application {
   applicant?: {
     name: string;
     email: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    // Profile fields can be at root level or in profile object
+    university?: string;
+    major?: string;
+    gpa?: number;
+    yearOfStudy?: number;
+    skills?: string[] | string;
     profile?: {
       university?: string;
       major?: string;

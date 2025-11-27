@@ -26,10 +26,18 @@ export default function SavedScholarshipsPage() {
       setIsLoading(true);
       // Gọi service (nó sẽ gọi qua Proxy Next.js -> Java Backend)
       const data = await scholarshipServiceApi.getMyBookmarks();
-      setBookmarks(data);
-    } catch (error) {
-      console.error(error);
-      toast.error(t('savedScholarships.loadError')); // Sử dụng key dịch
+      
+      // Đảm bảo data là array
+      if (Array.isArray(data)) {
+        setBookmarks(data);
+      } else {
+        setBookmarks([]);
+        toast.error('Dữ liệu không hợp lệ từ server');
+      }
+    } catch (error: any) {
+      const errorMessage = error?.message || t('savedScholarships.loadError');
+      toast.error(errorMessage);
+      setBookmarks([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
@@ -37,6 +45,17 @@ export default function SavedScholarshipsPage() {
 
   useEffect(() => {
     fetchSavedList();
+    
+    // Refresh khi user quay lại trang (khi tab được focus)
+    const handleFocus = () => {
+      fetchSavedList();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   // 2. Xử lý khi bấm nút Xóa (Unsave) ngay tại trang này

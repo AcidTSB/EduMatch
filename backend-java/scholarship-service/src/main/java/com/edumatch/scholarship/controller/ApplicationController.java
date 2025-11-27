@@ -123,4 +123,16 @@ public class ApplicationController {
         ApplicationDto dto = applicationService.updateApplicationStatusByAdmin(id, request.getStatus());
         return ResponseEntity.ok(dto);
     }
+
+    /**
+     * API để Admin lấy recent applications (cho dashboard)
+     * Endpoint: GET /api/applications/recent
+     */
+    @GetMapping("/recent")
+    @PreAuthorize("hasRole('ROLE_ADMIN')") // Chỉ ADMIN
+    public ResponseEntity<List<ApplicationDto>> getRecentApplications(
+            @RequestParam(defaultValue = "5") int limit) {
+        List<ApplicationDto> applications = applicationService.getRecentApplications(limit);
+        return ResponseEntity.ok(applications);
+    }
 }

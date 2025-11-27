@@ -125,12 +125,14 @@ export async function getNotifications(
   size: number = 20
 ): Promise<any> {
   try {
+    console.log('[chat.service] Fetching notifications...', { page, size });
     const response = await chatApiClient.get('/notifications', {
       params: { page, size }
     });
+    console.log('[chat.service] Notifications response:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error('[chat.service] Error fetching notifications:', error);
     throw error;
   }
 }

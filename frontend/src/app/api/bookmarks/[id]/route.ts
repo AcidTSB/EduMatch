@@ -1,21 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const JAVA_API_URL = process.env.NEXT_PUBLIC_API_GATEWAY || 'http://localhost:8080';
+// For server-side (Next.js API routes), use Docker container name
+// For client-side, use NEXT_PUBLIC_API_GATEWAY (localhost:8080)
+const JAVA_API_URL = process.env.API_GATEWAY 
+  || 'http://api-gateway-test:80'; // Container name for server-side Docker networking
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> | { id: string } }
 ) {
   try {
-    const scholarshipId = params.id;
-    const token = request.headers.get('authorization');
+    // Handle both Next.js 13 and 15 (params might be Promise)
+    let resolvedParams;
+    try {
+      resolvedParams = params instanceof Promise ? await params : params;
+    } catch (paramsError: any) {
+      return NextResponse.json(
+        { 
+          message: 'Invalid request parameters',
+          error: paramsError.message 
+        }, 
+        { status: 400 }
+      );
+    }
+    
+    const scholarshipId = resolvedParams.id;
+    const authHeader = request.headers.get('authorization');
 
-    if (!token) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    if (!authHeader) {
+      return NextResponse.json({ message: 'Unauthorized - No token provided' }, { status: 401 });
     }
 
-    // Gọi sang Java: POST /api/bookmarks/{id}
-    const res = await fetch(`${JAVA_API_URL}/api/bookmarks/${scholarshipId}`, {
+    const token = authHeader.startsWith('Bearer ') ? authHeader : `Bearer ${authHeader}`;
+    const backendUrl = `${JAVA_API_URL}/api/bookmarks/${scholarshipId}`;
+
+    const res = await fetch(backendUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -24,14 +43,27 @@ export async function POST(
     });
 
     if (!res.ok) {
-        throw new Error(`Java Backend error: ${res.status}`);
+      const errorText = await res.text();
+      return NextResponse.json(
+        { 
+          message: `Backend error: ${res.status}`,
+          details: errorText 
+        }, 
+        { status: res.status }
+      );
     }
 
     const data = await res.json();
     return NextResponse.json(data);
 
-  } catch (error) {
-    console.error('Proxy Error [Bookmark Toggle]:', error);
-    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+  } catch (error: any) {
+    console.error('[Bookmark Toggle] Error:', error);
+    return NextResponse.json(
+      { 
+        message: 'Internal Server Error',
+        error: error.message || 'Unknown error'
+      }, 
+      { status: 500 }
+    );
   }
 }

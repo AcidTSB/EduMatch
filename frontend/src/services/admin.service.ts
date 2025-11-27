@@ -386,6 +386,146 @@ export const adminService = {
       body: JSON.stringify({ status }),
     });
   },
+
+  /**
+   * Lấy recent applications (cho admin dashboard)
+   * GET /api/applications/recent
+   */
+  getRecentApplications: async (limit: number = 5): Promise<AdminApplication[]> => {
+    return apiCall<AdminApplication[]>(`/api/applications/recent?limit=${limit}`);
+  },
+
+  /**
+   * Lấy recent users (cho admin dashboard)
+   * GET /api/admin/users/recent
+   */
+  getRecentUsers: async (limit: number = 5): Promise<AdminUser[]> => {
+    const response = await apiCall<{ users: AdminUser[] }>(`/api/admin/users/recent?limit=${limit}`);
+    return response.users || [];
+  },
+
+  /**
+   * Admin Notifications APIs
+   */
+  
+  /**
+   * Gửi thông báo
+   * POST /api/admin/notifications/send
+   */
+  sendNotification: async (request: {
+    targetAudience: string;
+    specificEmail?: string;
+    type: string;
+    priority: string;
+    title: string;
+    message: string;
+    actionUrl?: string;
+    actionLabel?: string;
+    sendEmail: boolean;
+  }): Promise<any> => {
+    return apiCall('/api/admin/notifications/send', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  /**
+   * Lấy stats notifications
+   * GET /api/admin/notifications/stats
+   */
+  getNotificationStats: async (): Promise<{
+    totalSent: number;
+    delivered: number;
+    pending: number;
+    failed: number;
+    changePercentage: number;
+  }> => {
+    return apiCall('/api/admin/notifications/stats');
+  },
+
+  /**
+   * Lấy lịch sử notifications
+   * GET /api/admin/notifications/history
+   */
+  getNotificationHistory: async (params?: {
+    page?: number;
+    size?: number;
+  }): Promise<any> => {
+    const searchParams = new URLSearchParams();
+    if (params) {
+      if (params.page !== undefined) searchParams.append('page', params.page.toString());
+      if (params.size !== undefined) searchParams.append('size', params.size.toString());
+    }
+    
+    const queryString = searchParams.toString();
+    return apiCall(`/api/admin/notifications/history${queryString ? `?${queryString}` : ''}`);
+  },
+
+  /**
+   * Lấy tất cả templates
+   * GET /api/admin/notifications/templates
+   */
+  getNotificationTemplates: async (): Promise<any[]> => {
+    return apiCall('/api/admin/notifications/templates');
+  },
+
+  /**
+   * Lấy một template
+   * GET /api/admin/notifications/templates/{id}
+   */
+  getNotificationTemplate: async (id: number): Promise<any> => {
+    return apiCall(`/api/admin/notifications/templates/${id}`);
+  },
+
+  /**
+   * Tạo template mới
+   * POST /api/admin/notifications/templates
+   */
+  createNotificationTemplate: async (request: {
+    name: string;
+    description?: string;
+    type: string;
+    title?: string;
+    message?: string;
+    actionUrl?: string;
+    actionLabel?: string;
+    priority?: string;
+  }): Promise<any> => {
+    return apiCall('/api/admin/notifications/templates', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  /**
+   * Cập nhật template
+   * PUT /api/admin/notifications/templates/{id}
+   */
+  updateNotificationTemplate: async (id: number, request: {
+    name: string;
+    description?: string;
+    type: string;
+    title?: string;
+    message?: string;
+    actionUrl?: string;
+    actionLabel?: string;
+    priority?: string;
+  }): Promise<any> => {
+    return apiCall(`/api/admin/notifications/templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
+    });
+  },
+
+  /**
+   * Xóa template
+   * DELETE /api/admin/notifications/templates/{id}
+   */
+  deleteNotificationTemplate: async (id: number): Promise<void> => {
+    return apiCall(`/api/admin/notifications/templates/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 export default adminService;

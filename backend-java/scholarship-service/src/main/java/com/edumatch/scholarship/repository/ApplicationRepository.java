@@ -34,4 +34,5 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             @Param("keyword") String keyword,
             Pageable pageable
     );
+    
 }

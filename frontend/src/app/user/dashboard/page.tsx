@@ -34,10 +34,12 @@ import { RealTimeDashboardStats } from '@/components/RealTimeDashboardStats';
 import { RealTimeApplicationStatus } from '@/components/RealTimeApplicationStatus';
 import { MatchToast } from '@/components/MatchToast';
 import { ScholarshipCard } from '@/components/ScholarshipCard';
-import { useApplicationsData, useNotificationsData } from '@/contexts/AppContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { parseNotification } from '@/lib/notification-templates';
 import { scholarshipServiceApi } from '@/services/scholarship.service';
+import { getNotifications } from '@/services/chat.service';
+import { useRealTime } from '@/providers/RealTimeProvider';
+import { useNotificationStore } from '@/stores/realtimeStore';
 import { mapPaginatedOpportunities, mapOpportunityDtoToScholarship } from '@/lib/scholarship-mapper';
 import { Scholarship } from '@/types';
 import { useApplications, useSavedScholarships } from '@/hooks/api';
@@ -48,6 +50,7 @@ import { toast } from 'react-hot-toast';
 import { ProfileCompletionModal } from '@/components/ProfileCompletionModal';
 import { useProfileCompletionCheck } from '@/hooks/useProfileCompletionCheck';
 import { markProfileCompletionSkipped } from '@/lib/profile-utils';
+import { Carousel } from '@/components/Carousel';
 
 // Animation variants
 const cardVariants = {
@@ -94,15 +97,25 @@ export default function DashboardPage() {
     }
   }, [shouldShowModal, hideModal]);
   
-  // Use AppContext hooks
-  const { applications } = useApplicationsData();
-  const { notifications } = useNotificationsData();
-  
-  // Fetch scholarships and saved scholarships from API
+  // Fetch real data from API
+  const { applications: apiApplications, fetchApplications } = useApplications();
+  const { savedScholarships } = useSavedScholarships();
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [scholarships, setScholarships] = useState<Scholarship[]>([]);
   const [loading, setLoading] = useState(true);
   const [matchingScores, setMatchingScores] = useState<Map<string, number>>(new Map());
-  const { savedScholarships } = useSavedScholarships();
+  
+  // Get notifications from RealTimeProvider (same source as NotificationDropdown)
+  const { notifications: realTimeNotifications } = useRealTime();
+  const { loadNotifications: storeLoadNotifications } = useNotificationStore();
+  
+  // Use API applications instead of AppContext
+  const applications = apiApplications;
+  
+  // Use real-time notifications if available, otherwise use fetched notifications
+  const displayNotifications = realTimeNotifications && realTimeNotifications.length > 0 
+    ? realTimeNotifications 
+    : notifications;
 
   // Check employer request status and refresh user data if role changed
   useEffect(() => {
@@ -194,36 +207,168 @@ export default function DashboardPage() {
 
     return () => clearInterval(interval);
   }, [isAuthenticated, user, queryClient, router]);
-  
+
+  // Fetch all data on mount
   useEffect(() => {
-    const fetchScholarships = async () => {
+    const fetchAllData = async () => {
+      console.log('[Dashboard] Starting to fetch all data...', { isAuthenticated, user: user?.id });
+      
+      if (!isAuthenticated || !user) {
+        console.log('[Dashboard] Not authenticated or no user, skipping fetch');
+        return;
+      }
+      
       try {
         setLoading(true);
-        const response = await scholarshipServiceApi.getScholarships({
-          page: 0,
-          size: 3,
-          isPublic: true,
-          currentDate: new Date().toISOString().split('T')[0]
-        });
-        const mapped = mapPaginatedOpportunities(response);
-        setScholarships(mapped.scholarships);
-
-        // Fetch matching scores for recommended scholarships
+        
+        // Fetch applications
+        console.log('[Dashboard] Fetching applications...');
         try {
-          await fetchMatchingScores(mapped.scholarships);
+          await fetchApplications();
+          console.log('[Dashboard] Applications fetched successfully, count:', applications.length);
         } catch (err) {
-          console.debug('Failed to fetch matching scores on dashboard:', err);
+          console.error('[Dashboard] Error fetching applications:', err);
         }
+        
+        // Fetch scholarships (fetch more for carousel pagination)
+        console.log('[Dashboard] Fetching scholarships...');
+        try {
+          const response = await scholarshipServiceApi.getScholarships({
+            page: 0,
+            size: 12, // Fetch 12 scholarships for carousel (4 pages of 3 items each)
+            isPublic: true,
+            currentDate: new Date().toISOString().split('T')[0]
+          });
+          console.log('[Dashboard] Scholarships response:', response);
+          const mapped = await mapPaginatedOpportunities(response);
+          console.log('[Dashboard] Mapped scholarships:', mapped.scholarships.length);
+          // Log first few scholarships to check createdAt and updatedAt
+          if (mapped.scholarships.length > 0) {
+            console.log('[Dashboard] Sample scholarships with dates:', 
+              mapped.scholarships.slice(0, 5).map(s => ({
+                id: s.id,
+                title: s.title,
+                createdAt: s.createdAt ? (s.createdAt instanceof Date ? s.createdAt.toISOString() : s.createdAt) : 'MISSING',
+                updatedAt: (s as any).updatedAt ? ((s as any).updatedAt instanceof Date ? (s as any).updatedAt.toISOString() : (s as any).updatedAt) : 'MISSING',
+                sortDate: (s as any).updatedAt || s.createdAt ? ((s as any).updatedAt || s.createdAt instanceof Date ? ((s as any).updatedAt || s.createdAt).toISOString() : ((s as any).updatedAt || s.createdAt)) : 'MISSING'
+              }))
+            );
+          }
+          setScholarships(mapped.scholarships);
+
+          // Fetch matching scores for recommended scholarships
+          try {
+            await fetchMatchingScores(mapped.scholarships);
+          } catch (err) {
+            console.debug('[Dashboard] Failed to fetch matching scores:', err);
+          }
+        } catch (err) {
+          console.error('[Dashboard] Error fetching scholarships:', err);
+        }
+        
+        // Fetch notifications from database
+        console.log('[Dashboard] Fetching notifications from database...');
+        try {
+          const notificationsData = await getNotifications(0, 50);
+          console.log('[Dashboard] Notifications API response:', {
+            hasContent: !!notificationsData?.content,
+            contentLength: notificationsData?.content?.length || 0,
+            totalElements: notificationsData?.totalElements || 0,
+            isArray: Array.isArray(notificationsData),
+            fullResponse: notificationsData
+          });
+          
+          let notificationsArray: any[] = [];
+          
+          // Spring Data Page format: { content: [...], totalElements, totalPages, ... }
+          if (notificationsData && notificationsData.content && Array.isArray(notificationsData.content)) {
+            notificationsArray = notificationsData.content;
+            console.log('[Dashboard] Found', notificationsArray.length, 'notifications in content array');
+          } else if (Array.isArray(notificationsData)) {
+            notificationsArray = notificationsData;
+            console.log('[Dashboard] Response is direct array, found', notificationsArray.length, 'notifications');
+          } else {
+            console.warn('[Dashboard] Notifications data format unexpected:', {
+              type: typeof notificationsData,
+              keys: notificationsData ? Object.keys(notificationsData) : [],
+              data: notificationsData
+            });
+            setNotifications([]);
+            await storeLoadNotifications([]);
+            return;
+          }
+          
+          if (notificationsArray.length === 0) {
+            console.log('[Dashboard] No notifications found in database');
+            setNotifications([]);
+            await storeLoadNotifications([]);
+            return;
+          }
+          
+          // Map notifications to expected format
+          const mappedNotifications = notificationsArray.map((notif: any) => {
+            // Backend Notification model fields: id, userId, title, body, type, referenceId, isRead, createdAt
+            // Backend returns both 'read' (from @JsonProperty) and 'isRead' (from field name)
+            // Prefer 'read' first, then 'isRead', default to false
+            const isRead = notif.read !== undefined ? notif.read : (notif.isRead !== undefined ? notif.isRead : false);
+            
+            return {
+              id: notif.id?.toString() || `notif-${Date.now()}-${Math.random()}`,
+              type: notif.type || 'INFO',
+              title: notif.title || 'Notification',
+              message: notif.body || notif.message || '',
+              body: notif.body || notif.message || '',
+              read: isRead,
+              isRead: isRead, // Keep both for compatibility
+              createdAt: notif.createdAt || new Date(),
+              opportunityTitle: notif.opportunityTitle,
+              referenceId: notif.referenceId,
+            };
+          });
+          
+          // Sort by createdAt descending (newest first)
+          const sorted = mappedNotifications.sort((a: any, b: any) => {
+            const dateA = new Date(a.createdAt).getTime();
+            const dateB = new Date(b.createdAt).getTime();
+            return dateB - dateA;
+          });
+          
+          console.log('[Dashboard] Mapped and sorted', sorted.length, 'notifications:', sorted.map(n => ({ id: n.id, title: n.title, type: n.type })));
+          
+          // Load notifications into store (this will persist them in memory)
+          console.log('[Dashboard] Loading', notificationsArray.length, 'notifications into store');
+          await storeLoadNotifications(notificationsArray);
+          
+          // Also set local state for immediate display
+          setNotifications(sorted);
+          console.log('[Dashboard] Notifications loaded successfully');
+        } catch (err: any) {
+          console.error('[Dashboard] Error fetching notifications:', {
+            error: err,
+            message: err?.message,
+            response: err?.response?.data,
+            status: err?.response?.status
+          });
+          setNotifications([]);
+          await storeLoadNotifications([]);
+        }
+        
+        console.log('[Dashboard] All data fetched. Final state:', {
+          applications: applications.length,
+          scholarships: scholarships.length,
+          notifications: notifications.length,
+          savedScholarships: savedScholarships.length
+        });
       } catch (error) {
-        console.error('Error fetching recommended scholarships:', error);
-        toast.error('Failed to load recommended scholarships');
+        console.error('[Dashboard] Error fetching dashboard data:', error);
+        toast.error('Failed to load dashboard data');
       } finally {
         setLoading(false);
       }
     };
     
-    fetchScholarships();
-  }, []);
+    fetchAllData();
+  }, [isAuthenticated, user, fetchApplications]);
 
   // Fetch matching scores for current user and scholarships
   const fetchMatchingScores = async (scholarshipList: Scholarship[]) => {
@@ -250,28 +395,264 @@ export default function DashboardPage() {
     }
   };
 
-  // Dashboard data from API
-  const dashboardData = React.useMemo(() => ({
-    stats: {
+  // Dashboard data from API - sorted by date
+  const dashboardData = React.useMemo(() => {
+    const notificationsToDisplay = realTimeNotifications && realTimeNotifications.length > 0 
+      ? realTimeNotifications 
+      : (notifications.length > 0 ? notifications : []);
+    
+    console.log('[Dashboard] Computing dashboardData with:', {
+      applicationsCount: applications.length,
+      scholarshipsCount: scholarships.length,
+      notificationsCount: notificationsToDisplay.length,
+      realTimeNotificationsCount: realTimeNotifications?.length || 0,
+      fetchedNotificationsCount: notifications.length,
+      savedScholarshipsCount: savedScholarships.length
+    });
+    
+    // Sort applications by submittedAt/createdAt descending (newest first)
+    const sortedApplications = [...applications].sort((a, b) => {
+      // Parse dates properly
+      const getDateA = () => {
+        if (a.submittedAt) return new Date(a.submittedAt).getTime();
+        if (a.createdAt) {
+          const date = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+          return isNaN(date.getTime()) ? 0 : date.getTime();
+        }
+        return 0;
+      };
+      const getDateB = () => {
+        if (b.submittedAt) return new Date(b.submittedAt).getTime();
+        if (b.createdAt) {
+          const date = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+          return isNaN(date.getTime()) ? 0 : date.getTime();
+        }
+        return 0;
+      };
+      const dateA = getDateA();
+      const dateB = getDateB();
+      // Descending order: newest first (larger timestamp comes first)
+      return dateB - dateA;
+    });
+    
+    // Sort notifications by createdAt descending (newest first)
+    const sortedNotifications = [...notificationsToDisplay].sort((a: any, b: any) => {
+      const getDateA = () => {
+        if (a.createdAt) {
+          const date = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+          return isNaN(date.getTime()) ? 0 : date.getTime();
+        }
+        if (a.sentAt) {
+          const date = a.sentAt instanceof Date ? a.sentAt : new Date(a.sentAt);
+          return isNaN(date.getTime()) ? 0 : date.getTime();
+        }
+        if (a.timestamp) {
+          const date = a.timestamp instanceof Date ? a.timestamp : new Date(a.timestamp);
+          return isNaN(date.getTime()) ? 0 : date.getTime();
+        }
+        return 0;
+      };
+      const getDateB = () => {
+        if (b.createdAt) {
+          const date = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+          return isNaN(date.getTime()) ? 0 : date.getTime();
+        }
+        if (b.sentAt) {
+          const date = b.sentAt instanceof Date ? b.sentAt : new Date(b.sentAt);
+          return isNaN(date.getTime()) ? 0 : date.getTime();
+        }
+        if (b.timestamp) {
+          const date = b.timestamp instanceof Date ? b.timestamp : new Date(b.timestamp);
+          return isNaN(date.getTime()) ? 0 : date.getTime();
+        }
+        return 0;
+      };
+      const dateA = getDateA();
+      const dateB = getDateB();
+      // Descending order: newest first (larger timestamp comes first)
+      return dateB - dateA;
+    });
+    
+    const stats = {
       applications: applications.length,
-      inReview: applications.filter(a => a.status === 'PENDING' || a.status === 'VIEWED').length,
+      inReview: applications.filter(a => a.status === 'PENDING' || a.status === 'SUBMITTED' || a.status === 'UNDER_REVIEW' || a.status === 'VIEWED').length,
       accepted: applications.filter(a => a.status === 'ACCEPTED').length,
       saved: savedScholarships.length
-    },
-    recentApplications: applications.slice(0, 3).map(app => {
-      const scholarship = scholarships.find(s => s.id === app.scholarshipId);
-      return {
-        id: app.id,
-        scholarshipTitle: scholarship?.title || 'Unknown Scholarship',
-        provider: scholarship?.providerName || 'Unknown Provider',
-        status: app.status.toLowerCase(),
-        appliedDate: app.createdAt ? app.createdAt.toISOString().split('T')[0] : '',
-        deadline: scholarship?.applicationDeadline || ''
+    };
+    
+    console.log('[Dashboard] Computed stats:', stats);
+    
+    // Sort scholarships by updatedAt (approval date) descending (newest approved first)
+    // If updatedAt is missing, fallback to createdAt
+    const sortedScholarships = [...scholarships].sort((a, b) => {
+      const getDateA = () => {
+        // Priority: updatedAt (approval/update date) > createdAt
+        const dateToUse = (a as any).updatedAt || a.createdAt;
+        if (!dateToUse) {
+          console.warn(`[Dashboard] Scholarship "${a.title}" missing both updatedAt and createdAt`);
+          return 0; // Oldest items without dates go to end
+        }
+        const date = dateToUse instanceof Date ? dateToUse : new Date(dateToUse);
+        if (isNaN(date.getTime())) {
+          console.warn(`[Dashboard] Scholarship "${a.title}" has invalid date: ${dateToUse}`);
+          return 0;
+        }
+        return date.getTime();
       };
-    }),
-    notifications: notifications.slice(0, 5),
-    recommendedScholarships: scholarships.slice(0, 3)
-  }), [scholarships, applications, notifications, savedScholarships]);
+      const getDateB = () => {
+        // Priority: updatedAt (approval/update date) > createdAt
+        const dateToUse = (b as any).updatedAt || b.createdAt;
+        if (!dateToUse) {
+          console.warn(`[Dashboard] Scholarship "${b.title}" missing both updatedAt and createdAt`);
+          return 0; // Oldest items without dates go to end
+        }
+        const date = dateToUse instanceof Date ? dateToUse : new Date(dateToUse);
+        if (isNaN(date.getTime())) {
+          console.warn(`[Dashboard] Scholarship "${b.title}" has invalid date: ${dateToUse}`);
+          return 0;
+        }
+        return date.getTime();
+      };
+      const dateA = getDateA();
+      const dateB = getDateB();
+      // Descending order: newest approved/updated first (larger timestamp comes first)
+      // If dateB > dateA, return positive (B should come before A)
+      const result = dateB - dateA;
+      if (dateA > 0 && dateB > 0) {
+        const dateAStr = new Date(dateA).toISOString();
+        const dateBStr = new Date(dateB).toISOString();
+        const dateTypeA = (a as any).updatedAt ? 'updatedAt' : 'createdAt';
+        const dateTypeB = (b as any).updatedAt ? 'updatedAt' : 'createdAt';
+        console.log(`[Dashboard] Sorting: "${a.title.substring(0, 20)}" (${dateTypeA}: ${dateAStr}) vs "${b.title.substring(0, 20)}" (${dateTypeB}: ${dateBStr}) = ${result > 0 ? 'B newer (B first)' : result < 0 ? 'A newer (A first)' : 'equal'}`);
+      }
+      return result;
+    });
+    
+    // Log sorted order to verify and check if reversal is needed
+    if (sortedScholarships.length > 0) {
+      console.log('[Dashboard] Sorted scholarships order (newest approved first):', 
+        sortedScholarships.map((s, idx) => {
+          const updatedAt = (s as any).updatedAt;
+          const createdAt = s.createdAt;
+          const sortDate = updatedAt || createdAt;
+          return {
+            index: idx,
+            title: s.title,
+            createdAt: createdAt ? (createdAt instanceof Date ? createdAt.toISOString() : createdAt) : 'MISSING',
+            updatedAt: updatedAt ? (updatedAt instanceof Date ? updatedAt.toISOString() : updatedAt) : 'MISSING',
+            sortDate: sortDate ? (sortDate instanceof Date ? sortDate.toISOString() : sortDate) : 'MISSING',
+            sortTimestamp: sortDate ? (sortDate instanceof Date ? sortDate.getTime() : new Date(sortDate).getTime()) : 0,
+            usingUpdatedAt: !!updatedAt
+          };
+        })
+      );
+      
+      // Check if first item is actually newer than last item (if both have valid dates)
+      const firstItem = sortedScholarships[0];
+      const lastItem = sortedScholarships[sortedScholarships.length - 1];
+      const firstSortDate = (firstItem as any).updatedAt || firstItem.createdAt;
+      const lastSortDate = (lastItem as any).updatedAt || lastItem.createdAt;
+      const firstTimestamp = firstSortDate ? (firstSortDate instanceof Date ? firstSortDate.getTime() : new Date(firstSortDate).getTime()) : 0;
+      const lastTimestamp = lastSortDate ? (lastSortDate instanceof Date ? lastSortDate.getTime() : new Date(lastSortDate).getTime()) : 0;
+      
+      if (firstTimestamp > 0 && lastTimestamp > 0 && firstTimestamp < lastTimestamp) {
+        console.error('[Dashboard] ❌ ERROR: Array is sorted in wrong order! First item is older than last item. Reversing array...');
+        sortedScholarships.reverse();
+        console.log('[Dashboard] ✅ Array reversed. New first item:', sortedScholarships[0].title);
+      }
+      
+      // Log which items are at the beginning and end
+      console.log('[Dashboard] First 3 items (should be newest approved):', 
+        sortedScholarships.slice(0, 3).map(s => ({
+          title: s.title,
+          sortDate: ((s as any).updatedAt || s.createdAt) ? (((s as any).updatedAt || s.createdAt) instanceof Date ? ((s as any).updatedAt || s.createdAt).toISOString() : ((s as any).updatedAt || s.createdAt)) : 'MISSING'
+        }))
+      );
+      console.log('[Dashboard] Last 3 items (should be oldest approved):', 
+        sortedScholarships.slice(-3).map(s => ({
+          title: s.title,
+          sortDate: ((s as any).updatedAt || s.createdAt) ? (((s as any).updatedAt || s.createdAt) instanceof Date ? ((s as any).updatedAt || s.createdAt).toISOString() : ((s as any).updatedAt || s.createdAt)) : 'MISSING'
+        }))
+      );
+    }
+    
+    const result = {
+      stats,
+      recentApplications: sortedApplications.slice(0, 3).map(app => {
+        const scholarship = scholarships.find(s => s.id === app.scholarshipId);
+        return {
+          id: app.id,
+          scholarshipTitle: app.opportunityTitle || scholarship?.title || 'Unknown Scholarship',
+          provider: scholarship?.providerName || 'Unknown Provider',
+          status: app.status.toLowerCase(),
+          appliedDate: app.submittedAt || app.createdAt || new Date(),
+          deadline: scholarship?.applicationDeadline || ''
+        };
+      }),
+      notifications: sortedNotifications.slice(0, 5),
+      recommendedScholarships: sortedScholarships // Already sorted by createdAt descending (newest first)
+    };
+    
+    // Verify: First item should be newest (largest timestamp)
+    if (result.recommendedScholarships.length > 0) {
+      const firstTimestamp = result.recommendedScholarships[0].createdAt ? 
+        new Date(result.recommendedScholarships[0].createdAt).getTime() : 0;
+      const lastTimestamp = result.recommendedScholarships[result.recommendedScholarships.length - 1].createdAt ? 
+        new Date(result.recommendedScholarships[result.recommendedScholarships.length - 1].createdAt).getTime() : 0;
+      console.log('[Dashboard] Verification - First item timestamp:', firstTimestamp, 'Last item timestamp:', lastTimestamp);
+      if (firstTimestamp < lastTimestamp && firstTimestamp > 0 && lastTimestamp > 0) {
+        console.warn('[Dashboard] ⚠️ WARNING: Array appears to be sorted in wrong order! First item is older than last item.');
+      }
+    }
+    
+    console.log('[Dashboard] Final dashboardData:', {
+      stats: result.stats,
+      recentApplicationsCount: result.recentApplications.length,
+      notificationsCount: result.notifications.length,
+      recommendedScholarshipsCount: result.recommendedScholarships.length
+    });
+    
+    // Log first few items to verify sorting (newest should be first)
+    if (result.recommendedScholarships.length > 0) {
+      console.log('[Dashboard] First 3 scholarships (should be newest):', 
+        result.recommendedScholarships.slice(0, 3).map(s => ({
+          id: s.id,
+          title: s.title,
+          createdAt: s.createdAt,
+          createdAtParsed: s.createdAt ? new Date(s.createdAt).toISOString() : 'N/A',
+          timestamp: s.createdAt ? new Date(s.createdAt).getTime() : 0
+        }))
+      );
+      console.log('[Dashboard] Last 3 scholarships (should be oldest):', 
+        result.recommendedScholarships.slice(-3).map(s => ({
+          id: s.id,
+          title: s.title,
+          createdAt: s.createdAt,
+          timestamp: s.createdAt ? new Date(s.createdAt).getTime() : 0
+        }))
+      );
+    }
+    if (result.notifications.length > 0) {
+      console.log('[Dashboard] First 3 notifications (should be newest):', 
+        result.notifications.slice(0, 3).map(n => ({
+          id: n.id,
+          title: n.title,
+          createdAt: n.createdAt
+        }))
+      );
+    }
+    if (result.recentApplications.length > 0) {
+      console.log('[Dashboard] First 3 applications (should be newest):', 
+        result.recentApplications.map(a => ({
+          id: a.id,
+          title: a.scholarshipTitle,
+          appliedDate: a.appliedDate
+        }))
+      );
+    }
+    
+    return result;
+  }, [scholarships, applications, notifications, savedScholarships, realTimeNotifications]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -347,12 +728,19 @@ export default function DashboardPage() {
       </div>
     </div>      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Real-time Stats Overview */}
-        <RealTimeDashboardStats userRole="applicant" />
+        <RealTimeDashboardStats 
+          userRole="applicant" 
+          applications={applications}
+          savedScholarships={savedScholarships}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
           {/* Real-time Applications */}
           <div className="lg:col-span-2">
-            <RealTimeApplicationStatus />
+            <RealTimeApplicationStatus 
+              applications={applications}
+              scholarships={scholarships}
+            />
           </div>
 
           {/* Notifications */}
@@ -365,18 +753,56 @@ export default function DashboardPage() {
                 </Button>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {dashboardData.notifications.slice(0, 5).map((notification) => {
-                    const { templateKey, params } = parseNotification(notification);
-                    return (
-                      <div key={notification.id} className={`p-3 rounded-lg border ${!notification.read ? 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 shadow-sm' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200'}`}>
-                        <h5 className="font-medium text-sm text-gray-900">{t(templateKey + '.title', params || {})}</h5>
-                        <p className="text-xs text-gray-600 mt-1">{t(templateKey, params || {})}</p>
-                        <p className="text-xs text-gray-500 mt-2">{formatDate(notification.createdAt.toString())}</p>
-                      </div>
-                    );
-                  })}
-                </div>
+                <Carousel
+                  items={dashboardData.notifications}
+                  itemsPerPage={3}
+                  renderItem={(notification: any) => {
+                    console.log('[Dashboard] Rendering notification:', notification);
+                    try {
+                      const { templateKey, params } = parseNotification({
+                        type: notification.type || 'INFO',
+                        title: notification.title || 'Notification',
+                        message: notification.message || notification.body || '',
+                        opportunityTitle: notification.opportunityTitle
+                      });
+                      return (
+                        <div key={notification.id} className={`p-3 rounded-lg border ${!notification.read ? 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 shadow-sm' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200'}`}>
+                          <h5 className="font-medium text-sm text-gray-900">
+                            {notification.title || t(templateKey + '.title', params || {})}
+                          </h5>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {notification.message || notification.body || t(templateKey, params || {})}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-2">
+                            {formatDate(notification.createdAt?.toString() || new Date().toString())}
+                          </p>
+                        </div>
+                      );
+                    } catch (err) {
+                      console.error('[Dashboard] Error parsing notification:', err, notification);
+                      // Fallback display
+                      return (
+                        <div key={notification.id} className={`p-3 rounded-lg border ${!notification.read ? 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200 shadow-sm' : 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200'}`}>
+                          <h5 className="font-medium text-sm text-gray-900">
+                            {notification.title || 'Notification'}
+                          </h5>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {notification.message || notification.body || 'No message'}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-2">
+                            {formatDate(notification.createdAt?.toString() || new Date().toString())}
+                          </p>
+                        </div>
+                      );
+                    }
+                  }}
+                  emptyMessage={
+                    <div className="text-center py-8 text-gray-500">
+                      <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>{t('dashboard.notifications.noNotifications') || 'No notifications yet'}</p>
+                    </div>
+                  }
+                />
               </CardContent>
             </Card>
           </div>
@@ -394,18 +820,18 @@ export default function DashboardPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <motion.div 
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 grid-equal-height"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              {dashboardData.recommendedScholarships.map((scholarship, index) => (
+            <Carousel
+              items={dashboardData.recommendedScholarships}
+              itemsPerPage={3}
+              renderItem={(scholarship: Scholarship, index: number) => (
                 <motion.div
                   key={scholarship.id}
                   variants={cardVariants}
+                  initial="hidden"
+                  animate="visible"
                   whileHover="hover"
                   custom={index}
+                  className="h-full"
                 >
                   <ScholarshipCard
                     scholarship={scholarship}
@@ -413,8 +839,17 @@ export default function DashboardPage() {
                     className="w-full h-full"
                   />
                 </motion.div>
-              ))}
-            </motion.div>
+              )}
+              emptyMessage={
+                <div className="text-center py-8 text-gray-500">
+                  <Award className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>{t('dashboard.recommended.noScholarships') || 'No recommended scholarships available'}</p>
+                  <Button asChild className="mt-4">
+                    <Link href="/user/scholarships">{t('dashboard.recommended.browse') || 'Browse Scholarships'}</Link>
+                  </Button>
+                </div>
+              }
+            />
           </CardContent>
         </Card>
 
